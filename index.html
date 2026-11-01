@@ -141,6 +141,11 @@ html.lock,html.lock body{overflow:hidden}
 @media (max-width:700px){
   .day{min-height:74px;padding:3px}
   .dmemo{display:none}.dmemo.has{display:block;font-size:10.5px;padding:1px 3px;min-height:0}
+  /* 폰: 날짜 메모는 평소 한 줄, 누르면 크게 펼쳐서 읽고 고침 */
+  .dmemo.has:not(:focus){height:1.7em!important;white-space:nowrap;overflow:hidden;line-height:1.7em;padding:0 3px;font-size:10px;text-align:left}
+  .dmemo:focus{display:block;position:fixed;left:16px;right:auto;width:calc(100vw - 32px)!important;box-sizing:border-box;top:22vh;z-index:200;height:auto!important;min-height:32vh;max-height:60vh;overflow:auto;
+    font-size:15px;line-height:1.6;text-align:left;padding:14px 16px;background:var(--card,#fff);border:1px solid var(--line,#ddd);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.28);white-space:pre-wrap}
+  .dmbox:focus-within .mcols{position:fixed;left:16px;top:calc(22vh - 34px);z-index:201;background:var(--card,#fff);padding:6px 8px;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.2)}
   .ev{font-size:11px;padding:1px}.ev .evx,.ev .sc{display:none}.ev .t{display:none}
   .agenda{display:block;margin-top:12px}
 }
