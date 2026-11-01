@@ -1,0 +1,1867 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+</head><body>
+<title>감탄 고객관리</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700;800;900&display=swap">
+<style>
+/* 레이아웃: 예전 CRM(v17) 그대로 — 위 남색 띠, 왼쪽 캘린더/목록, 오른쪽 고객 화면(폰은 전체 화면) */
+:root{
+  --bg:#eef0f5; --card:#ffffff; --line:#e2e5ee; --line2:#eff1f6; --fg:#1a1a2e; --sub:#4b5263; --muted:#8a90a0;
+  --acc:#6366f1; --acc-bg:#eef0ff; --acc-fg:#4338ca;
+  --top:#1a1a2e; --top-fg:#ffffff; --top-sub:#a9adc4;
+  --memo-bg:#fffbea; --memo-line:#fde68a; --memo-fg:#92400e;
+  --ok:#15803d; --ok-bg:#ecfdf3; --ok-line:#bbf7d0;
+  --warn:#b45309; --warn-bg:#fff6e5; --warn-line:#fcd9a0;
+  --crit:#dc2626; --crit-bg:#fff1f1; --crit-line:#fecaca;
+  --tbd:#be185d; --tbd-bg:#fdf2f8; --tbd-line:#f9a8d4;
+  --am:#dc2626; --pm:#2563eb;
+  --k-fam:#3a9412; --k-id:#2563eb; --k-pro:#7c3aed; --k-con:#dc2626; --k-cend:#9ca3af; --k-cancel:#9ca3af; --k-delay:#ea580c;
+  --green-box:#f0fdf4; --green-line:#bbf7d0; --green-fg:#166534;
+  --f-body:'IBM Plex Sans KR',system-ui,-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121319; --card:#1b1d27; --line:#2c2f3d; --line2:#232633; --fg:#eceef5; --sub:#b7bccb; --muted:#7f8597;
+  --acc:#8b8ef7; --acc-bg:#25264a; --acc-fg:#c7c9ff;
+  --top:#0b0c13; --top-fg:#f3f4fa; --top-sub:#8d92ab;
+  --memo-bg:#2a2415; --memo-line:#5a4919; --memo-fg:#f3cf7c;
+  --ok:#4ade80; --ok-bg:#13281c; --ok-line:#1f5133;
+  --warn:#fbbf24; --warn-bg:#2a2110; --warn-line:#5b4313;
+  --crit:#f87171; --crit-bg:#2d1517; --crit-line:#5e2328;
+  --tbd:#f472b6; --tbd-bg:#2c1524; --tbd-line:#6b2650;
+  --am:#f87171; --pm:#60a5fa;
+  --k-fam:#7fd14c; --k-id:#60a5fa; --k-pro:#a78bfa; --k-con:#f87171; --k-cend:#6b7280; --k-cancel:#6b7280; --k-delay:#fb923c;
+  --green-box:#122219; --green-line:#1f4a30; --green-fg:#86efac; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121319; --card:#1b1d27; --line:#2c2f3d; --line2:#232633; --fg:#eceef5; --sub:#b7bccb; --muted:#7f8597;
+  --acc:#8b8ef7; --acc-bg:#25264a; --acc-fg:#c7c9ff;
+  --top:#0b0c13; --top-fg:#f3f4fa; --top-sub:#8d92ab;
+  --memo-bg:#2a2415; --memo-line:#5a4919; --memo-fg:#f3cf7c;
+  --ok:#4ade80; --ok-bg:#13281c; --ok-line:#1f5133;
+  --warn:#fbbf24; --warn-bg:#2a2110; --warn-line:#5b4313;
+  --crit:#f87171; --crit-bg:#2d1517; --crit-line:#5e2328;
+  --tbd:#f472b6; --tbd-bg:#2c1524; --tbd-line:#6b2650;
+  --am:#f87171; --pm:#60a5fa;
+  --k-fam:#7fd14c; --k-id:#60a5fa; --k-pro:#a78bfa; --k-con:#f87171; --k-cend:#6b7280; --k-cancel:#6b7280; --k-delay:#fb923c;
+  --green-box:#122219; --green-line:#1f4a30; --green-fg:#86efac; color-scheme:dark}
+
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.5;-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--top)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.num,.tn{font-variant-numeric:tabular-nums}
+
+/* 위 띠 */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:40;background:var(--top);color:var(--top-fg)}
+.top-in{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.brand{font-weight:800;font-size:17px;letter-spacing:-.01em;white-space:nowrap}
+.tabs{display:flex;gap:4px}
+.tab{background:transparent;border:1px solid transparent;color:var(--top-sub);border-radius:8px;padding:6px 12px;font-weight:700;font-size:14px;min-height:36px}
+.tab[aria-pressed="true"]{background:rgba(255,255,255,.12);color:var(--top-fg);border-color:rgba(255,255,255,.18)}
+.top-r{margin-left:auto;display:flex;gap:8px;align-items:center;flex:1 1 260px;justify-content:flex-end;min-width:0;flex-wrap:wrap}
+.srch{flex:1 1 120px;max-width:280px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:7px 10px;color:var(--top-fg);min-width:0}
+.srch::placeholder{color:var(--top-sub)}
+.who{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:6px 8px;color:var(--top-fg)}
+.who option{color:#1a1a2e}
+.addbtn{background:var(--acc);border:0;color:#fff;border-radius:8px;padding:7px 12px;font-weight:700;white-space:nowrap;min-height:36px}
+
+/* 본문 */
+.wrap{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;padding-block:14px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+/* 고객 화면: 캘린더 위에 새 화면으로 꽉 차게 뜸 (닫으면 보던 캘린더 그대로) */
+#right{position:fixed;inset:0;z-index:50;background:var(--bg);overflow:auto;overflow-anchor:none;padding-top:calc(env(safe-area-inset-top,0px) + 8px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 40px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+#right:not(.open){display:none}
+html.lock,html.lock body{overflow:hidden}
+#cp{max-width:1180px;margin:0 auto;display:flex;flex-direction:column}
+.cpside{order:3}.cphist{order:4}
+@media (min-width:980px){
+  #cp{display:grid;grid-template-columns:minmax(0,1fr) 340px;column-gap:16px;align-items:start}
+  #cp-bar,#cp-head,#cp-stats{grid-column:1 / -1}
+  .cphist{grid-column:1;grid-row:4}
+  .cpside{grid-column:2;grid-row:4;position:sticky;top:56px;max-height:calc(100vh - 70px);overflow:auto}
+}
+#left{min-width:0}
+.status{font-size:12px;color:var(--muted);margin-bottom:8px}
+.empty{color:var(--muted);text-align:center;padding:28px 12px}
+
+/* 캘린더 (v17) — 캘린더만 예전 글씨체(Noto Sans KR) */
+#v-cal{font-family:'Noto Sans KR',system-ui,-apple-system,'Malgun Gothic',sans-serif}
+.calbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.calbar{position:relative}
+.calbar h2{margin:0;font-size:20px;font-weight:800;min-width:118px;text-align:center}
+.mlab{border:0;background:none;font:inherit;color:inherit;padding:2px 6px;border-radius:8px;cursor:pointer}
+.mlab:hover,.mlab[aria-expanded=true]{background:var(--acc-bg)}
+.mpick{position:absolute;top:44px;left:0;z-index:30;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.14);padding:10px;width:264px}
+.mp-y{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.mp-y b{font-size:18px;font-weight:800}
+.mp-m{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.mp-m button{height:40px;border:1px solid var(--line);background:var(--card);border-radius:8px;font-weight:600;font-size:15px;color:var(--fg)}
+.mp-m button:hover{border-color:var(--acc)}
+.mp-m button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.mp-m button.now{border-color:var(--acc);color:var(--acc-fg)}
+.nav{width:36px;height:36px;border-radius:8px;border:1px solid var(--line);background:var(--card);font-size:18px;line-height:1}
+.ghost{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:6px 12px;font-weight:600;min-height:36px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.fchip{border:1.5px solid var(--line);background:var(--card);border-radius:999px;padding:4px 11px;font-size:12px;font-weight:700;color:var(--sub);min-height:30px}
+.fchip.fcon{border-color:var(--k-con);color:var(--k-con);background:color-mix(in srgb,var(--k-con) 8%,var(--card))}
+.fchip b{margin-left:4px;font-weight:800}
+.fchip[aria-pressed="true"]{background:var(--acc);border-color:var(--acc);color:#fff}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+.dow{text-align:center;font-size:12px;font-weight:700;color:var(--muted);padding:4px 0}
+.dow.su{color:var(--am)}.dow.sa{color:var(--pm)}
+.day{background:var(--card);border:1px solid var(--line);border-radius:6px;min-height:118px;padding:4px 5px 6px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.day.off{opacity:.45}
+.day.today{border:2px solid var(--acc)}
+.day.sel{box-shadow:0 0 0 2px var(--acc) inset}
+.dn{font-weight:900;font-size:15px;line-height:1;margin-bottom:3px;display:flex;align-items:center;gap:4px;background:none;border:0;padding:0;text-align:left;color:inherit}
+.dn.su{color:var(--am)}.dn.sa{color:var(--pm)}
+.day.today .dn span{background:var(--acc);color:#fff;border-radius:999px;min-width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:12px}
+.dmbox{position:relative}
+.dmemo{display:block;width:100%;border:0;border-radius:5px;background:#e8e8e8;font-size:12px;text-align:center;padding:5px 7px;resize:none;min-height:44px;line-height:1.55;color:#111;font-weight:600;overflow:hidden}
+.dmemo:focus{background:#ddd;outline:none}
+.dmemo::placeholder{color:#bbb;font-size:13px;font-weight:400}
+.mcols{display:none;gap:9px;padding:3px 2px 5px;align-items:center}
+.dmbox:focus-within .mcols{display:flex}
+.mcols span{width:20px;height:20px;border-radius:50%;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px #bbb}
+.ev{display:block;width:100%;text-align:left;background:transparent;border:0;border-radius:2px;padding:1px 3px;margin-bottom:1px;font-size:12px;line-height:1.3;word-break:keep-all;overflow-wrap:anywhere}
+
+.ev b{font-weight:400}
+.ev:hover{background:var(--line2)}
+.ev .t{font-weight:500;margin-right:4px;display:inline-block;min-width:30px}
+.am{color:var(--am)}.pm{color:var(--pm)}
+.ev .evx{font-weight:400}
+.ev .sc{display:inline-block;margin-left:3px;font-size:10.5px;font-weight:700;border-radius:4px;padding:0 4px;vertical-align:1px}
+.k-fam{color:var(--k-fam)}.k-id{color:var(--k-id)}.k-pro{color:var(--k-pro)}.k-con{color:var(--k-con)}.k-delay{color:var(--k-delay)}
+.k-cend{color:var(--k-cend)}
+.k-cancel{color:var(--k-cancel);text-decoration:line-through}
+.agenda{display:none}
+@media (max-width:700px){
+  .day{min-height:74px;padding:3px}
+  .dmemo{display:none}.dmemo.has{display:block;font-size:10.5px;padding:1px 3px;min-height:0}
+  .ev{font-size:11px;padding:1px}.ev .evx,.ev .sc{display:none}.ev .t{display:none}
+  .agenda{display:block;margin-top:12px}
+}
+
+/* 목록 줄 (오늘 할 일·고객 찾기·일정) */
+.grp{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:12px;overflow:hidden}
+.grp h3{margin:0;padding:10px 14px;font-size:14px;font-weight:800;display:flex;justify-content:space-between;border-bottom:1px solid var(--line2)}
+.grp h3 span{color:var(--muted);font-weight:600}
+.grp.crit h3{color:var(--crit);background:var(--crit-bg)}
+.row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:transparent;border:0;border-top:1px solid var(--line2);padding:10px 14px;min-height:48px}
+.row:first-of-type{border-top:0}
+.row:hover{background:var(--line2)}
+.row .d{flex:0 0 58px;font-size:13px;color:var(--sub);line-height:1.3}
+.row .b{flex:1;min-width:0;word-break:keep-all;overflow-wrap:anywhere}
+.mhit{display:block;margin-top:3px;font-size:12.5px;color:var(--memo-fg);background:var(--memo-bg);border-radius:6px;padding:2px 7px;width:fit-content;max-width:100%}
+.mhit mark{background:none;color:inherit;font-weight:800;text-decoration:underline;text-underline-offset:2px}
+.rowa{display:flex;align-items:stretch;border-top:1px solid var(--line2)}.rowa .row{border-top:0}
+.ackb{flex:0 0 auto;border:0;border-left:1px solid var(--line2);background:transparent;color:var(--muted);font-weight:700;font-size:12.5px;padding:0 14px;cursor:pointer}
+@media (max-width:480px){.rowa .row .sc{display:none}}
+.ackb:hover{color:var(--ok);background:var(--ok-bg)}
+.row .note{display:block;font-size:12.5px;color:var(--sub);font-weight:600}
+/* 오늘 손님 브리핑 (진행판 방식) */
+.brow{display:flex;gap:12px;align-items:flex-start;border-top:1px solid var(--line2);padding:12px 14px}
+.brow .d{flex:0 0 52px;font-size:14px;padding-top:2px}
+.brow .b{flex:1;min-width:0;word-break:keep-all;overflow-wrap:anywhere}
+.bnm{font-size:16px;font-weight:700;text-decoration:none;color:var(--fg)}
+.bpts{list-style:none;margin:5px 0 0;padding:0}
+.bpts li{position:relative;padding:1px 0 1px 14px;font-size:14px;line-height:1.5}
+.bpts li::before{content:"";position:absolute;left:3px;top:.66em;width:5px;height:5px;border-radius:50%;background:var(--ok)}
+.bbox{margin-top:8px;border:1px solid var(--line);border-radius:9px;background:var(--line2)}
+.bbox summary,.braw summary{cursor:pointer;list-style:none;padding:7px 11px;font-size:13.5px;font-weight:700;color:var(--ok)}
+.bbox summary::-webkit-details-marker,.braw summary::-webkit-details-marker{display:none}
+.bbox summary::before,.braw summary::before{content:"▸ "}
+.bbox[open]>summary::before,.braw[open]>summary::before{content:"▾ "}
+.bbody{padding:0 12px 10px}
+.bbody h4{margin:9px 0 2px;font-size:13.5px;font-weight:700}
+.braw{margin-top:8px;border-top:1px dashed var(--line)}
+.braw summary{padding-left:0;color:var(--muted)}
+.bnone{font-size:13px;color:var(--muted)}
+.sc{font-size:12px;font-weight:700;border-radius:6px;padding:2px 8px;white-space:nowrap}
+.c-crit{color:var(--crit);background:var(--crit-bg)}
+.sc.kc{background:color-mix(in srgb,currentColor 11%,transparent);text-decoration:none}.c-warn{color:var(--warn);background:var(--warn-bg)}.c-ok{color:var(--ok);background:var(--ok-bg)}
+.c-acc{color:var(--acc-fg);background:var(--acc-bg)}.c-pm{color:var(--pm);background:var(--acc-bg)}.c-mute{color:var(--muted);background:var(--line2)}.c-tbd{color:var(--tbd);background:var(--tbd-bg)}
+
+/* 고객 화면 (v17) */
+.cpbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:8px;background:var(--bg);padding:6px 0 8px;margin-top:-6px}
+.cpbar b{font-size:16px;font-weight:800;min-width:0;overflow-wrap:anywhere}
+.cp-head{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+.cp-name{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cp-name h2{margin:0;font-size:22px;font-weight:800}
+.cno{font-size:12px;font-weight:700;background:var(--acc-bg);color:var(--acc-fg);border-radius:6px;padding:2px 8px}
+.back{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:6px 10px;font-weight:700;min-height:36px}
+.phone{display:inline-flex;align-items:center;gap:6px;margin-top:6px;font-size:14px;color:var(--pm);background:var(--acc-bg);border-radius:8px;padding:3px 10px;user-select:all}
+.pin{white-space:pre-line;margin-top:8px;background:var(--crit-bg);color:var(--crit);border-radius:8px;padding:7px 10px;font-weight:700;font-size:13px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 6px;text-align:center}
+.stat small{display:block;font-size:11.5px;font-weight:700;color:var(--muted)}
+.stat b{font-size:16px;font-weight:800}
+@media (max-width:480px){.stats{gap:4px}.stat{padding:7px 2px;border-radius:8px}.stat small{font-size:10.5px}.stat b{font-size:13.5px;letter-spacing:-.3px}}
+.sec{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.sec-t{font-size:13px;font-weight:800;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sec-t span{font-weight:500;color:var(--muted);font-size:12px}
+.pinta{display:block;width:100%;margin-bottom:6px;resize:none;overflow:hidden;line-height:1.5;min-height:36px;color:var(--crit);font-weight:700}
+.pinta::placeholder{color:var(--muted);font-weight:400}
+.cmemo{width:100%;min-height:70px;overflow:hidden;border:1px solid var(--memo-line);background:var(--memo-bg);color:var(--fg);border-radius:8px;padding:8px 10px;resize:vertical}
+.inp{border:1px solid var(--line);background:var(--card);border-radius:7px;padding:6px 9px;min-height:36px;min-width:0}
+.log{display:flex;gap:8px;font-size:12.5px;padding:3px 0;color:var(--sub)}
+.refc{display:block;width:100%;text-align:left;background:var(--line2);border:0;border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:13px}
+button.refc:hover{background:var(--acc-bg)}
+.refl{display:block;font-size:11px;color:var(--muted);font-weight:700}
+.refp{display:block;color:var(--pm);font-size:12.5px}
+.refs{display:block;color:var(--sub);font-size:12px}
+#cp-msgsec .msgbox{border:0;padding:0;margin:0}
+#cp-msgsec .msgta{min-height:220px}
+.pdel{border:0;background:transparent;color:var(--crit);font-weight:800;font-size:14px;line-height:1;padding:0 4px;margin-left:4px;cursor:pointer}
+.psplit{display:block;border:0;background:transparent;color:var(--pm);font-size:12px;font-weight:700;padding:3px 2px 0;cursor:pointer;text-align:left}
+.atm{color:var(--crit);font-weight:800;letter-spacing:-1px;margin-left:2px}
+.warnctl{display:inline-flex;align-items:center;gap:4px;margin-left:6px}.warnctl .atm{min-width:16px;text-align:center;font-size:15px}.warnctl i{color:var(--line);font-style:normal}
+.shipm{display:inline-flex;gap:4px;margin-left:auto}.trk{width:150px;min-height:32px;padding:3px 8px}
+.log time{color:var(--muted);white-space:nowrap}
+.lfil{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-bottom:6px}.lfil .fchip{padding:2px 9px;font-size:12px}.lfil .ms{width:auto}
+.log.lm span{color:var(--fg);font-weight:600}
+.lv{font-style:normal;font-size:11px;color:var(--muted);background:var(--line2);border-radius:4px;padding:0 4px;margin-right:4px}
+.hist-h{display:flex;align-items:center;justify-content:space-between;margin:16px 2px 8px}
+.hist-h b{font-size:15px;font-weight:800}
+
+/* 방문 히스토리 표 (SM처럼 한 줄씩) */
+#hlist .hc.closed{border:1px solid var(--line);border-left:0;border-radius:6px;margin:0 0 5px;background:var(--card)}
+#hlist .hc.closed .hr{border-radius:6px 0 0 6px}
+#hlist .hc.closed + .hc:not(.closed){margin-top:11px}
+#hlist .hc.closed > :not(.hrw){display:none!important}
+#hlist .hc:not(.closed) > .hrw{display:none}
+#hlist .hc:not(.closed){margin-bottom:10px}
+.hr-c{color:var(--muted);font-size:13px;text-align:center}
+ .hr{display:grid;grid-template-columns:64px 92px 46px 96px minmax(0,1fr) 76px 92px 50px 16px;gap:8px;align-items:center;width:100%;text-align:left;background:transparent;border:0;border:0;padding:6px 10px 6px 12px;font-size:13px;min-height:34px;box-shadow:inset 4px 0 0 var(--pc)}
+.hr:hover{background:var(--line2)}
+.hr.on{background:color-mix(in srgb,var(--pc) 10%,var(--card));box-shadow:inset 4px 0 0 var(--pc)}
+.hr.cx{opacity:.6;text-decoration:line-through}
+/* 완전 완료된 방문: SM처럼 회색 */
+/* SM처럼: 글씨는 그대로, 머리줄 바탕만 회색 · 메모는 흰 칸 */
+.hr.fin{background:color-mix(in srgb,var(--line) 75%,var(--card))}
+.hr.fin:hover{background:var(--line)}
+.hr.fin .hr-memo{background:var(--card)}
+#hlist .hc.closed:has(.hr.fin){border-color:color-mix(in srgb,var(--line) 60%,var(--muted))}
+#hlist .hc.done .hh{background:color-mix(in srgb,var(--line) 75%,var(--card))}
+.hr-p{font-weight:800;color:var(--pc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hr-d{font-weight:700}.hr-t{color:var(--sub)}
+.hr .sc{justify-self:start;white-space:nowrap}
+.hr-m{color:var(--fg);font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hr-memo{grid-column:1/-1;background:var(--memo-bg);border:1px solid var(--memo-line);color:var(--memo-fg);font-weight:600;font-size:12.5px;line-height:1.45;border-radius:6px;padding:3px 9px;white-space:pre-line;word-break:keep-all;overflow-wrap:anywhere;margin:1px 0 2px}
+.hr-n{text-align:right;color:var(--sub)}
+.hr-b{text-align:right;font-size:12.5px}.hr-b b{color:var(--crit);font-weight:700}.hr-b i{font-style:normal;color:var(--ok);font-weight:700}
+.hr-s{font-size:12px;color:var(--warn);font-weight:700;white-space:nowrap}
+@media (max-width:700px){.hr{grid-template-columns:auto auto auto 1fr;row-gap:2px}.hr .sc{justify-self:end}.hr-m{grid-column:1/-1;white-space:normal}.hr-memo{order:9}.hr-n{grid-column:1/3;text-align:left}.hr-b{grid-column:3;text-align:left}.hr-s{grid-column:4;justify-self:end}.hr-c{display:none}}
+/* 방문 히스토리 카드 */
+.hc{background:var(--card);border:3px solid var(--pc,var(--line));border-radius:11px;margin-bottom:9px;overflow:hidden}
+
+.hc.cancel{opacity:.75}
+.hc.tbd{border-style:dashed}
+.hh{display:flex;align-items:center;gap:8px;width:100%;background:transparent;border:0;text-align:left;padding:10px 12px}
+.hc.live .hh{background:color-mix(in srgb,var(--pc) 7%,var(--card))}
+.hc.done .hh{background:color-mix(in srgb,var(--pc) 7%,var(--card))}
+.hh-l{display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex:1;min-width:0}
+.hdate{font-size:15px;font-weight:800;white-space:nowrap}
+.tag{font-size:11.5px;font-weight:800;border-radius:5px;padding:1px 7px;color:#fff;white-space:nowrap}
+.pb{font-size:12px;color:#fff;border-radius:6px;padding:2px 9px;white-space:nowrap;font-weight:600}
+.gsb{font-size:12px;font-weight:800;border-radius:6px;padding:2px 8px;background:var(--tbd);color:#fff}
+.ppl{font-size:12px;border-radius:6px;padding:2px 7px;background:var(--acc-bg);color:var(--pm)}
+.hcal{font:inherit;font-size:13px;font-weight:600;color:var(--fg);flex:1 1 12em;max-width:26em;min-width:8em;border:1px dashed transparent;background:transparent;border-radius:6px;padding:3px 7px;text-overflow:ellipsis}
+.hcal::placeholder{color:var(--muted);opacity:1}
+.hcal.auto,#n-cal.auto{color:var(--sub)}
+.hcal:hover{border-color:var(--line)}
+.hcal:focus{border:1px solid var(--pm);background:var(--card);outline:none}
+.hh{cursor:pointer}
+.hh-r{font-size:12.5px;color:var(--sub);white-space:nowrap;text-align:right}
+.hh-r b{color:var(--crit)}
+.chev{color:var(--muted);font-size:13px}
+.hm{display:flex;gap:6px;align-items:flex-start;padding:6px 12px;background:var(--memo-bg);border-top:1px solid var(--memo-line);border-bottom:1px solid var(--memo-line)}
+.hm label{font-size:11.5px;font-weight:800;color:var(--memo-fg);padding-top:5px;white-space:nowrap}
+.hm textarea{flex:1;border:0;background:transparent;color:var(--memo-fg);resize:none;min-height:30px;padding:4px 0;overflow:hidden;line-height:1.5}
+.hf{display:flex;gap:5px;align-items:center;flex-wrap:wrap;padding:7px 12px}
+.st{border:1px solid var(--line);background:transparent;border-radius:6px;padding:3px 8px;font-size:12px;font-weight:600;color:var(--muted);line-height:1.25;min-height:30px}
+.st small{display:block;font-size:10.5px;font-weight:500}
+.st.on{color:var(--ok);background:var(--ok-bg);border-color:var(--ok-line);font-weight:700}
+.st.now{color:var(--acc-fg);background:var(--acc-bg);border-color:var(--acc);font-weight:800}
+.nextbtn{margin-left:auto;background:var(--acc);color:#fff;border:0;border-radius:8px;padding:7px 14px;font-weight:800;min-height:38px}
+.hd{padding:4px 12px 12px;display:flex;flex-direction:column;gap:10px}
+
+.box{border:1.5px solid var(--line);border-radius:10px;padding:10px 12px}
+.bx-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;font-weight:800;color:var(--sub);margin-bottom:8px}
+.mini{border:1px solid var(--line);background:var(--card);border-radius:6px;padding:3px 9px;font-size:12px;font-weight:600;min-height:30px}
+.mini.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+.mini.warnb{background:var(--warn-bg);border-color:var(--warn-line);color:var(--warn)}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:4px;margin-bottom:8px}
+.pbtn{border:1.5px solid var(--line);background:var(--card);border-radius:7px;padding:4px 3px;font-size:11.5px;font-weight:600;min-height:30px;word-break:keep-all}
+.pbtn[aria-pressed="true"]{border-color:var(--pc);background:color-mix(in srgb,var(--pc) 12%,var(--card));color:var(--fg);font-weight:800}
+.nums{display:flex;gap:10px;flex-wrap:wrap;align-items:center;border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin-bottom:8px;font-size:13px}
+.stp{display:inline-flex;align-items:center;gap:6px}
+.sb{width:28px;height:28px;border-radius:50%;border:1px solid var(--line);background:var(--card);font-size:15px;line-height:1;padding:0}
+.incl{font-size:12.5px;background:var(--warn-bg);color:var(--warn);border-radius:7px;padding:5px 9px;margin-bottom:8px;font-weight:600}
+.ptab{width:100%;border-collapse:collapse}
+.ptab td{padding:3px 2px}
+.ptab input{width:100%}
+.ptab .amt{text-align:right;width:118px}
+.xb{width:28px;height:28px;border-radius:6px;border:1px solid var(--crit-line);background:transparent;color:var(--crit);padding:0}
+.addrow{width:100%;margin-top:6px;border:1.5px dashed var(--acc);background:var(--acc-bg);color:var(--acc-fg);border-radius:7px;padding:5px;font-weight:700;font-size:12.5px;min-height:32px}
+.sum{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:10px;border-radius:9px;overflow:hidden;background:var(--acc-bg)}
+.sum div{text-align:center;padding:8px 4px;border-right:1px solid var(--line)}
+.sum div:last-child{border-right:0}
+.sum small{display:block;font-size:11px;font-weight:700;color:var(--acc-fg)}
+.sum b{font-size:14.5px;font-weight:800}
+.sum .rem.due{background:var(--crit-bg)}.sum .rem.due small,.sum .rem.due b{color:var(--crit)}
+.sum .rem.paid{background:var(--ok-bg)}.sum .rem.paid small,.sum .rem.paid b{color:var(--ok)}
+.mline{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-start;background:var(--line2);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.mc{display:flex;flex-direction:column;gap:3px;min-width:0}
+.mc label{font-size:11.5px;font-weight:700;color:var(--muted);white-space:nowrap}
+.mc .num{width:104px;text-align:right;font-weight:700;font-size:14.5px}
+.mc.mp{flex:1 1 220px}.mrow{display:flex;gap:6px}.mrow select{flex:1;min-width:0;font-weight:700}
+.mc.mb{padding-top:19px}
+.msp{display:block;height:26px}
+.mc.mr b{font-size:16px;line-height:36px}
+.mm{display:flex;flex-direction:column;gap:2px}
+.ms{min-height:26px;padding:1px 4px;font-size:11.5px;width:104px}
+.ms.need{border-color:var(--crit);background:var(--crit-bg);color:var(--crit)}
+.due{color:var(--crit)}.okt{color:var(--ok);font-weight:700}
+.shiph{width:100%;background:none;border:0;padding:0;margin:0;text-align:left;gap:8px;justify-content:flex-start}
+.msgbtn{margin-left:auto}
+.msgbtn+.nextbtn{margin-left:6px}
+.msgbox{margin:0 12px 8px}
+.mchips{display:flex;gap:5px;flex-wrap:wrap}
+.msgta{width:100%;min-height:260px;margin:8px 0;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:13.5px;line-height:1.6;background:var(--card);resize:vertical}
+.cinfos{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.cinfo{font-size:12.5px;background:var(--line2);border-radius:6px;padding:3px 9px;color:var(--sub)}
+.lnk{background:none;border:0;padding:0;color:var(--acc-fg);font-weight:700;text-decoration:underline;cursor:pointer;font-size:inherit}
+.cedit{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-top:10px;background:var(--line2);border-radius:10px;padding:10px}
+.cedit label{display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:700;color:var(--muted)}
+.cedit .full{grid-column:1 / -1}
+.prow{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:6px 0;border-top:1px solid var(--line2)}
+.prow:first-child{border-top:0}
+.prow.need{background:var(--crit-bg);border-radius:8px;padding:6px;border-top:0;margin:2px 0}
+.prow .amt{width:110px;text-align:right}
+.prow .dt{font-size:12px;color:var(--muted);min-width:34px}
+.needt{font-size:12px;color:var(--crit);font-weight:700}
+.qp{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.tbl-wrap{overflow-x:auto}
+.ship{width:100%;border-collapse:collapse;min-width:440px}
+.ship th{font-size:11px;color:var(--muted);font-weight:700;text-align:left;padding:3px 6px;background:var(--line2)}
+.ship th.c,.ship td.c{text-align:center}
+.ship td{padding:3px 6px;border-top:1px solid var(--line2);font-size:12.5px;vertical-align:middle}
+.ship td b{font-weight:700}
+.ship .inp{min-height:26px;padding:2px 7px;font-size:12px}
+.ship .ck{width:24px;height:24px;font-size:12px}
+.ship .ckd{font-size:10px;min-height:0;margin-top:0}
+.ship .xb{width:24px;height:24px;min-height:24px;font-size:12px}
+.ship tr.rdy td{background:var(--acc-bg)}
+.ship tr.shp td{background:var(--ok-bg)}
+.ship tr.vir td:first-child{color:var(--muted)}
+.ck{width:30px;height:30px;border-radius:6px;border:1.5px solid var(--line);background:var(--card);font-weight:800;padding:0}
+.ck.r{background:var(--pm);border-color:var(--pm);color:#fff}
+.ck.s{background:var(--ok);border-color:var(--ok);color:#fff}
+.ckd{display:block;font-size:11px;color:var(--muted);margin-top:2px;min-height:15px}
+.tg{border:1.5px solid var(--line);background:var(--card);border-radius:7px;padding:4px 10px;font-size:12.5px;font-weight:700;color:var(--muted);min-height:32px}
+.tg.on{border-color:var(--ok);background:var(--ok-bg);color:var(--ok)}
+.tg.on.red{border-color:var(--crit);background:var(--crit-bg);color:var(--crit)}
+.exbox{background:var(--green-box);border:1px solid var(--green-line);border-radius:9px;padding:6px 12px}
+.exbox .bx-h{color:var(--green-fg);margin-bottom:4px}
+.exg{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:2px 14px;margin-top:6px}
+.idg .stp{color:var(--muted)}.idg .stp.on{color:var(--fg);font-weight:700}.idg .stp.add{font-size:12px}
+.exr{display:flex;align-items:center;gap:6px;font-size:12.5px;padding:2px 0;color:var(--muted)}
+.exr.on{color:var(--fg);font-weight:700}
+.exr>span:first-child{flex:1}
+.exr .sb{width:24px;height:24px;font-size:13px}
+.exr b{min-width:14px;text-align:center}
+.exbox summary::-webkit-details-marker{display:none}
+.form{display:flex;gap:6px;flex-wrap:wrap;align-items:center;background:var(--line2);border-radius:8px;padding:8px;margin-top:8px}
+.nextcard{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border:1.5px dashed var(--tbd-line);background:var(--tbd-bg);border-radius:9px;padding:8px 10px;font-size:13px}
+.nextcard b{color:var(--tbd)}
+details.more summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(--sub);padding:4px 0}
+.erow{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px}
+
+/* 새 예약 */
+.modal{position:fixed;inset:0;z-index:70;background:rgba(10,12,24,.45);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding-top:calc(env(safe-area-inset-top,0px) + 40px);padding-bottom:40px;padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px))}
+.mbox{background:var(--card);border-radius:14px;padding:16px;width:min(460px,100%);display:flex;flex-direction:column;gap:10px}
+.mbox h3{margin:0;font-size:17px}
+.mbox label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;font-weight:700;color:var(--sub)}
+.nhit{background:var(--acc-bg);color:var(--acc-fg);border-radius:8px;padding:6px 10px;font-size:13px;font-weight:600}
+@media (min-width:980px){
+  #mform.mbox{width:min(1080px,96vw);display:grid;grid-template-columns:minmax(0,1fr) 420px;column-gap:20px;row-gap:10px;align-content:start}
+  #mform.mbox>*{grid-column:1}
+  #mform .nscript{grid-column:2;grid-row:1 / span 40;align-self:start;position:sticky;top:0;max-height:calc(100vh - 120px);overflow:auto;display:block}
+  #mform .mbtns{grid-column:1 / -1}
+}
+.nscript{display:none;background:var(--line2);border-radius:12px;padding:10px 12px;font-size:13px}
+.nscript h4{margin:2px 0 8px;font-size:13px;color:var(--sub)}
+.nscript details{background:var(--card);border-radius:8px;margin-bottom:6px;border:1px solid var(--line)}
+.nscript summary{cursor:pointer;padding:8px 10px;font-weight:800;list-style:none;display:flex;gap:8px;align-items:baseline}
+.nscript summary::-webkit-details-marker{display:none}
+.nscript summary em{font-style:normal;font-weight:500;color:var(--muted);font-size:12px}
+.nscript .sn{color:var(--acc);min-width:16px}
+.nscript .ln{padding:4px 10px 6px 34px;line-height:1.6;color:var(--fg)}
+.nscript .ln.ask{color:var(--pm);font-weight:600}
+.nscript .tip{margin:2px 10px 8px 34px;padding:5px 8px;border-radius:6px;background:var(--warn-bg);color:var(--warn);font-size:12px;font-weight:600}
+.nscript pre{white-space:pre-wrap;font:inherit;font-size:12.5px;line-height:1.6;margin:0;padding:6px 10px;max-height:300px;overflow:auto}
+.nopts{display:flex;gap:14px;flex-wrap:wrap}
+.nprice{background:var(--line2);border-radius:10px;padding:8px 12px;font-size:13px}
+.nprice .pr{display:flex;justify-content:space-between;gap:10px;padding:1px 0;color:var(--sub)}
+.nprice .pt{display:flex;justify-content:space-between;border-top:1px solid var(--line);margin-top:4px;padding-top:5px;font-weight:800;font-size:16px;color:var(--fg)}
+.ncmp{display:flex;gap:6px;flex-wrap:wrap}
+.ncmp button{border:1.5px solid var(--line);background:var(--card);border-radius:8px;padding:5px 9px;font-size:12px;text-align:left;line-height:1.3}
+.ncmp button b{display:block;font-size:13.5px}
+.ncmp button[aria-pressed="true"]{border-color:var(--acc);background:var(--acc-bg)}
+.nmemo{resize:none;overflow:hidden;min-height:56px;line-height:1.5}
+.mbtns{display:flex;gap:8px;align-items:center;flex-wrap:wrap;position:sticky;bottom:-16px;background:var(--card);padding:10px 0 2px;margin-top:2px}
+.consb{color:var(--k-con);border-color:var(--k-con)}
+.mrow2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.mbox .inp{width:100%}
+.tpick{display:flex;flex-direction:column;gap:6px}
+.tl{font-size:12.5px;font-weight:700;color:var(--sub)}.tl b{font-size:15px;margin-left:4px}
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(54px,1fr));gap:5px}
+.tb{border:1.5px solid var(--line);background:var(--card);border-radius:8px;min-height:38px;font-weight:700;font-size:13px}
+.tb.am{color:var(--am)}.tb.pm{color:var(--pm)}
+.tb.ext{font-size:12px}
+.tb.more{color:var(--muted);border-style:dashed;font-weight:600}
+.tb.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.pchk{flex-direction:row!important;align-items:center;gap:6px!important;font-size:13.5px!important}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 20px);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;z-index:80;max-width:90vw}
+/* 모션 — Material 3 강조 곡선(emphasized), 누를 때만 */
+:root{--e-out:cubic-bezier(.05,.7,.1,1);--e-std:cubic-bezier(.2,0,0,1)}
+@media (prefers-reduced-motion:no-preference){
+  .hc,.st,.ck,.tg,.mini,.fchip,.hr{transition:background-color .15s var(--e-std),border-color .15s var(--e-std),color .15s var(--e-std),box-shadow .15s var(--e-std)}
+  .st:active,.ck:active,.tg:active,.mini:active,.fchip:active,.nextbtn:active,.sb:active{transform:scale(.96)}
+  #cp.enter{animation:cpIn .32s var(--e-out)}
+  @keyframes cpIn{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+  .hc.unfold{animation:unfold .34s var(--e-out)}
+  @keyframes unfold{from{clip-path:inset(0 0 calc(100% - 56px) 0 round 11px);opacity:.55}to{clip-path:inset(0 0 0 0 round 11px);opacity:1}}
+  .hc.fold .hr{animation:rowIn .22s var(--e-out)}
+  @keyframes rowIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+  .modal:not([hidden]){animation:fadeIn .18s var(--e-std)}
+  .modal:not([hidden]) .mbox{animation:popIn .28s var(--e-out)}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .mpick:not([hidden]){animation:popIn .18s var(--e-out)}
+  @keyframes popIn{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+  .modal.closing{animation:fadeOut .2s var(--e-std) forwards}
+  .modal.closing .mbox{animation:popOut .2s var(--e-std) forwards}
+  @keyframes fadeOut{to{opacity:0}}
+  @keyframes popOut{to{opacity:0;transform:translateY(8px) scale(.97)}}
+  #cp.leave{animation:cpOut .22s var(--e-std) forwards}
+  @keyframes cpOut{to{opacity:0;transform:translateX(24px)}}
+  .toast:not([hidden]){animation:toastIn .3s var(--e-out)}
+  @keyframes toastIn{from{opacity:0;transform:translate(-50%,12px)}to{opacity:1;transform:translateX(-50%)}}
+  .hc.remote{animation:remotePulse 1.6s var(--e-std)}
+  @keyframes remotePulse{0%,100%{box-shadow:0 0 0 0 transparent}20%,60%{box-shadow:0 0 0 4px color-mix(in srgb,var(--warn) 55%,transparent)}}
+  .pop{animation:pop .36s var(--e-out)}
+  @keyframes pop{0%{transform:scale(.88)}55%{transform:scale(1.07)}100%{transform:none}}
+  #cp-msgsec:not([hidden]),#cp-logsec:not([hidden]){animation:rowIn .24s var(--e-out)}
+}
+</style>
+
+<header class="top"><div class="top-in">
+  <div class="brand">감탄사진관</div>
+  <nav class="tabs" aria-label="화면">
+    <button class="tab" data-a="tab" data-v="cal" aria-pressed="true">캘린더</button>
+    <button class="tab" data-a="tab" data-v="today" aria-pressed="false">오늘</button>
+    <button class="tab" data-a="tab" data-v="cust" aria-pressed="false">고객</button>
+  </nav>
+  <div class="top-r">
+    <input class="srch" id="q" type="search" placeholder="이름 · 전화 · 번호 · 메모" aria-label="고객 찾기" autocomplete="off">
+    <select class="who" id="who" aria-label="지금 쓰는 사람"><option>팀장</option><option>실장님</option><option>동수씨</option><option>직원</option></select>
+    <button class="addbtn" data-a="newbk">+ 예약 · 상담</button>
+  </div>
+</div></header>
+
+<div class="wrap">
+  <main id="left">
+    <div class="status" id="status">자료 불러오는 중이에요…</div>
+    <section id="v-cal">
+      <div class="calbar">
+        <button class="nav" data-a="calprev" aria-label="지난달">‹</button>
+        <h2><button class="mlab" id="mlabel" data-a="mpick" aria-haspopup="true" aria-expanded="false"></button></h2>
+        <div class="mpick" id="mpick" hidden></div>
+        <button class="nav" data-a="calnext" aria-label="다음달">›</button>
+        <button class="ghost" data-a="caltoday">오늘</button>
+      </div>
+      <div class="chips" id="fchips"></div>
+      <div id="flist" hidden></div>
+      <div class="cal" id="cal"></div>
+      <div class="agenda" id="agenda"></div>
+    </section>
+    <section id="v-today" hidden>
+      <div id="tg-0"></div><div id="tg-1"></div><div id="tg-2"></div><div id="tg-3"></div><div id="tg-4"></div><div id="tg-5"></div><div id="tg-6"></div>
+    </section>
+    <section id="v-cust" hidden><div id="clist"></div></section>
+  </main>
+  <aside id="right" aria-label="고객 화면">
+    <div id="cp-empty" hidden></div>
+    <div id="cp" hidden>
+      <div class="cpbar" id="cp-bar"></div>
+      <div class="cp-head" id="cp-head"></div>
+      <div class="stats" id="cp-stats"></div>
+      <div class="cpside">
+      <section class="sec">
+        <div class="sec-t">상담 메모</div>
+        <textarea class="cmemo" id="cp-memo" data-cf="memo" aria-label="상담 메모"></textarea>
+      </section>
+      <section class="sec" id="cp-msgsec" hidden><div class="sec-t" id="cp-msgt"></div><div id="cp-msg"></div></section>
+      <section class="sec" id="cp-refsec" hidden><div class="sec-t">추천</div><div id="cp-ref"></div></section>
+      <section class="sec" id="cp-logsec" hidden><div class="sec-t">활동 기록<button class="mini" data-a="logshow">닫기</button></div><div id="cp-logs"></div></section>
+      </div>
+      <div class="cphist">
+      <div class="hist-h"><b>방문 히스토리</b><button class="mini pri" data-a="newbk-here">+ 예약 추가</button></div>
+      <div id="hlist"></div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<div class="modal" id="modal" hidden>
+  <form class="mbox" id="mform">
+    <h3 id="mtitle">새 예약</h3>
+    <div class="mrow2"><label>이름<input class="inp" id="n-name" autocomplete="off"></label>
+    <label>전화<input class="inp" id="n-phone" inputmode="tel" autocomplete="off" placeholder="010-0000-0000"></label></div>
+    <div class="nhit" id="n-hit" hidden></div>
+    <label>상품<select class="inp" id="n-pkey"></select></label>
+    <div class="mrow2"><label>성인<input class="inp" id="n-adults" type="number" min="0" value="2" inputmode="numeric"></label><label>아이<input class="inp" id="n-kids" type="number" min="0" value="0" inputmode="numeric"></label></div>
+    <div class="nopts"><label class="pchk"><input type="checkbox" id="n-pet"> 반려동물</label><label class="pchk" id="n-up11w" hidden><input type="checkbox" id="n-up11"> 11알 액자로</label></div>
+    <div class="nprice" id="n-price" hidden></div>
+    <div class="ncmp" id="n-cmp" hidden></div>
+    <label>상담 내용<textarea class="inp nmemo" id="n-memo" rows="2" placeholder="통화하면서 적기"></textarea></label>
+    <label>날짜<input class="inp" id="n-date" type="date"></label>
+    <div class="tpick"><span class="tl">시간 <b id="n-tshow">-</b></span><input type="hidden" id="n-time">
+      <div class="tgrid" id="n-hours"></div>
+      <div class="tgrid" id="n-mins"></div></div>
+    <label>캘린더 문구<input class="inp" id="n-cal" placeholder="캘린더 문구"></label>
+    <aside class="nscript" id="n-script" aria-label="상담 대본"></aside>
+    <div class="mbtns"><button type="button" class="ghost" data-a="mclose">닫기</button><span style="flex:1"></span><button type="submit" class="ghost consb" value="consult">상담만 저장</button><button type="submit" class="addbtn" value="book">예약 만들기</button></div>
+  </form>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* ===== 기본 ===== */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const p2=n=>String(n).padStart(2,"0");
+const _n=new Date();const TODAY=`${_n.getFullYear()}-${p2(_n.getMonth()+1)}-${p2(_n.getDate())}`;
+const addDays=(d,n)=>{const x=new Date(d+"T00:00");x.setDate(x.getDate()+n);return `${x.getFullYear()}-${p2(x.getMonth()+1)}-${p2(x.getDate())}`};
+const md=d=>d?`${+d.slice(5,7)}/${+d.slice(8,10)}`:"미정";
+const dow=d=>"일월화수목금토"[new Date(d+"T00:00").getDay()];
+const tm=s=>{if(!s)return"";const h=+s.slice(0,2);return `${h>12?h-12:h}:${s.slice(3,5)||"00"}`};
+const ampm=s=>s&&(+s.slice(0,2))<12?"am":"pm";
+const money=n=>(+n||0).toLocaleString("ko-KR");
+const digits=v=>+(String(v||"").replace(/[^\d]/g,""))||0;
+const stamp=v=>!v?"":(/^\d{4}-\d\d-\d\d/.test(v)?md(v):(v==="기존"?"":v));
+const uid=p=>(self.crypto&&crypto.randomUUID)?crypto.randomUUID():p+Date.now().toString(36)+Math.random().toString(36).slice(2,5); /* 서버 id = uuid */
+const clone=o=>JSON.parse(JSON.stringify(o));
+function toast(m){const t=$("toast");t.textContent=m;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,2600)}
+
+let db=null,B={},CUST={},LOGS=[],MEMO={},MEMOC={},loaded=false;
+const MCOL={k:"#111",b:"#2563eb",r:"#dc2626",p:"#7c3aed"},MCOLN={k:"검정",b:"파랑",r:"빨강",p:"보라"};
+let view="cal",calY=_n.getFullYear(),calM=_n.getMonth(),selDay=TODAY,calFilter=null;
+let LOGSHOW=false;const canLog=()=>["팀장","실장님"].includes(who());
+let LOGALL=false,LOGF="all",LOGB="";
+const logCat=t=>/\d[\d,]*원|예약금|선금|중도금|잔금|총액|결제|환불|증빙|금액|입금/.test(t||"")?"money":/출고|준비|액자|보정본|원본|리뷰포켓|수령/.test(t||"")?"ship":"step";const CLOGS={};
+async function loadCustLogs(key,ids){try{const out=[];for(let i=0;i<ids.length;i+=30){const q=await db.collection("logs").where("booking","in",ids.slice(i,i+30)).get();q.docs.forEach(d=>out.push(d.data()))}CLOGS[key]=out;refresh()}catch(e){}}let openKey=null;const EXP=new Set(),SEEN=new Set();let FORM=null; // FORM={id,type:'pick'|'item'|'pay'}
+try{const w=localStorage.getItem("gt-who");if(w)$("who").value=w}catch(e){}
+$("who").onchange=()=>{try{localStorage.setItem("gt-who",$("who").value)}catch(e){};$("who").blur();if(typeof refresh==="function"){const cb=$("cp-bar");if(cb)cb._h=null;refresh()}};
+const who=()=>$("who").value;
+
+/* ===== 상품·가격 (예전 감탄 콘솔 7월 + 이후 알려준 가격) ===== */
+const PRODUCTS={
+  story:{name:"감탄스토리",c:"#4f46e5",base:250000,adultAdd:100000,kidAdd:50000,petAdd:50000,frame:"8x10",orig:true},
+  simpfam:{name:"감탄 심플패밀리",c:"#059669",base:100000,adultAdd:50000,kidAdd:30000,petAdd:30000,frame:"5x7",orig:true},
+  bigfam:{name:"감탄 대가족",c:"#d97706",base:150000,flat:1,petAdd:50000,up11:200000,frame:"8x10",orig:false},
+  bigfam_orig:{name:"대가족 원본형",c:"#c2410c",base:650000,flat:1,petAdd:50000,up11:150000,frame:"8x10",orig:true},
+  growth:{name:"가족성장 프로젝트",c:"#db2777",base:150000,kidStep:20000,growth:1,frame:"8x10",orig:true},
+  kids:{name:"베이비&키즈 프로필",c:"#7c3aed",base:150000,frame:"5x7",orig:true},
+  profile:{name:"프로필",c:"#0891b2",base:100000,frame:null,orig:false},
+  perform:{name:"연주 프로필",c:"#0e7490",base:170000,extraRetouch:30000,frame:null,orig:false},
+  audition:{name:"오디션 프로필",c:"#0e7490",base:170000,extraRetouch:30000,frame:null,orig:false},
+  friend:{name:"우정 촬영",c:"#0d9488",base:100000,perHead:50000,frame:"5x7",orig:true},
+  jangsu:{name:"부모님 장수 프로필",c:"#78716c",base:200000,frame:"11x14",orig:true,nopick:1},
+  halfid:{name:"반명함",c:"#64748b",base:50000,frame:null,orig:false,idlike:1},
+  id:{name:"증명사진",c:"#64748b",base:30000,perPerson:1,frame:null,orig:false,idlike:1},
+  etc:{name:"기타",c:"#475569",base:0,frame:null,orig:false}
+};
+const ID_TYPES=[{k:"passport",label:"여권",p:30000},{k:"jumin",label:"주민증",p:30000},{k:"half",label:"반명함",p:30000},{k:"visa",label:"비자",p:35000},{k:"job",label:"취업·프로필",p:50000},{k:"addPass",label:"여권 추가",p:10000,add:1},{k:"addJumin",label:"주민증 추가",p:10000,add:1},{k:"web",label:"웹파일",p:5000,add:1}];
+const idqSum=b=>ID_TYPES.filter(t=>!t.add&&(b.idq||{})[t.k]).map(t=>t.label+(+b.idq[t.k]>1?b.idq[t.k]:"")).join(", ");
+const PRICE_META=[{k:"f5x7",label:"5×7 액자",p:30000},{k:"f8x10",label:"8×10 액자",p:50000},{k:"f11al",label:"11알 액자",p:500000,big:1},{k:"f16al",label:"16알 액자",p:700000,big:1},
+  {k:"f20al",label:"20알 액자",p:800000,big:1},{k:"f20slim",label:"20알 슬림",p:800000,big:1},{k:"canvas",label:"100×70 캔버스",p:1200000,big:1},{k:"album",label:"8×11 앨범",p:3000000},{k:"origadd",label:"원본 추가",p:0}];
+function guessKey(b){const t=[b.product,b.cal].join(" ");
+  if(b.growth||/가성|가족성장/.test(t))return"growth";if(/원본형/.test(t))return"bigfam_orig";if(/대가족/.test(t))return"bigfam";
+  if(/스토리/.test(t))return"story";if(/장수|복원/.test(t))return"jangsu";if(/우정/.test(t))return"friend";
+  if(/연주/.test(t))return"perform";if(/오디션/.test(t))return"audition";if(/키즈|베이비|돌|백일/.test(t))return"kids";if(/프로필/.test(t))return"profile";
+  if(/반명함/.test(t))return"halfid";if(/증명|여권|주민|비자/.test(t)&&!/가족/.test(t))return"id";return""}
+const pk=b=>b.pkey||guessKey(b);
+const P=b=>PRODUCTS[pk(b)]||null;
+function calcRows(b){
+  const p=PRODUCTS[b.pkey];if(!p)return null;const rows=[];let shoot=0;const ad=+b.adults||2,kd=+b.kids||0;
+  if(p.growth){const k=Math.max(1,kd);shoot=p.base+(k-1)*p.kidStep;rows.push([`가족성장 ${2+k}인 (자녀 ${k}명) · 1년분`,shoot])}
+  else if(p.flat){shoot=p.base;rows.push([p.name+(b.pkey==="bigfam_orig"?" (7인 기준)":" (15인 이하)"),p.base]);if(b.pet){shoot+=p.petAdd;rows.push(["반려동물 추가",p.petAdd])}
+    if(b.up11){shoot+=p.up11;rows.push([b.pkey==="bigfam"?"8x10 → 11x14(11알) 변경 (총 35만)":"원본형 11x14(11알) 변경 (총 80만)",p.up11])}}
+  else if(p.perHead){const n=Math.max(1,+b.adults||1);shoot=p.base+n*p.perHead;rows.push(["촬영비",p.base],[`${n}인 × ${money(p.perHead)} (개인별 5x7 액자 · 전체 원본)`,n*p.perHead])}
+  else if(p.extraRetouch!==undefined){shoot=p.base;rows.push([p.name+" (보정 1장)",p.base]);const r=+b.retouch||0;if(r){shoot+=r*p.extraRetouch;rows.push([`추가 보정 ${r}장`,r*p.extraRetouch])}}
+  else if(p.perPerson&&ID_TYPES.some(t=>(b.idq||{})[t.k])){ID_TYPES.forEach(t=>{const q=+(b.idq||{})[t.k]||0;if(q){shoot+=q*t.p;rows.push([t.add?(q>1?`${t.label} ${q}`:t.label):`${t.label} ${q}인`,q*t.p])}})}
+  else if(p.perPerson){const n=Math.max(1,ad);shoot=p.base*n;rows.push([`${p.name} ${n}인`,shoot])}
+  else if(p.weekendAdd!==undefined){shoot=p.base;rows.push([p.name,p.base]);if(b.weekend){shoot+=p.weekendAdd;rows.push(["주말·공휴일 추가",p.weekendAdd])}}
+  else if(p.adultAdd!==undefined){shoot=p.base;rows.push([`${p.name} 기본 (2인)`,p.base]);
+    if(ad>2){shoot+=(ad-2)*p.adultAdd;rows.push([`성인 ${ad-2}인 추가`,(ad-2)*p.adultAdd])}
+    if(kd>0){shoot+=kd*p.kidAdd;rows.push([`미성년 자녀 ${kd}인 추가`,kd*p.kidAdd])}
+    if(b.pet){shoot+=p.petAdd;rows.push(["반려동물 추가",p.petAdd])}}
+  else{shoot=p.base;if(p.base)rows.push([p.name,p.base])}
+  if(b.pkey==="story"&&shoot>800000){rows.push(["80만원 상한 적용 (촬영+원본)",800000-shoot]);shoot=800000}
+  PRICE_META.forEach(m=>{const q=(b.ex||{})[m.k]||0;if(!q||!m.p)return;let a=m.p*q;if(m.big)a=Math.round(a/2);rows.push([`${m.label} ${q}개${m.big?" (50% 할인)":""}`,a])});
+  return rows.map(([label,amt])=>({label,amt}));
+}
+function priceRows(b){
+  if(Array.isArray(b.priceItems))return b.priceItems;
+  const c=calcRows(b);
+  if(c&&b.priceOverride){return [{label:c[0].label,amt:+b.priceOverride}]}
+  if(c)return c;
+  const old=+b.priceOverride||+b.price||0;
+  return old?[{label:(b.product||"촬영").replace(/#\d+/g,"").trim()||"촬영",amt:old}]:[];
+}
+const totalOf=b=>priceRows(b).reduce((a,r)=>a+(+r.amt||0),0);
+const normM=v=>v==="미정"?"":(v||"");
+const pays=b=>(b.payments||[]).map((p,i)=>({id:p.id||("p"+i),kind:p.kind||"잔금",amount:+p.amount||0,method:normM(p.method),receipt:normM(p.receipt),date:p.date||""}));
+const paidOf=b=>pays(b).reduce((a,p)=>a+p.amount*(p.kind==="환불"?-1:1),0);
+const hasDep=b=>pays(b).some(p=>p.kind==="예약금"&&p.amount>0)||!!(b.steps||{}).deposit;
+const needPay=b=>pays(b).some(p=>p.amount&&(!p.method||(needReceipt(p.method)&&!p.receipt)));
+
+/* ===== 출고 항목: 저장된 것 + 상품에 따라 나가야 할 것(아직 안 만든 것은 회색 줄) ===== */
+function shipRows(b){
+  const items=(b.items||[]).map(i=>({...i})),p=P(b),k=pk(b);
+  const has=kind=>items.some(i=>i.kind===kind);
+  const v=[];
+  if(p&&!p.idlike){
+    if(p.frame&&!has("액자"))v.push({id:"v-frame",kind:"액자",size:p.frame,virtual:1});
+    if(p.frame&&!has("보정본"))v.push({id:"v-ret",kind:"보정본",size:"",virtual:1});
+    if(!p.frame&&!has("보정 파일"))v.push({id:"v-file",kind:"보정 파일",size:"",virtual:1});
+  }
+  if(hasOrig(b)&&!has("원본"))v.push({id:"v-orig",kind:"원본",size:"",virtual:1});
+  if(b.review&&!has("리뷰포켓"))v.push({id:"v-pocket",kind:"리뷰포켓",size:"",virtual:1});
+  PRICE_META.forEach(m=>{const q=(b.ex||{})[m.k]||0;const kind=m.k==="origadd"?"원본 추가":m.label;if(q&&!items.some(i=>i.exk===m.k||i.kind===kind))v.push({id:"v-ex-"+m.k,kind,size:q>1?`×${q}`:"",exk:m.k,virtual:1})});
+  return [...items,...v];
+}
+function hasOrig(b){if(b.needOrig||(b.items||[]).some(i=>i.kind==="원본"))return true;const p=P(b);return !!(p&&p.orig)}
+const origSent=b=>!!(b.steps||{}).orig||(b.items||[]).some(i=>i.kind==="원본"&&i.shipped);
+const isBig=b=>(b.items||[]).some(i=>i.kind==="액자"&&/11x14|11알|16|20|24|28|캔버스/.test(i.size||""))||PRICE_META.some(m=>m.big&&(b.ex||{})[m.k]);
+
+/* ===== 상태: 기록에서 자동 (설계안 상태 흐름표, 위에서부터 처음 맞는 것) ===== */
+function isPast(b){return b.date&&b.date<addDays(TODAY,-90)}
+function gsBase(b){const d=pays(b).find(p=>p.kind==="예약금"&&p.date);if(d)return d.date;const pv=b.prevId&&B[b.prevId];return pv&&pv.date||(b.steps||{}).deposit||""}
+function status(b){
+  const s=b.steps||{},p=P(b);
+  if(s.canceled)return{k:"취소",c:"c-mute"};
+  if(s.postponed)return{k:"연기",c:"c-warn"};
+  if(isPast(b))return{k:"완료",c:"c-ok",past:1};
+  if(b.kind==="consult"&&!s.shot)return consOpen(b)?{k:"상담",c:"c-con"}:{k:"상담 끝",c:"c-mute"};
+  if(b.kind==="visit")return (b.date||"")<TODAY?{k:"완료",c:"c-ok"}:{k:"방문 예정",c:"c-acc"};
+  if(!b.date&&!s.shot){if(b.growth||pk(b)==="growth"){const g=gsBase(b);return g&&g<=addDays(TODAY,-365*3)?{k:"중단",c:"c-mute"}:{k:"미등록",c:"c-tbd"}}return{k:"날짜 미정",c:"c-tbd"}}
+  if(!s.shot){
+    if((b.date||"")>=TODAY)return(hasDep(b)||(p&&p.idlike))?{k:"예약확정",c:"c-ok"}:{k:"미입금",c:"c-crit",crit:"미입금"};
+    return{k:"촬영 기록 없음",c:"c-crit",crit:"촬영 기록 없음"};
+  }
+  if(p&&p.idlike){const t=totalOf(b);return t&&paidOf(b)>=t&&!pays(b).some(x=>x.amount&&!x.method)?{k:"완료",c:"c-ok"}:{k:"결제 확인",c:"c-crit",crit:"미결제"}}
+  const rows=shipRows(b);
+  if(rows.length&&rows.every(r=>r.shipped))return{k:"완료",c:"c-ok"};
+  if(s.delivered){const left=rows.filter(r=>!r.shipped).map(r=>r.kind||"출고");if(!left.length)return{k:"완료",c:"c-ok"};return{k:`${left[0]}${left.length>1?" 외":""} 출고 전`,c:"c-warn",crit:"출고 남음",rest:1}}
+  if(s.notified)return{k:"수령 대기",c:"c-acc"};
+  const nonOrig=rows.filter(r=>r.kind!=="원본"&&r.kind!=="보정본");
+  if(s.done||(nonOrig.length&&nonOrig.every(r=>r.ready||r.shipped)))return{k:"출고 연락 전",c:"c-warn"};
+  if(s.workshop)return{k:"공방",c:"c-warn"};
+  if(s.picked||(p&&p.nopick))return(s.handoff||(p&&p.nopick))?{k:"작업중",c:"c-warn"}:{k:"작업중",c:"c-warn",crit:"실장 전"};
+  if(hasOrig(b)&&!origSent(b))return{k:"원본 발송 전",c:"c-crit",crit:"원본 발송 전"};
+  return{k:"사진 선택 대기",c:"c-pm"};
+}
+const isDone=b=>["완료","취소"].includes(status(b).k);
+function stepsFor(b){
+  if(b.kind==="consult"&&!(b.steps||{}).shot)return[["closed","상담 끝"]];
+  const p=P(b),L=[["deposit","예약금"],["slot_off",p&&p.idlike?"가족끔":"증명끔"],["shot","촬영"]];
+  if(p&&p.idlike)return L.slice(1);
+  if(hasOrig(b))L.push(["orig","원본"]);
+  if(!(p&&p.nopick))L.push(["picked","선택"],["handoff","작업"]);
+  if(isBig(b)||(b.steps||{}).workshop)L.push(["workshop","공방"]);
+  L.push(["done","완료"],["notified","연락"],["delivered",b.ship==="택배"?"택배 발송":"수령"]);
+  return L;
+}
+function stepOn(b,k){const s=b.steps||{},rows=shipRows(b);
+  if(k==="deposit")return hasDep(b);if(k==="orig")return origSent(b);
+  if(k==="done"){const n=rows.filter(r=>r.kind!=="원본"&&r.kind!=="보정본");return !!s.done||(n.length&&n.every(r=>r.ready||r.shipped))}
+  if(k==="delivered")return !!s.delivered||(rows.length&&rows.every(r=>r.shipped));
+  return !!s[k]}
+function stepDate(b,k){const s=b.steps||{};if(k==="deposit"){const d=pays(b).find(p=>p.kind==="예약금");return d?stamp(d.date):stamp(s.deposit)}
+  if(k==="orig"){const o=(b.items||[]).find(i=>i.kind==="원본"&&i.shipped);return stamp(s.orig||(o&&o.shipped))}return stamp(s[k])}
+function nextAction(b){if(b.kind==="consult"&&!(b.steps||{}).shot)return null;
+  const st=status(b).k,s=b.steps||{};
+  if(st==="취소"||st==="연기"||st==="완료"||st==="미등록"||st==="날짜 미정")return null;
+  if(st==="미입금")return["deposit","예약금"];
+  if(!s.shot)return["shot","촬영함"];
+  if(st==="원본 발송 전")return["orig","원본"];
+  if(st==="사진 선택 대기")return["picked","선택"];
+  if(s.picked&&!s.handoff&&st==="작업중")return["handoff","작업"];
+  if(st==="작업중"||st==="공방")return["done","완료"];
+  if(st==="출고 연락 전")return["notified","연락"];
+  if(status(b).rest){const left=shipRows(b).filter(r=>!r.shipped);return["rest",left.length===1?left[0].kind:"출고"]}
+  if(st==="수령 대기")return["delivered",b.ship==="택배"?"택배 발송":"수령"];
+  return null;
+}
+
+/* ===== 표시 도우미 ===== */
+const warnN=k=>Math.max(0,Math.min(5,+((CUST[k]||{}).warn)||0));
+const atHTML=k=>{const n=warnN(k);return n?`<span class="atm">${"@".repeat(n)}</span>`:""};
+const consOpen=b=>b.kind==="consult"&&!(b.steps||{}).shot&&!(b.steps||{}).closed&&!(b.steps||{}).canceled&&(b.date||"9")>=addDays(TODAY,-30);
+const ckey=b=>b.customer_no?"n"+b.customer_no:(b.tkey||"m"+(b.name||"").replace(/[^\w가-힣]/g,""));
+/* 사람 = 전화번호로 알아봄(이름으로는 절대 안 합침). 고객번호 = 예약할 때 한 번만 */
+const normP=v=>String(v||"").replace(/\D/g,"");
+function findByPhone(ph){const d=normP(ph);if(d.length<10)return null;const hits=Object.entries(CUST).filter(([k,c])=>normP(c.phone)===d&&Object.values(B).some(x=>ckey(x)===k));
+  return (hits.find(([k])=>k[0]==="n")||hits[0]||[null])[0]}
+function custName(key){const bs=Object.values(B).filter(x=>ckey(x)===key).sort(byDate);return bs.length?bs[bs.length-1].name:""}
+const newNo=()=>Math.max(21000,...Object.values(B).map(b=>+b.customer_no||0).filter(n=>n>=21000))+1;
+async function assignNumber(key){ // 번호 없는 손님(상담)에게 번호를 줌 — 같은 전화번호 손님이 있으면 그 번호로 합침
+  if(key[0]==="n")return +key.slice(1);
+  const tc=CUST[key]||{},hit=findByPhone(tc.phone),tgt=hit&&hit[0]==="n"?hit:null,no=tgt?+tgt.slice(1):(await rpcNo()),nk="n"+no;
+  const bs=Object.values(B).filter(x=>ckey(x)===key),nm=tgt?custName(tgt):"";
+  for(const b of bs)await save(b.id,{customer_no:no,tkey:null,...(nm?{name:nm}:{})},null);
+  const merged=tgt?{...tc,...(CUST[tgt]||{}),memo:[(CUST[tgt]||{}).memo,tc.memo].filter(Boolean).join("\n")}:{...tc};
+  CUST[nk]=merged;delete CUST[key];if(openKey===key){openKey=nk;["cp-bar","cp-head","cp-stats","cp-logs"].forEach(i=>{$(i)._h=null})}
+  try{await db.doc("customers/"+nk).set(merged);await db.doc("customers/"+key).delete()}catch(e){}
+  if(bs[0])log(bs[0].id,tgt?`기존 손님 #${no}에 합침`:`고객번호 #${no} 받음`);
+  toast(tgt?`기존 손님 ${nm} #${no}에 합쳤어요`:`고객번호 #${no}`);refresh();return no}
+const kcol=b=>`var(--${kindCls(b)})`;
+function pinfo(b){const p=P(b),c=kcol(b);if(p)return[p.name,c];const t=[b.product,b.cal].join(" ");
+  if(/상담/.test(t))return["상담",c];if(b.kind==="visit")return["방문",c];return["가족사진",c]}
+function kindCls(b){const s=b.steps||{},t=[b.cal,b.product].join(" "),k=pk(b);if(b.kind==="consult"&&!s.shot&&!s.canceled)return consOpen(b)?"k-con":"k-cend";
+  if(s.canceled)return"k-cancel";if(s.postponed)return"k-delay";if(/상담/.test(t))return"k-con";
+  if(["kids","profile","perform","audition"].includes(k))return"k-pro";
+  if(["id","halfid"].includes(k))return"k-id";return"k-fam"}
+const clean=x=>String(x||"").replace(/#\d+/g,"").replace(/\s+/g," ").trim();
+function calText(b){if(b.cal)return clean(b.cal);const pr=clean(b.product);if(pr)return clean((b.people&&!/\d+인/.test(pr)?b.people+"인 ":"")+pr);
+  const k=b.pkey,a=+b.adults||0,kd=+b.kids||0,n=a+kd,sh=SHORT[k]??((P(b)||{}).name||"");
+  if(k==="id"){const q=idqSum(b);return q||((n>1?n+"인 ":"")+"증명")}
+  if(FAMK.includes(k)){const g=k==="growth"?"가성"+(b.gs||""):sh;return clean(`${n?n+"인가족 ":""}${kd?"아이"+kd+" ":""}${g}`)}
+  return clean(`${n>1?n+"인 ":""}${sh}`)}
+function calVal(b,raw){const v=String(raw||"").replace(/\s+/g," ").trim();return v===calText({...b,cal:""})?"":v}
+const SHORT={story:"스토리",simpfam:"심플",bigfam:"대가족",bigfam_orig:"대가족 원본형",growth:"가성",kids:"키즈",profile:"프로필",perform:"연주",audition:"오디션",friend:"우정",jangsu:"장수",halfid:"반명함",id:"증명",etc:""};
+const FAMK=["story","simpfam","bigfam","bigfam_orig","growth"];
+const byDate=(a,b)=>((a.date||"9")+(a.time||"")).localeCompare((b.date||"9")+(b.time||""));
+/* SM처럼 옛날 건이 위, 최신 건이 아래 — 날짜 미정(다음 회차 등)은 맨 아래 */
+const histOrder=(a,b)=>{if(!a.date&&b.date)return 1;if(a.date&&!b.date)return -1;return ((a.date||"")+(a.time||"")).localeCompare((b.date||"")+(b.time||""))};
+const nextGs=gs=>{const m=/^(\d+)-(\d+)$/.exec(gs||"");return m?`${m[1]}-${+m[2]+1}`:""};
+const fullDate=d=>d?`${d.slice(0,4)}년 ${+d.slice(5,7)}월 ${+d.slice(8,10)}일 (${dow(d)})`:"날짜 미정";
+
+/* ===== 안 튀는 그리기: 바뀐 칸만, 입력 중인 칸은 건드리지 않음 ===== */
+let pointerDown=false,pending=false,rafId=0;
+function editingIn(el){const a=document.activeElement;return a&&a!==document.body&&el.contains(a)&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)}
+function put(id,html){const el=$(id);if(!el)return;if(el._h===html)return;if(editingIn(el)){pending=true;return}el.innerHTML=html;el._h=html}
+function setVal(el,v){if(el&&document.activeElement!==el&&el.value!==v){el.value=v;fit(el)}}
+function refresh(){if(rafId)return;rafId=requestAnimationFrame(()=>{rafId=0;if(pointerDown){pending=true;return}pending=false;draw()})}
+document.addEventListener("pointerdown",e=>{const d=e.target.closest("[data-mcol]");if(!d)return;e.preventDefault();e.stopPropagation();const ds=d.dataset.ds,k=d.dataset.mcol;MEMOC[ds]=k;const ta=document.querySelector(`[data-memo="${ds}"]`);if(ta)ta.style.color=MCOL[k];db.doc("memos/"+ds).set({text:ta?ta.value.trim():(MEMO[ds]||""),color:k}).catch(()=>toast("메모를 저장하지 못했어요"))},true);
+let downEl=null,downFocus=null,lastCard=null;document.addEventListener("pointerdown",e=>{pointerDown=true;downEl=e.target;downFocus=document.activeElement;const c=e.target.closest&&e.target.closest("#hlist > .hc");if(c)lastCard=c},true);
+document.addEventListener("focusin",e=>{const tg=e.target;if(tg&&(tg.dataset||{}).f==="memo"||(tg.dataset||{}).cf==="memo")tg._base=tg.value;const c=e.target.closest&&e.target.closest("#hlist > .hc");if(c)lastCard=c},true);
+const up=()=>{pointerDown=false;if(pending)setTimeout(refresh,0)};
+document.addEventListener("pointerup",up,true);document.addEventListener("pointercancel",up,true);
+document.addEventListener("focusout",()=>{if(pending)setTimeout(()=>{if(!pointerDown)refresh()},0)});
+
+function draw(){
+  if(!loaded)return;
+  if(view==="cal")drawCal();else if(view==="today")drawToday();else drawList();
+  if(openKey)withAnchor(()=>{drawCust();fitAll()});else fitAll();
+}
+function fit(t,force){if(!t||t.tagName!=="TEXTAREA"||!t.offsetParent)return;const sig=t.value+"|"+t.clientWidth;if(!force&&t._fs===sig)return;t._fs=sig;const min=parseFloat(getComputedStyle(t).minHeight)||0;t.style.height="auto";const h=Math.max(min,t.scrollHeight+2);t.style.height=h+"px"}
+function fitAll(){document.querySelectorAll("textarea").forEach(fit)}
+document.addEventListener("input",e=>fit(e.target,1));
+document.addEventListener("click",()=>setTimeout(()=>openKey?withAnchor(fitAll):fitAll(),0));
+addEventListener("resize",()=>{clearTimeout(window._fr);window._fr=setTimeout(()=>{fitAll();if(MSGON)refresh()},150)});
+/* 오른쪽 화면은 보고 있던 카드가 같은 자리에 있게 */
+function withAnchor(fn){
+  const sc=$("right");const top=sc.getBoundingClientRect().top,bot=sc.getBoundingClientRect().bottom;
+  const pick=sel=>{for(const c of document.querySelectorAll(sel)){const r=c.getBoundingClientRect();if(r.bottom>top+4&&r.top<bot)return [c,r.top]}return null};
+  const lc=lastCard&&lastCard.isConnected&&!lastCard.hidden?lastCard.getBoundingClientRect():null;
+  let [ref,before]=(lc&&lc.bottom>top&&lc.top<bot?[lastCard,lc.top]:null)||pick("#hlist > .hc")||[null,0];
+  fn();
+  if(ref&&ref.isConnected){const d=ref.getBoundingClientRect().top-before;if(Math.abs(d)>0.5)sc.scrollTop+=d}
+}
+
+/* ===== 캘린더 ===== */
+const FILTERS=[["상담","상담"],["미입금","미입금"],["원본 발송 전","원본 발송 전"],["사진 선택 대기","사진 선택 대기"],["작업중","작업중"],["출고 연락 전","출고 연락 전"],["수령 대기","수령 대기"],["rest","남은 출고"]];
+const fkey=b=>{const st=status(b);return st.rest?"rest":st.k};
+let calBuilt="";
+function buildCal(){
+  const key=`${calY}-${calM}`;if(calBuilt===key)return;calBuilt=key;
+  $("mlabel").textContent=`${calY}년 ${calM+1}월`;
+  const first=new Date(calY,calM,1),start=new Date(first);start.setDate(1-first.getDay());
+  let h=["일","월","화","수","목","금","토"].map((d,i)=>`<div class="dow${i===0?" su":i===6?" sa":""}">${d}</div>`).join("");
+  for(let i=0;i<42;i++){const x=new Date(start);x.setDate(start.getDate()+i);if(i>=35&&x.getMonth()!==calM)break;
+    const ds=`${x.getFullYear()}-${p2(x.getMonth()+1)}-${p2(x.getDate())}`;
+    h+=`<div class="day${x.getMonth()!==calM?" off":""}${ds===TODAY?" today":""}" id="cd-${ds}" data-ds="${ds}"></div>`}
+  const cal=$("cal");cal.innerHTML=h;
+}
+const hm=s=>{const h=+s.slice(0,2),m=s.slice(3,5);return `${h>12?h-12:h}시${m&&m!=="00"?m:""}`};
+function evHTML(b){const st=status(b),sc=chipC(b,st);const t=b.time?`<span class="t ${ampm(b.time)}">${hm(b.time)}</span>`:"";
+  return `<button class="ev ${kindCls(b)}" data-a="open" data-id="${esc(b.id)}" title="${esc(b.name)} · ${esc(st.k)}">${t}<b>${esc(b.name)}</b>${atHTML(ckey(b))}<span class="evx">-${esc(calText(b))}</span>${b.ship==="택배"?`<span class="sc kc k-cend">택배</span>`:""}${st.k!=="예약확정"?`<span class="sc ${sc}">${esc(st.k)}</span>`:""}</button>`}
+function drawCal(){
+  buildCal();
+  const all=Object.values(B);const cnt={};all.forEach(b=>{const k=fkey(b);cnt[k]=(cnt[k]||0)+1});
+  put("fchips",FILTERS.map(([k,l])=>`<button class="fchip${k==="상담"&&cnt[k]?" fcon":""}" data-a="filter" data-v="${esc(k)}" aria-pressed="${calFilter===k}">${l}<b>${cnt[k]||0}</b></button>`).join(""));
+  // 칩을 누르면 캘린더 대신 그 상태 손님 목록 (진행판처럼)
+  if(calFilter){const list=all.filter(b=>fkey(b)===calFilter).sort(byDate);const l=(FILTERS.find(f=>f[0]===calFilter)||[0,calFilter])[1];
+    put("flist",`<div class="grp"><h3>${esc(l)}<span>${list.length}건 · <button class="mini" data-a="filter" data-v="${esc(calFilter)}">캘린더로</button></span></h3>${list.map(b=>rowHTML(b)).join("")||`<div class="empty">없음</div>`}</div>`);
+    $("flist").hidden=false;$("cal").hidden=true;$("agenda").hidden=true;$("cal").previousElementSibling&&0;return}
+  $("flist").hidden=true;$("cal").hidden=false;$("agenda").hidden=false;
+  const by={};all.forEach(b=>{if(!b.date)return;(by[b.date]=by[b.date]||[]).push(b)});
+  document.querySelectorAll("#cal .day").forEach(el=>{const ds=el.dataset.ds;const list=(by[ds]||[]).sort(byDate);const d=new Date(ds+"T00:00").getDay();const m=MEMO[ds]||"",mc=MCOL[(MEMOC[ds]||"k")]||"#111";
+    put(el.id,`<button class="dn${d===0?" su":d===6?" sa":""}" data-a="day" data-v="${ds}"><span>${+ds.slice(8)}</span></button>
+      <div class="dmbox"><div class="mcols">${Object.entries(MCOL).map(([k,c])=>`<span data-mcol="${k}" data-ds="${ds}" style="background:${c}" title="${MCOLN[k]}"></span>`).join("")}</div><textarea class="dmemo${m?" has":""}" data-memo="${ds}" rows="2" placeholder="메모..." style="color:${mc}" aria-label="${md(ds)} 메모">${esc(m)}</textarea></div>${list.map(evHTML).join("")}`);
+    el.classList.toggle("sel",ds===selDay)});
+  const list=(by[selDay]||[]).sort(byDate);
+  put("agenda",`<div class="grp"><h3>${md(selDay)} ${dow(selDay)}${selDay===TODAY?" · 오늘":""}<span>${list.length}건</span></h3>${list.map(b=>rowHTML(b)).join("")||`<div class="empty">예약 없음</div>`}</div>`);
+}
+
+/* ===== 목록 ===== */
+const chipC=(b,st)=>st.k==="미입금"?"c-crit":"kc "+kindCls(b);
+function rowHTML(b,note){const st=status(b),sc=chipC(b,st);
+  return `<button class="row" data-a="open" data-id="${esc(b.id)}"><span class="d tn">${md(b.date)}${b.date?" "+dow(b.date):""}${b.time?`<br><b class="${ampm(b.time)}">${tm(b.time)}</b>`:""}</span>
+  <span class="b"><span class="${kindCls(b)}"><b>${esc(b.name)}</b>${atHTML(ckey(b))}-${esc(calText(b))}</span>${note?`<span class="note">${esc(note)}</span>`:""}</span><span class="sc ${sc}">${esc(st.k)}</span></button>`}
+function grp(title,list,crit,fn){return `<div class="grp${crit?" crit":""}"><h3>${title}<span>${list.length}건</span></h3>${list.map(fn||(b=>rowHTML(b))).join("")||`<div class="empty">없음</div>`}</div>`}
+function drawToday(){
+  const all=Object.values(B).sort(byDate);const crit=[];const add=(b,n)=>{if(!(b.ack||{})[n])crit.push([b,n])};
+  all.forEach(b=>{const st=status(b),s=b.steps||{};if(st.crit)add(b,st.crit);
+    if(st.k==="예약확정"&&!s.slot_off&&!(P(b)||{}).idlike)add(b,"증명끔 확인");
+    if(needPay(b))add(b,"수단·증빙");
+    if(s.workshop&&!s.done&&s.workshop<=addDays(TODAY,-14))add(b,"공방 2주 지남");
+    if(st.k==="미등록"){const g=gsBase(b);if(g&&g<=addDays(TODAY,-365))add(b,"가성 미등록 1년 — 연락")}});
+  /* 맨 위: 오늘 찍을 손님 브리핑 (진행판 방식) — Claude가 쓴 요약(b.pts/b.brief)이 있으면 먼저, 없어도 기록 원문은 항상 자동으로 */
+  const tl=all.filter(b=>b.date===TODAY&&!(b.steps||{}).canceled).sort(byDate);
+  put("tg-0",`<div class="grp"><h3>오늘 손님 · ${md(TODAY)} ${dow(TODAY)}<span>${tl.length}건</span></h3>${tl.map(briefHTML).join("")||`<div class="empty">오늘 예약 없음</div>`}</div>`);
+  put("tg-1",grp("놓친 것",crit,true,([b,n])=>`<div class="rowa">${rowHTML(b,n+(n==="공방 2주 지남"?` · ${md((b.steps||{}).workshop)} 보냄`:""))}<button class="ackb" data-a="ack" data-id="${esc(b.id)}" data-v="${esc(n)}" title="확인함 — 목록에서 빼기">확인</button></div>`));
+  ["tg-2","tg-3","tg-4","tg-5","tg-6"].forEach(i=>put(i,""));
+}
+const lines=t=>String(t||"").split(/\n+/).map(s=>s.trim()).filter(Boolean);
+function briefHTML(b){
+  const k=ckey(b),c=CUST[k]||{},isId=!!(P(b)||{}).idlike,st=status(b);
+  const pts=Array.isArray(b.pts)&&b.pts.length?b.pts:lines(b.memo);
+  const past=Object.values(B).filter(x=>ckey(x)===k&&x.id!==b.id&&!(x.steps||{}).canceled&&x.date&&x.date<TODAY).sort(byDate);
+  const ul=a=>a.length?`<ul class="bpts">${a.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:"";
+  const mine=Array.isArray(b.brief)&&b.brief.length?b.brief.map(s=>`<h4>${esc(s.h)}</h4>${ul(s.items||[])}`).join(""):"";
+  const raw=(c.memo||c.family?`<h4>고객 메모</h4>${ul([c.family,...lines(c.memo)].filter(Boolean))}`:"")+past.map(x=>`<h4>${x.date.slice(2).replace(/-/g,".")} ${esc(calText(x))}</h4>${ul([...lines(x.hugi),...lines(x.memo)])||`<div class="bnone">기록 없음</div>`}`).join("");
+  const body=(mine?`<div class="bsum">${mine}</div>`:"")+(raw?(mine?`<details class="braw"><summary>기록 원문</summary>${raw}</details>`:raw):"");
+  return `<div class="brow"><span class="d tn">${b.time?`<b class="${ampm(b.time)}">${tm(b.time)}</b>`:"시간 미정"}</span><div class="b"><button class="lnk bnm" data-a="open" data-id="${esc(b.id)}">${esc(b.name)}</button>${atHTML(k)}${b.customer_no?` <span class="cno">#${b.customer_no}</span>`:""} <span class="${kindCls(b)}">${esc(calText(b))}</span> <span class="sc ${chipC(b,st)}">${esc(st.k)}</span>${ul(pts)}${!isId&&body?`<details class="bbox"><summary>촬영 전 숙지${mine?"":" (기록)"}</summary><div class="bbody">${body}</div></details>`:""}</div></div>`}
+function hitSnip(t,q){t=String(t).replace(/\s+/g," ");const terms=q.split(/\s+/).filter(Boolean),lo=t.toLowerCase(),i=Math.max(0,lo.indexOf(terms[0].toLowerCase()));const a=Math.max(0,i-14),cut=(a>0?"…":"")+t.slice(a,a+46)+(a+46<t.length?"…":"");
+  let h=esc(cut);terms.forEach(w=>{const e=esc(w).replace(/[.*+?^${}()|[\]\\]/g,"\\$&");h=h.replace(new RegExp(e,"gi"),m=>`<mark>${m}</mark>`)});return h}
+function drawList(){
+  const q=($("q").value||"").trim();const groups={};Object.values(B).forEach(b=>{(groups[ckey(b)]=groups[ckey(b)]||[]).push(b)});
+  let keys=Object.keys(groups);
+  const HIT={};
+  if(q){const qd=q.replace(/\D/g,""),terms=q.toLowerCase().split(/\s+/).filter(Boolean),qn=q.toLowerCase().replace(/\s+/g,"");
+    const has=t=>{t=t.toLowerCase();return terms.every(w=>t.includes(w))||t.replace(/\s+/g,"").includes(qn)};
+    keys=keys.filter(k=>{const c=CUST[k]||{},bs=groups[k];
+      if(bs.some(b=>has([b.name,b.customer_no,b.product,calText(b)].join(" ")))||(qd.length>=3&&qd.length===q.replace(/[\s-]/g,"").length&&String(c.phone||"").replace(/\D/g,"").includes(qd)))return true;
+      const memos=[c.memo,c.family,c.visit,...bs.slice().sort(byDate).reverse().map(b=>[b.memo,b.track].filter(Boolean).join(" "))].filter(Boolean);
+      const all=memos.join("\n");if(!has(all))return false;
+      const m=memos.find(t=>t.toLowerCase().includes(terms[0]))||memos.find(has)||"";HIT[k]=m;return true})}
+  const lastD=k=>groups[k].reduce((m,b)=>b.date&&b.date>m?b.date:m,"");
+  keys.sort((a,b)=>lastD(b).localeCompare(lastD(a))||groups[a][0].name.localeCompare(groups[b][0].name,"ko")); /* 최근 촬영한 고객이 위로 */
+  put("clist",`<div class="grp"><h3>${q?`'${esc(q)}' 찾은 고객`:"고객"}<span>${keys.length}명</span></h3>${keys.map(k=>{const bs=groups[k].sort(byDate),last=bs[bs.length-1],st=status(last);
+    return `<button class="row" data-a="open" data-src="q" data-id="${esc(last.id)}"><span class="b"><b>${esc(last.name)}</b>${atHTML(k)}${last.customer_no?` <span class="cno">#${last.customer_no}</span>`:""}<span style="display:block;font-size:12.5px;color:var(--muted)">촬영 ${bs.length}건 · 최근 ${md(last.date)} ${esc(calText(last))}</span>${HIT[k]?`<span class="mhit">${hitSnip(HIT[k],q)}</span>`:""}</span><span class="sc ${chipC(last,st)}">${esc(st.k)}</span></button>`}).join("")||`<div class="empty">찾는 고객이 없어요</div>`}</div>`);
+}
+
+/* ===== 고객 화면 ===== */
+function custBookings(){return Object.values(B).filter(b=>ckey(b)===openKey)}
+function openCust(id,fromSearch){ /* 캘린더 등에서 누르면 그 예약을 엶 · 검색으로 들어오면 진행 중인 것만 열림 */
+  const b=B[id];if(!b)return;const k=ckey(b);
+  if(openKey!==k){openKey=k;LOGSHOW=false;LOGALL=false;LOGF="all";LOGB="";EXP.clear();SEEN.clear();$("hlist").innerHTML="";FORM=null;
+    ["cp-bar","cp-head","cp-stats","cp-logs"].forEach(i=>{$(i)._h=null});$("right").scrollTop=0}
+  if(!fromSearch||!isDone(b))EXP.add(id);
+  const wasHidden=$("cp").hidden,newCust=wasHidden||$("cp").dataset.k!==k;$("cp").dataset.k=k;
+  $("cp").hidden=false;$("cp-empty").hidden=true;if(newCust)anim($("cp"),"enter");$("right").classList.add("open");document.documentElement.classList.add("lock");
+  drawCust();
+  requestAnimationFrame(()=>{const sc=$("right"),t=(!fromSearch&&$("hc-"+id))||$("hlist").previousElementSibling||$("hlist");sc.scrollTop+=t.getBoundingClientRect().top-sc.getBoundingClientRect().top-$("cp-bar").offsetHeight-8});
+}
+function closeCust(){openKey=null;$("cp").hidden=true;$("right").classList.remove("open");document.documentElement.classList.remove("lock")}
+function drawCust(){
+  const list=custBookings();if(!list.length){closeCust();return}
+  const last=list.slice().sort(byDate).pop(),c=CUST[openKey]||{};
+  const tot=list.reduce((a,b)=>a+(status(b).k==="취소"?0:totalOf(b)),0),pd=list.reduce((a,b)=>a+paidOf(b),0);
+  const visits=list.filter(b=>(b.steps||{}).shot||(b.date&&b.date<TODAY&&!(b.steps||{}).canceled)).length;
+  put("cp-bar",`<button class="back" data-a="back">‹ 닫기</button><b>${esc(last.name)}님</b>${atHTML(openKey)}${last.customer_no?`<span class="cno">#${last.customer_no}</span>`:""}<span style="flex:1"></span>${canLog()?`<button class="mini${LOGSHOW?" pri":""}" data-a="logshow">기록</button>`:""}<button class="mini pri" data-a="newbk-here">+ 예약 추가</button>`);
+  {const sh=LOGSHOW&&canLog();if($("cp-logsec").hidden===sh)$("cp-logsec").hidden=!sh}
+  put("cp-head",`<div class="cp-name"><h2>${esc(last.name)}님</h2><span class="warnctl" title="주의 손님 표시"><button class="sb" data-a="warn" data-v="-1" aria-label="@ 빼기">−</button><b class="atm">${"@".repeat(warnN(openKey))||"<i>@</i>"}</b><button class="sb" data-a="warn" data-v="1" aria-label="@ 더하기">+</button></span>${last.customer_no?`<span class="cno">#${last.customer_no}</span>`:`<span class="cno" style="background:var(--warn-bg);color:var(--warn)">고객번호 없음</span>`}${list.some(b=>pk(b)==="growth")?`<span class="gsb">가족성장</span>`:""}</div>
+    <div class="cinfos">${c.phone?`<span class="phone" style="margin:0">${esc(c.phone)}</span>`:""}${c.visit?`<span class="cinfo">${esc(c.visit)}</span>`:""}${c.bday?`<span class="cinfo">생일 ${esc(c.bday)}</span>`:""}${c.anniv?`<span class="cinfo">기념일 ${esc(c.anniv)}</span>`:""}${c.family?`<span class="cinfo">${esc(c.family)}</span>`:""}<button class="mini" data-a="ce-open" style="margin-left:auto">수정</button></div>
+    ${CEDIT?custEditHTML():""}`);
+  put("cp-stats",`<div class="stat"><small>방문 횟수</small><b class="tn">${visits}회</b></div><div class="stat"><small>계약 총액</small><b class="tn">${money(tot)}</b></div><div class="stat"><small>입금액</small><b class="tn" style="color:var(--ok)">${money(pd)}</b></div><div class="stat"><small>잔금</small><b class="tn" style="color:${tot-pd>0?"var(--crit)":"var(--muted)"}">${money(Math.max(0,tot-pd))}</b></div>`);
+  setVal($("cp-memo"),c.memo||"");
+  const ids=new Set(list.map(b=>b.id));const seenL=new Set(),allLogs=[...LOGS,...(CLOGS[openKey]||[])].filter(l=>{const k=l.at+"|"+l.text+"|"+l.booking;if(!ids.has(l.booking)||seenL.has(k))return false;seenL.add(k);return true}).sort((a,b)=>(b.at||"").localeCompare(a.at||"")),logs=LOGALL?allLogs:allLogs.slice(0,8);
+  const fl=allLogs.filter(l=>(!LOGB||l.booking===LOGB)&&(LOGF==="all"||logCat(l.text)===LOGF)),shown=LOGALL?fl:fl.slice(0,8);
+  const vlabel=id=>{const x=B[id];return x?`${x.date?x.date.slice(5).replace("-","/"):"미정"} ${SHORT[pk(x)]||pinfo(x)[0]}`:""};
+  const bks=list.slice().sort(histOrder);
+  put("cp-logs",`<div class="lfil">${[["all","전체"],["money","돈"],["ship","출고"],["step","진행"]].map(([k,l])=>`<button class="fchip" data-a="logf" data-v="${k}" aria-pressed="${LOGF===k}">${l}</button>`).join("")}${bks.length>1?`<select class="inp ms" data-f="logb" aria-label="방문"><option value="">모든 방문</option>${bks.map(x=>`<option value="${esc(x.id)}"${LOGB===x.id?" selected":""}>${esc(vlabel(x.id))}</option>`).join("")}</select>`:""}</div>`+
+    (shown.map(l=>`<div class="log${logCat(l.text)==="money"?" lm":""}"><time class="tn">${esc((l.at||"").slice(5,10).replace("-","/"))} ${esc((l.at||"").slice(11,16))}</time><span>${bks.length>1&&!LOGB?`<i class="lv">${esc(vlabel(l.booking))}</i>`:""}${esc(l.text)} · <b>${esc(l.who)}</b></span></div>`).join("")||`<div class="log">없음</div>`)+
+    (fl.length>8?`<button class="mini" data-a="logall" style="margin-top:6px">${LOGALL?"접기":`전체 ${fl.length}개 보기`}</button>`:""));
+  const rowHTML2=b=>{const st=status(b),[pn,pc]=pinfo(b),s=b.steps||{},m=(b.memo||"").trim();
+    const d=b.date?`${b.date.slice(2).replace(/-/g,".")} ${dow(b.date)}`:"날짜 미정";
+    return `<button class="hr${s.canceled?" cx":st.k==="완료"?" fin":""}" data-a="hrow" data-id="${esc(b.id)}" style="--pc:${pc}" aria-expanded="false"><span class="hr-p">${esc(SHORT[pk(b)]||pn)}</span><span class="hr-d tn">${d}</span><span class="hr-t tn">${b.time?tm(b.time):""}</span><span class="sc ${chipC(b,st)}">${esc(st.k)}</span><span class="hr-m" title="${esc(calText(b))}">${esc(calText(b))}</span>${hrMoney(b)}<span class="hr-c" aria-hidden="true">▾</span>${m?`<span class="hr-memo">${esc(m)}</span>`:""}</button>`};
+  {const mb=MSGON&&B[MSGON]&&ids.has(MSGON)&&wide()?B[MSGON]:null;if($("cp-msgsec").hidden===!!mb)$("cp-msgsec").hidden=!mb;
+   if(mb){put("cp-msgt",`문자 <span>${esc(mb.date?mb.date.slice(5).replace("-","/"):"")} ${esc(SHORT[pk(mb)]||pinfo(mb)[0])}</span><button class="mini" data-a="msgx" style="margin-left:auto">닫기</button>`);put("cp-msg",msgHTML(mb))}
+   const rh=refHTML(c);if($("cp-refsec").hidden===!!rh)$("cp-refsec").hidden=!rh;put("cp-ref",rh)}
+  // 카드 맞추기: 있는 건 그대로 두고 순서만 맞춤, 새 카드만 만듦
+  const host=$("hlist");const sorted=list.sort(histOrder);const want=new Set(sorted.map(b=>"hc-"+b.id));
+  [...host.children].forEach(el=>{if(!want.has(el.id))el.remove()});
+  let prev=null;
+  sorted.forEach(b=>{let el=$("hc-"+b.id);
+    if(!el){el=document.createElement("section");el.id="hc-"+b.id;el.className="hc";
+      el.innerHTML=`<div class="hrw" id="hrw-${b.id}"></div><div id="hh-${b.id}"></div><div class="hm"><textarea id="hm-${b.id}" data-f="memo" data-id="${esc(b.id)}" rows="1" aria-label="메모"></textarea></div><div class="hf" id="hf-${b.id}"></div><div id="hq-${b.id}"></div><div class="hd" id="hd-${b.id}" hidden><div id="hg-${b.id}"></div><div id="hp-${b.id}"></div><div id="hy-${b.id}"></div><div id="hs-${b.id}"></div><div id="hx-${b.id}"></div><div id="he-${b.id}"></div></div>`;
+      if(!SEEN.has(b.id)){SEEN.add(b.id);if(!isDone(b))EXP.add(b.id)}}
+    const ref=prev?prev.nextSibling:host.firstChild;if(el!==ref)host.insertBefore(el,ref);prev=el;
+    put("hrw-"+b.id,rowHTML2(b));drawCard(b)});
+}
+function drawCard(b){
+  const id=b.id,st=status(b),[pn,pc]=pinfo(b),s=b.steps||{},open=EXP.has(id);
+  const el=$("hc-"+id);
+  const cls="hc "+(s.canceled?"cancel":st.k==="완료"?"done":(!b.date?"tbd":"live"))+(open?"":" closed");
+  if(el.className!==cls)el.className=cls;el.style.setProperty("--pc",pc);
+  const tot=totalOf(b),pd=paidOf(b),bal=tot-pd;const n=(+b.adults||0)+(+b.kids||0)||(+b.people||0);
+  const tag=s.canceled?`<span class="tag" style="background:var(--k-cancel)">취소</span>`:s.postponed?`<span class="tag" style="background:var(--k-delay)">연기</span>`:b.kind==="consult"&&!s.shot?`<span class="tag" style="background:${pc}">${consOpen(b)?"상담":"상담 끝"}</span>`:!b.date?`<span class="tag" style="background:var(--tbd)">날짜 미정</span>`:st.k==="완료"?`<span class="tag" style="background:${pc}">완료</span>`:"";
+  put("hh-"+id,`<div class="hh" role="button" tabindex="0" data-a="toggle" data-id="${esc(id)}" aria-expanded="${open}"><span class="hh-l">${tag}
+    <span class="hdate tn">${b.date?fullDate(b.date):"날짜 미정"}${b.time?` <span class="${ampm(b.time)}">${tm(b.time)}</span>`:""}</span>
+    <span class="pb" style="background:${pc}">${esc(pn)}</span>${b.gs?`<span class="gsb">${esc(b.gs)}</span>`:""}${n?`<span class="ppl">${n}명</span>`:""}
+    <span class="sc ${chipC(b,st)}">${esc(st.k)}</span><input class="hcal${b.cal?"":" auto"}" data-f="cal" data-id="${esc(id)}" value="${esc(calText(b))}" placeholder="캘린더 문구" title="캘린더 문구" aria-label="캘린더 문구"></span>
+    <span class="hh-r tn">${tot?(bal>0?`잔금 <b>${money(bal)}</b>`:`${money(tot)} 완납`):""}${shipSummary(b)}</span><span class="chev" aria-hidden="true">${open?"▴":"▾"}</span></div>`);
+  setVal($("hm-"+id),b.memo||"");
+  const L=stepsFor(b),na=nextAction(b);const first=L.findIndex(([k])=>!stepOn(b,k));
+  put("hf-"+id,(s.canceled||st.past?"":L.map(([k,l],i)=>{const on=stepOn(b,k);return `<button class="st${on?" on":i===first?" now":""}" data-a="step" data-id="${esc(id)}" data-v="${k}" title="${on?"눌러서 되돌리기":"눌러서 체크"}">${on?"✓ ":""}${l}<small>${esc(on?stepDate(b,k):"")}</small></button>`}).join(""))
+    +(st.past?`<span class="sc c-mute">지난 기록</span>`:"")
+    +`<button class="mini msgbtn${MSGON===id?" pri":""}" data-a="msg" data-id="${esc(id)}">문자</button>`
+    +(na&&!s.canceled?`<button class="nextbtn" data-a="step" data-id="${esc(id)}" data-v="${na[0]}">${na[1]}</button>`:""));
+  put("hq-"+id,MSGON===id&&!wide()?msgHTML(b):"");
+  const hd=$("hd-"+id);if(hd.hidden===open)hd.hidden=!open;
+  if(!open)return;
+  put("hg-"+id,growthHTML(b));put("hp-"+id,priceHTML(b));put("hy-"+id,payHTML(b));put("hs-"+id,shipHTML(b));put("hx-"+id,extraHTML(b));put("he-"+id,editHTML(b));
+}
+function hrMoney(b){const tot=totalOf(b),bal=tot-paidOf(b),s=b.steps||{};
+  const rows=shipRows(b).filter(r=>!r.virtual||r.kind!=="원본"),left=s.shot&&rows.length?rows.filter(r=>!r.shipped).length:0;
+  return `<span class="hr-n tn">${tot?money(tot):""}</span><span class="hr-b tn">${!tot?"":bal>0?`<b>잔 ${money(bal)}</b>`:`<i>완납</i>`}</span><span class="hr-s">${b.ship==="택배"?"택배 ":""}${left?`출고 ${left}`:""}</span>`}
+function shipSummary(b){const rows=shipRows(b).filter(r=>!r.virtual||r.kind!=="원본");if(!(b.steps||{}).shot||!rows.length)return"";const left=rows.filter(r=>!r.shipped).length;return left?`<br>출고 남음 ${left}`:`<br>모두 출고됨`}
+
+function growthHTML(b){
+  if(pk(b)!=="growth")return"";
+  const m=/^(\d+)-(\d+)$/.exec(b.gs||""),nx=b.nextId&&B[b.nextId];
+  return `<div class="nums" style="margin:0"><b style="color:var(--tbd)">가족성장</b>
+    <label>모집 회차 <input class="inp num" style="width:56px" inputmode="numeric" data-f="gs-c" data-id="${esc(b.id)}" value="${m?m[1]:""}"></label>
+    <label>년차 <input class="inp num" style="width:56px" inputmode="numeric" data-f="gs-y" data-id="${esc(b.id)}" value="${m?m[2]:""}"></label>
+    </div>
+    ${nx?`<div class="nextcard" style="margin-top:8px"><b>다음 회차 ${esc(nx.gs||"")}</b><span>${nx.date?fullDate(nx.date)+" "+tm(nx.time):"날짜 미정"}</span><span class="sc ${chipC(nx,status(nx))}">${esc(status(nx).k)}</span><button class="mini" data-a="goto" data-id="${esc(nx.id)}" style="margin-left:auto">보기</button></div>`
+      :(b.steps||{}).canceled?"":`<button class="mini warnb" style="margin-top:8px" data-a="makenext" data-id="${esc(b.id)}">+ 다음 회차${nextGs(b.gs)?" "+esc(nextGs(b.gs)):""}</button>`}`;
+}
+const DET=new Set();
+const METHODS=["카드","계좌이체","현금","네이버페이","온누리","제로페이","기타"];
+const RECEIPTS=["현금영수증(소득공제)","현금영수증(지출증빙)","세금계산서","없음"];
+const needReceipt=m=>!!m&&!["카드","네이버페이"].includes(m);
+/* SM처럼 한 줄: 상품 ▼ [내역] · 총액 · 선금 · 중도금 [추가] · 잔금 — 금액 칸 아래에 수단·증빙 */
+function priceHTML(b){
+  const tot=totalOf(b),pd=paidOf(b),bal=tot-pd,k=b.pkey,ps=pays(b),id=esc(b.id);
+  const opt=(k?"":`<option value="">상품 선택</option>`)+Object.entries(PRODUCTS).filter(([key])=>key!=="halfid"||k===key).map(([key,pp])=>`<option value="${key}"${k===key?" selected":""}>${pp.name}</option>`).join("");
+  const dep=ps.findIndex(p=>p.kind==="예약금");
+  const cols=[];
+  if((P(b)||{}).idlike){const live=ps.map((p,i)=>i).filter(i=>ps[i].amount||ps[i].method);if(!live.length)cols.push({l:"결제",i:-1,kind:"잔금"});else live.forEach((i,n)=>cols.push({l:ps[i].kind==="환불"?"환불":(n?"결제"+(n+1):"결제"),i,kind:ps[i].kind,extra:n>0}))}
+  else{cols.push({l:"예약금",i:dep,kind:"예약금"});
+  const rest=ps.map((p,i)=>i).filter(i=>i!==dep);
+  if(!rest.length)cols.push({l:"현장결제",i:-1,kind:"잔금"});else rest.forEach((i,n)=>cols.push({l:ps[i].kind==="환불"?"환불":(n?"현장결제"+(n+1):"현장결제"),i,kind:ps[i].kind,extra:n>0}))}
+  {const last=cols[cols.length-1],lp=last&&last.i>=0?ps[last.i]:null;if(last&&last.kind!=="예약금"&&lp&&lp.amount)last.split=true}
+  const sel=(f,i,v,opts,ph,kind,live)=>`<select class="inp ms${v||!live?"":" need"}" data-f="${f}" data-id="${id}" data-i="${i}" data-kind="${kind}" aria-label="${ph}"><option value="">${ph}</option>${(v&&!opts.includes(v)?[v,...opts]:opts).map(o=>`<option value="${o}"${o===v?" selected":""}>${o.replace("SM 기록(수단 미상)","SM 기록").replace("현금영수증(","현영 ").replace(")","")}</option>`).join("")}</select>`;
+  const cell=c=>{const p=c.i>=0?ps[c.i]:null,m=p?p.method:"",r=p?p.receipt:"",live=!!(p&&p.amount);return `<div class="mc"><label>${c.l}${c.extra?`<button class="pdel" data-a="pay-del" data-id="${id}" data-i="${c.i}" aria-label="${c.l} 지우기" title="지우기">×</button>`:""}</label><input class="inp num" inputmode="numeric" data-f="m-amt" data-id="${id}" data-i="${c.i}" data-kind="${c.kind}" value="${p&&p.amount?money(p.amount):""}" aria-label="${c.l}">${sel("pay-method",c.i,m,METHODS,"결제",c.kind,live)}${!m||needReceipt(m)?sel("pay-receipt",c.i,r,RECEIPTS,"증빙",c.kind,live&&!!m):""}${c.split?`<button class="psplit" data-a="pay-add" data-id="${id}" data-v="잔금" data-amt="0">+ 나눠 결제</button>`:""}</div>`};
+  return `<div class="mline">
+    <div class="mc mp"><label>상품${(b.steps||{}).delivered||shipRows(b).length&&shipRows(b).every(r=>r.shipped)?` <span class="okt">모든상품 출고됨</span>`:""}</label><div class="mrow"><select class="inp" data-f="pkey" data-id="${id}" aria-label="상품">${opt}</select><button class="mini${DET.has(b.id)?" pri":""}" data-a="det" data-id="${id}">내역</button></div></div>
+    <div class="mc"><label>금액</label><input class="inp num" inputmode="numeric" data-f="m-total" data-id="${id}" value="${tot?money(tot):""}" aria-label="금액"></div>
+    ${cols.map(cell).join("")}
+    <div class="mc mr"><label>잔금</label><b class="tn ${tot&&bal>0?"due":bal<=0&&tot?"okt":""}">${money(Math.max(0,bal))}원</b></div>
+  </div>${calcBar(b)}${b.booked_pkey&&k&&b.booked_pkey!==k?`<div class="incl" style="margin-top:6px">${esc((PRODUCTS[b.booked_pkey]||{}).name||"")} → ${esc(PRODUCTS[k].name)}</div>`:""}`;
+}
+function calcBar(b){
+  const k=b.pkey,p=PRODUCTS[k],id=esc(b.id);if(!p)return"";
+  const num=(f,v,l)=>`<span class="stp">${l}<button class="sb" data-a="num" data-id="${id}" data-v="${f}" data-d="-1" aria-label="${l} 빼기">−</button><b class="tn">${v}</b><button class="sb" data-a="num" data-id="${id}" data-v="${f}" data-d="1" aria-label="${l} 더하기">+</button></span>`;
+  const chk=(f,l)=>`<label><input type="checkbox" data-f="${f}" data-id="${id}" ${b[f]?"checked":""}> ${l}</label>`;
+  let h="";
+  if(k==="id"){const q=b.idq||{};return `<div class="nums idg" style="margin:6px 0 0">${ID_TYPES.map(t=>{const v=+q[t.k]||0;return `<span class="stp${v?" on":""}${t.add?" add":""}">${t.label}<button class="sb" data-a="idq" data-id="${id}" data-v="${t.k}" data-d="-1" aria-label="${t.label} 빼기">−</button><b class="tn">${v}</b><button class="sb" data-a="idq" data-id="${id}" data-v="${t.k}" data-d="1" aria-label="${t.label} 더하기">+</button></span>`}).join("")}${Array.isArray(b.priceItems)?`<button class="mini" data-a="recalc" data-id="${id}">자동 계산으로</button>`:""}</div>`}
+  if(p.adultAdd!==undefined||p.growth||p.perPerson)h+=num("adults",+b.adults||(p.perPerson?1:2),p.perPerson?"인원":"성인");
+  if(p.adultAdd!==undefined||p.growth)h+=num("kids",p.growth?Math.max(1,+b.kids||1):(+b.kids||0),"아이");
+  if(p.perHead)h+=num("adults",+b.adults||1,"인원");if(p.extraRetouch!==undefined)h+=num("retouch",+b.retouch||0,"추가 보정");
+  if(p.petAdd)h+=chk("pet","반려동물");if(p.up11)h+=chk("up11","11알");
+  const fz=((b.items||[]).find(i=>i.kind==="액자")||{}).size||p.frame;const incl=[p.frame?`${fz} 액자`:"",p.orig?"원본":""].filter(Boolean).join(" · ");
+  if(k==="bigfam")h+=`<button class="mini warnb" data-a="toorig" data-id="${id}">→ 원본형</button>`;
+  PRICE_META.forEach(m=>{const q=(b.ex||{})[m.k]||0;if(q&&m.p){const amt=m.big?Math.round(m.p*q/2):m.p*q;h+=`<span class="sc c-acc">+ ${m.label} ${q}개 ${money(amt)}</span>`}});
+  return h||incl?`<div class="nums" style="margin:6px 0 0">${h}${incl?`<span class="incl" style="margin:0 0 0 auto">${incl}</span>`:""}${Array.isArray(b.priceItems)?`<button class="mini" data-a="recalc" data-id="${id}">자동 계산으로</button>`:""}</div>`:"";
+}
+/* 내역: 누르면 펼쳐짐 — 인원·옵션·항목별 금액 */
+function payHTML(b){
+  if(!DET.has(b.id))return"";
+  const rows=priceRows(b),id=esc(b.id);
+  return `<div class="box">
+    <table class="ptab">${rows.map((r,i)=>`<tr><td><input class="inp" data-f="pi-label" data-id="${id}" data-i="${i}" value="${esc(r.label)}" aria-label="항목"></td><td class="amt"><input class="inp num amt" inputmode="numeric" data-f="pi-amt" data-id="${id}" data-i="${i}" value="${money(r.amt)}" aria-label="금액"></td><td style="width:32px"><button class="xb" data-a="pi-del" data-id="${id}" data-i="${i}" aria-label="항목 지우기">×</button></td></tr>`).join("")}</table>
+    <button class="addrow" data-a="pi-add" data-id="${id}">+ 항목</button>
+  </div>`;
+}
+const SIZES=["4x6","5x7","8x10","11x14","16x20","20x24","20x30"];
+const SHIPOPEN=new Set();
+function shipHTML(b){
+  const p=P(b);if(p&&p.idlike)return"";
+  const s=b.steps||{},rows=shipRows(b);
+  const tr=r=>{const st=r.shipped?"shp":r.ready?"rdy":"";return `<tr class="${st}${r.virtual?" vir":""}"><td><b>${esc(r.kind)}</b>${r.kind==="액자"?` <select class="inp ms" style="width:auto;display:inline-block" data-f="ship-size" data-id="${esc(b.id)}" data-r="${esc(r.id)}" aria-label="액자 크기">${(SIZES.includes(r.size)||!r.size?SIZES:[r.size,...SIZES]).map(z=>`<option${z===r.size?" selected":""}>${z}</option>`).join("")}</select>`:r.size?` <span style="color:var(--muted)">${esc(r.size)}</span>`:""}</td>
+    <td><input class="inp" style="width:100%" data-f="ship-photo" data-id="${esc(b.id)}" data-r="${esc(r.id)}" value="${esc(r.photo||"")}" placeholder="" aria-label="${esc(r.kind)} 사진 번호"></td>
+    ${r.kind==="보정본"?`<td class="c"><span class="ckd">—</span></td><td class="c"><button class="ck${r.shipped?" s":""}" data-a="ship" data-id="${esc(b.id)}" data-r="${esc(r.id)}" data-v="shipped" aria-label="보정본 보냄">${r.shipped?"✓":""}</button><span class="ckd tn">${esc(stamp(r.shipped))}</span></td>`:`
+    <td class="c">${r.kind==="원본"?"":`<button class="ck${r.ready?" r":""}" data-a="ship" data-id="${esc(b.id)}" data-r="${esc(r.id)}" data-v="ready" aria-label="${esc(r.kind)} 준비">${r.ready?"✓":""}</button><span class="ckd tn">${esc(stamp(r.ready))}</span>`}</td>
+    <td class="c"><button class="ck${r.shipped?" s":""}" data-a="ship" data-id="${esc(b.id)}" data-r="${esc(r.id)}" data-v="shipped" aria-label="${esc(r.kind)} 출고">${r.shipped?"✓":""}</button><span class="ckd tn">${esc(stamp(r.shipped))}</span></td>`}
+    <td class="c">${r.virtual?"":`<button class="xb" data-a="item-del" data-id="${esc(b.id)}" data-r="${esc(r.id)}" aria-label="항목 지우기">×</button>`}</td></tr>`};
+  const F=FORM&&FORM.id===b.id?FORM.type:null;
+  const open=SHIPOPEN.has(b.id),left=rows.filter(r=>!r.shipped).length;
+  return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+      <button class="tg${b.review?" on":""}" data-a="flag" data-id="${esc(b.id)}" data-v="review">${b.review?"✓ ":""}리뷰·포켓</button>
+      <button class="tg red${b.sns?" on":""}" data-a="flag" data-id="${esc(b.id)}" data-v="sns">${b.sns?"✓ ":""}SNS 동의</button>
+      <span class="shipm"><button class="tg${b.ship!=="택배"?" on":""}" data-a="shipm" data-id="${esc(b.id)}" data-v="">방문 수령</button><button class="tg${b.ship==="택배"?" on":""}" data-a="shipm" data-id="${esc(b.id)}" data-v="택배">택배</button></span>
+      ${b.ship==="택배"?`<input class="inp trk" data-f="track" data-id="${esc(b.id)}" value="${esc(b.track||"")}" placeholder="송장번호" inputmode="numeric" aria-label="송장번호">`:""}</div>
+    <div class="box"><button class="bx-h shiph" data-a="shiptog" data-id="${esc(b.id)}" aria-expanded="${open}">출고 <span class="${left?"due":"okt"}" style="font-weight:700;font-size:12px">${rows.length?(left?`남음 ${left}`:"모두 출고됨"):""}</span><span style="margin-left:auto;color:var(--muted)">${open?"▴":"▾"}</span></button>
+    ${open?`
+    <div class="tbl-wrap"><table class="ship"><thead><tr><th>항목</th><th>사진</th><th class="c">준비</th><th class="c">출고</th><th></th></tr></thead><tbody>${rows.map(tr).join("")||""}</tbody></table></div>`:""}
+</div>`;
+}
+function extraHTML(b){
+  const p=P(b);if(p&&p.idlike)return"";
+  const n=PRICE_META.reduce((a,m)=>a+((b.ex||{})[m.k]||0),0);
+  return `<details class="exbox"${n?" open":""}><summary class="bx-h" style="cursor:pointer;margin:0">추가 주문${n?` <b class="tn" style="color:var(--acc-fg)">${n}</b>`:""}</summary><div class="exg">${PRICE_META.map(m=>{const q=(b.ex||{})[m.k]||0;return `<div class="exr${q?" on":""}"><span>${m.label}</span><span class="stp"><button class="sb" data-a="ex" data-id="${esc(b.id)}" data-v="${m.k}" data-d="-1" aria-label="${m.label} 빼기">−</button><b class="tn">${q}</b><button class="sb" data-a="ex" data-id="${esc(b.id)}" data-v="${m.k}" data-d="1" aria-label="${m.label} 더하기">+</button></span></div>`}).join("")}</div></details>`;
+}
+const EDOPEN=new Set();
+document.addEventListener("toggle",e=>{const d=e.target;if(d.dataset&&d.dataset.ed){d.open?EDOPEN.add(d.dataset.ed):EDOPEN.delete(d.dataset.ed)}},true);
+const HMAIN=[10,11,12,13,14,15,16,17,18],HEXT=[7,8,9,19,20,21];
+const tmx=t=>tm(t);
+const hLab=h=>`${h>12?h-12:h}시`;
+const EXH=new Set();
+function timePickHTML(b){const H=b.time?String(+b.time.slice(0,2)):"",M=b.time?b.time.slice(3,5):"",id=esc(b.id);
+  return `<div class="tpick" style="flex:1 1 100%"><span class="tl">시간 <b class="${b.time?ampm(b.time):""}">${b.time?tmx(b.time):"-"}</b></span>
+    ${(()=>{const ext=EXH.has(b.id)||(H&&HEXT.includes(+H));return `<div class="tgrid">${(ext?[...HMAIN,...HEXT]:HMAIN).map(h=>`<button type="button" class="tb ${h<12?"am":"pm"}${HEXT.includes(h)?" ext":""}${String(h)===H?" on":""}" data-a="eth" data-id="${id}" data-v="${h}">${hLab(h)}</button>`).join("")}${ext?"":`<button type="button" class="tb more" data-a="exh" data-id="${id}">그 외</button>`}</div>`})()}
+    <div class="tgrid">${["00","10","20","30","40","50"].map(m=>`<button type="button" class="tb${m===M?" on":""}" data-a="etm" data-id="${id}" data-v="${m}">${m}분</button>`).join("")}</div></div>`}
+function editHTML(b){const s=b.steps||{};
+  return `<details class="more" data-ed="${esc(b.id)}"${EDOPEN.has(b.id)?" open":""}><summary>수정 · 취소 · 연기</summary>
+    <div class="erow"><input class="inp" type="date" data-f="date" data-id="${esc(b.id)}" value="${esc(b.date||"")}" aria-label="날짜">${timePickHTML(b)}</div>
+    
+    <div class="erow">${s.canceled?`<button class="mini" data-a="flagstep" data-id="${esc(b.id)}" data-v="canceled">취소 되돌리기</button>`:`<button class="mini" data-a="flagstep" data-id="${esc(b.id)}" data-v="canceled">취소 처리</button>`}
+    ${s.postponed?`<button class="mini" data-a="flagstep" data-id="${esc(b.id)}" data-v="postponed">연기 되돌리기</button>`:`<button class="mini" data-a="flagstep" data-id="${esc(b.id)}" data-v="postponed">연기 처리</button>`}</div></details>`}
+
+/* ===== 문자: 감탄 콘솔 문구 그대로 (gamtan-sms) + GTman님 규칙(원본 문구 형식, 픽셀 표기 빼기, 보정본에 수정 여부 안 묻기, 주말 인사) ===== */
+const ACC="[635-057095-01-019 기업은행 / 김시현(감탄사진관)]";
+let MSGON=null;const MSGSEL={};const wide=()=>matchMedia("(min-width:980px)").matches;
+const dKo=d=>{if(!d)return"○○";const x=new Date(d+"T12:00");return `${x.getFullYear()}년 ${x.getMonth()+1}월 ${x.getDate()}일 ${"일월화수목금토"[x.getDay()]}요일`};
+const tKo=t=>{if(!t)return"○○";const h=+t.slice(0,2),m=+t.slice(3,5);const ap=h<12?"오전":"오후";const hh=h>12?h-12:h;return `${ap} ${hh}시${m?` ${m}분`:""}`};
+const isWeekend=()=>[0,6].includes(new Date().getDay());
+const weekFix=s=>isWeekend()?s.replace(/즐거운 한 주 되세요~?/g,"남은 주말 즐겁게 보내세요~"):s;
+const noPx=s=>s.replace(/\s*\(\d+x\d+픽셀\)/g,"").replace(/\s*\d+x\d+픽셀 크기로/g,"");
+const nm=b=>b.name||"고객님";
+const ppl=b=>{const a=+b.adults||0,k=+b.kids||0;return{a,k,t:a+k||(+b.people||0)}};
+function priceBlockTxt(b){const r=priceRows(b);if(!r.length)return"    ○○: ○○원";
+  return r.map((x,i)=>i===0?`    ${x.label}: ${money(x.amt)}원`:(x.amt<0?`  - ${x.label}: -${money(-x.amt)}원`:`  + ${x.label}: +${money(x.amt)}원`)).join("\n")+`\n  ───────────────────\n  합계: ${money(totalOf(b))}원`}
+const DEPOSIT_BLOCK=`+ NOSHOW
+노쇼 방지를 위해 촬영 전 예약금을 받고 있는 점 양해 바랍니다.
+
++ 예약금 10만원 입금
+  ${ACC}
+
++ 예약자명과 입금자명은 동일하게 부탁드립니다.
++ 1시간 이내 예약금 미입금 시 예약은 자동 취소됩니다.
+
+*예약변경 & 환불규정*
+- 예약변경은 촬영일 10일 전까지 1회 가능
+- 예약취소는 예약 확정 후 3일까지 전액환불, 이후 예약금 환불 불가
+
+*기타 문의는 카카오채널로 부탁드립니다.
+http://pf.kakao.com/_xiNxoGs`;
+function bigfamOrigBlock(b){const {a,k,t}=ppl(b);const base=250000+Math.max(0,a-2)*100000+k*50000;
+  return `+
+[ 원본 파일까지 함께 받고 싶으신 경우 ]
+
+대가족 촬영은 가장 잘 나온 액자컷 한 장으로 정리되는 상품이라
+원본 파일은 따로 나가지 않습니다.
+
+저희는 가만히 앉아만 있는 촬영이 아니라
+가족분들 성향에 맞춰 여러 컨셉으로 다이나믹하게 담아드려요.
+액자는 그중 가장 좋은 한 장면이지만,
+원본에는 그날 가족의 여러 모습이 다 남습니다^^
+
+원본을 받아두시면 핸드폰 배경화면으로도 쓰시고,
+가족 단체방에도 올리시고,
+몇 년 지나 다시 꺼내보시는 분들이 많으세요~
+
+원본까지 함께 받길 원하시면 아래 금액으로 진행됩니다.
+(원본 100컷 이상)
+
+${t}인 가족 기준 원본 포함 금액입니다.
+- 8x10인치 액자 1개 + 원본 : ${money(base)}원
+- 8x10인치 + 11R 액자 (11x14인치) + 원본 : ${money(base+250000)}원
+- 8x10인치 + 16R 액자 (16x20인치) + 원본 : ${money(base+350000)}원
+- 8x10인치 + 20R 액자 (20x24인치) + 원본 : ${money(base+400000)}원
+- 8x10인치 + 20R 슬림 + 원본 : ${money(base+400000)}원
+- 8x10인치 + 100x70 캔버스 + 원본 : ${money(base+600000)}원
+
+지금 미리 정하지 않으셔도 됩니다.
+일단 편하게 오셔서 촬영하시고,
+사진 보신 뒤에 천천히 결정하셔도 돼요^^
+
+※ 원본 없이 8x10인치 액자 1개만 원하시면 대가족(150,000원) 그대로 진행하시면 됩니다.`}
+function msgReserve(b){const k=pk(b),{a,k:kd,t}=ppl(b);
+  if(PRODUCTS[k]&&PRODUCTS[k].idlike)return "(증명사진은 네이버 플레이스에서 자동으로 안내가 발송됩니다.)";
+  if(k==="growth"){const kk=Math.max(1,kd),fee=150000+(kk-1)*20000;
+    return `안녕하세요~!
+가족성장 프로젝트를 신청해주셔서 감사드립니다 ^^
+
+가족성장 3년 패키지는 예약금 입금 후 촬영 예약을 해주시면 됩니다 ^^
+첫 촬영은 금년 중 희망하시는 날짜와 시간대에 예약해주시면 됩니다~
+
+정리하면,
+${2+kk}인 가족촬영 + 아이 기념촬영 (매년 ${money(fee)}원)
+8x10인치 액자, 전체 원본 제공
+
+촬영 스케줄은 네이버 예약으로 해주시면 됩니다.
+예약 상품은 '감탄스토리'로 선택해주시고,
+메모란에 '가족성장 고객'이라고 적어주시면 됩니다.
+(예약자명이 다를 경우 꼭 예약자 성함도 남겨주세요.)
+상품 가격과 내용은 무시하셔도 됩니다.
+
++ 예약금 10만원 입금으로 가족성장 신청이 확정됩니다.
+  ${ACC}
+
++ 1시간 이내 예약금 미입금 시 가예약은 자동 취소됩니다.
+
+입금 확인 후 예약확인사항을 보내드립니다.
+더 궁금하신 점이 있으면 편히 문의주세요.
+감사합니다. 좋은 하루 보내세요!`}
+  const names={story:"감탄스토리",simpfam:"감탄 심플패밀리",bigfam:"감탄 대가족",bigfam_orig:"감탄 대가족 원본형",kids:"베이비 & 키즈 프로필",profile:"감탄 프로필",jangsu:"부모님 장수 프로필",friend:"우정 촬영",perform:"연주 프로필",audition:"오디션 프로필"};
+  const fam=["story","simpfam","bigfam","bigfam_orig","friend"].includes(k);
+  const line=fam?`${names[k]} ${t}인 가족촬영${kd?` (성인 ${a}명 / 자녀 ${kd}명)`:""}`:(names[k]||(PRODUCTS[k]||{}).name||"○○");
+  return `안녕하세요. 감탄사진관입니다~^^
+
+선택하신 상품은
+${line}입니다.${b.pet?"\n(반려동물 포함 / 배변패드·간식을 챙겨주시면 좋습니다)":""}
+
+${priceBlockTxt(b)}${k==="bigfam"?"\n\n"+bigfamOrigBlock(b):""}
+
+${DEPOSIT_BLOCK}`}
+const msgPaid=()=>`예약금 입금 확인했습니다. 감사합니다 ^^
+앞으로 가족사진은 감탄삼촌이 책임지겠습니다!!
+
+이어서 예약 확인사항 보내드릴게요.
+꼼꼼히 읽어보시고 궁금하신 점은 편히 연락주세요^^
+감사합니다 ^^`;
+function msgConfirm(b){const k=pk(b),{a,k:kd,t}=ppl(b),growth=k==="growth",kk=Math.max(1,kd);
+  if(PRODUCTS[k]&&PRODUCTS[k].idlike)return "(증명사진은 네이버 플레이스에서 자동으로 처리됩니다.)";
+  const title=growth?"==========▲감탄사진관 가족성장 예약확인사항▲==========":"==========▲감탄사진관 예약확인사항▲==========";
+  const pname={story:"감탄스토리 가족촬영",simpfam:"감탄 심플패밀리 가족촬영",bigfam:"대가족 촬영",bigfam_orig:"대가족 촬영",growth:"가족성장 프로젝트",kids:"키즈 프로필촬영",profile:"프로필촬영",jangsu:"부모님 장수 프로필촬영"}[k]||((PRODUCTS[k]||{}).name||"촬영");
+  const who=growth?`성인 2인 + 아이 ${kk}인`:(kd?`성인 ${a}인 + 아이 ${kd}인`:`성인 ${a||t}인`);
+  const when=growth&&!b.date?`첫 촬영은 금년 중 희망하시는 날짜와 시간대로\n네이버 예약을 해주시면 됩니다.\n(방문 후 촬영 완료까지 1시간 이내 소요)`
+    :`${dKo(b.date)}  ${tKo(b.time)}  예약되었습니다.\n(방문 후 촬영 완료까지 ${k.startsWith("bigfam")?"1~2시간 이내 소요":"1시간 이내 소요"})`;
+  const info={
+    story:`*\n${t}인 감탄스토리 가족촬영\n의상 1벌 (직접 준비해주시면 됩니다.)\n8x10인치 액자 1개\n(액자컷 수정 파일 추후 제공)\n원본 100컷 이상`,
+    simpfam:`*\n${t}인 감탄 심플패밀리 가족촬영\n의상 1벌 (직접 준비해주시면 됩니다.)\n5x7인치 액자 1개\n(액자컷 수정 파일 추후 제공)\n원본 30컷 이상`,
+    bigfam:`*\n${t}인 대가족 촬영\n의상 1벌 (직접 준비해주시면 됩니다. 2벌 준비 시 함께 상의해드립니다.)\n8x10인치 액자 1개\n(액자컷 보정 파일 추후 제공)\n원본 파일은 제공되지 않습니다.`,
+    bigfam_orig:`*\n${t}인 대가족 촬영\n의상 1벌 (직접 준비해주시면 됩니다. 2벌 준비 시 함께 상의해드립니다.)\n8x10인치 액자 1개\n(액자컷 보정 파일 추후 제공)\n전체 원본 제공`,
+    growth:`★★★ 해당 촬영은 직계 소가족 촬영으로만 진행됩니다. ★★★\n\n*\n${2+kk}인 가족촬영 + ${kk>=2?"아이 기념촬영 / 형제 기념촬영":"아이 기념촬영"}\n의상 1벌 (직접 준비해주시면 됩니다.)\n매년 촬영 시 8x10인치 액자 1개 제공\n(액자컷 수정 파일도 카톡으로 추후 제공 / 원본보다 작은 파일)\n전체 원본 파일 기본 제공\n\n*\n매년 촬영 후 다음 해 촬영 예약금을 결제해주시면 됩니다.\n\n※ 불가피한 사정으로 프로젝트 중단 시,\n예약금은 마지막 촬영 회차의 아이 사진 촬영 금액으로 대체되어 환불되지 않습니다.`,
+    kids:`*\n키즈 프로필촬영 (아이 ${t||1}인)\n의상 1벌 (직접 준비해주시면 됩니다.)\n5x7인치 액자 1개\n(액자컷 수정 파일 추후 제공)\n원본 50컷 이상`,
+    profile:`*\n프로필촬영 (성인 1인)\n의상 1벌 (직접 준비해주시면 됩니다.)\n수정컷 파일 제공\n\n++++++++++++++++++++++++++++++++\n촬영된 원본은 판매하지 않습니다.\n기본 액자 외 액자 또는 앨범 추가 시 추가 금액이 발생합니다.\n++++++++++++++++++++++++++++++++`,
+    jangsu:`*\n부모님 장수 프로필촬영 (성인 ${a||t||1}인)\n의상 1벌 (직접 준비해주시면 됩니다.)\n11x14인치 액자 1개\n(액자컷 수정 파일 추후 제공)\n원본 파일 포함`}[k]||`*\n${pname}`;
+  const kidsY=kd>0||growth||k==="kids";
+  const dressFam=`*\n촬영의상은 직접 준비해주시면 됩니다.\n가족촬영 의상은 전체적인 조화가 가장 중요합니다.\n패턴이 강렬한 의상이나 큰 로고가 들어간 옷은 인물보다 의상이 부각되어 추천드리지 않으며,\n단정하고 깔끔한 캐주얼 의상을 추천드립니다.\n\n컬러 톤을 섞어 준비하신다면\n체격이 있는 분은 진한 색, 마른 체형의 분은 밝은 색이 잘 어울립니다.\n${kidsY?"부모님은 심플하게, 아이는 포인트 있게 코디하셔도 좋습니다.":"사계절 내내 두고 보기 좋도록 한 계절에 치우친 의상은 피해주세요."}\n남성분들은 라운드 티셔츠·맨투맨보다 긴팔 셔츠가 사진에 더 예쁘게 나옵니다.\n흑백 촬영을 원하시는 경우 중간~진한 톤의 의상이 좋습니다.\n의상이 고민되시면 촬영 날 한두 벌 챙겨오신 뒤 함께 상의 후 결정하셔도 됩니다.\n여성분들은 헤어·메이크업을 평소 외출 시보다 신경 써주시길 바랍니다.\n남성분들도 선크림이나 비비크림을 살짝 발라주시면 더욱 좋습니다.\n\n${kidsY?"미취학 아이들은 스튜디오에서 옷을 갈아입는 걸 힘들어 하는 경우가 많으니\n아이 촬영 의상은 미리 착용하고 오시는 것을 추천드립니다.\n":""}신발은 신고 촬영할 수도 있고 맨발로 촬영할 수도 있습니다.\n(신발을 준비하시는 경우 깨끗한 상태여야 사용 가능합니다.)`;
+  const dress={story:dressFam,simpfam:dressFam,
+    bigfam:`*\n촬영의상은 직접 준비해주시면 됩니다.\n가족촬영 의상은 전체적인 조화가 가장 중요합니다.\n패턴이 강렬한 의상이나 큰 로고가 들어간 옷은 인물보다 의상이 부각되어 추천드리지 않으며,\n단정하고 깔끔한 의상을 추천드립니다.\n\n컬러 톤을 섞어 준비하신다면\n체격이 있는 분은 진한 색, 마른 체형의 분은 밝은 색이 잘 어울립니다.\n${kidsY?"":"사계절 내내 두고 보기 좋도록 한 계절에 치우친 의상은 피해주세요.\n"}연세가 있는 어르신들께는 진한 색상에 카라가 있는 옷을 추천드립니다.\n어머님께서 카라 없는 옷을 입으실 경우 목걸이나 스카프 등을 준비해주시면 좋습니다.\n의상이 고민되시면 촬영 날 한두 벌 챙겨오신 뒤 함께 상의 후 결정하셔도 됩니다.\n여성분들은 헤어·메이크업을 평소 외출 시보다 신경 써주시길 바랍니다.\n남성분들도 선크림이나 비비크림을 살짝 발라주시면 더욱 좋습니다.${kidsY?"\n\n미취학 아이들은 스튜디오에서 옷을 갈아입는 걸 힘들어 하는 경우가 많으니\n아이 촬영 의상은 미리 착용하고 오시는 것을 추천드립니다.":""}`,
+    growth:`*\n촬영의상은 직접 준비해주시면 됩니다.\n가족촬영 의상은 전체적인 조화가 가장 중요합니다.\n패턴이 강렬한 의상이나 큰 로고가 들어간 옷은 인물보다 의상이 부각되어 추천드리지 않으며,\n단정하고 깔끔한 의상을 추천드립니다.\n\n컬러 톤을 섞어 준비하신다면\n체격이 있는 분은 진한 색, 마른 체형의 분은 밝은 색이 잘 어울립니다.\n부모님은 심플하게, 아이는 포인트 있게 코디하셔도 좋습니다.\n의상이 고민되시면 촬영 날 한두 벌 챙겨오신 뒤 함께 상의 후 결정하셔도 됩니다.\n\n미취학 아이들은 스튜디오에서 옷을 갈아입는 걸 힘들어 하는 경우가 많으니\n아이 촬영 의상은 미리 착용하고 오시는 것을 추천드립니다.`,
+    kids:`*\n촬영의상은 직접 준비해주시면 됩니다.\n패턴이 강렬한 의상이나 큰 로고가 들어간 옷보다\n단정하고 깔끔한 의상을 추천드립니다.\n\n미취학 아이들은 스튜디오에서 옷을 갈아입는 걸 힘들어 하는 경우가 많으니\n아이 촬영 의상은 미리 착용하고 오시는 것을 추천드립니다.\n신발은 신고 촬영할 수도 있고 맨발로 촬영할 수도 있습니다.\n(신발을 준비하시는 경우 깨끗한 상태여야 사용 가능합니다.)`,
+    profile:`*\n촬영의상은 직접 준비해주시면 됩니다.\n패턴이 강렬한 의상이나 큰 로고가 들어간 옷보다\n단정하고 깔끔한 의상을 추천드립니다.\n\n헤어·메이크업은 평소 외출 시보다 신경 써주시길 바랍니다.\n남성분들도 선크림이나 비비크림을 살짝 발라주시면 더욱 좋습니다.\n\n신발은 신고 촬영할 수도 있고 맨발로 촬영할 수도 있습니다.\n(신발을 준비하시는 경우 깨끗한 상태여야 사용 가능합니다.)`,
+    jangsu:`*\n촬영의상은 직접 준비해주시면 됩니다.\n패턴이 강렬한 의상이나 큰 로고가 들어간 옷보다 단정하고 깔끔한 의상을 추천드립니다.\n진한 색상에 카라가 있는 옷을 추천드립니다.\n어머님께서 카라 없는 옷을 입으실 경우 목걸이나 스카프 등을 준비해주시면 좋습니다.\n\n헤어·메이크업은 평소 외출 시보다 신경 써주시길 바랍니다.\n남성분들도 선크림이나 비비크림을 살짝 발라주시면 더욱 좋습니다.\n\n신발은 신고 촬영할 수도 있고 맨발로 촬영할 수도 있습니다.\n(신발을 준비하시는 경우 깨끗한 상태여야 사용 가능합니다.)`};
+  dress.bigfam_orig=dress.bigfam;
+  const loc=`*\n감탄사진관 위치는 보정동 주민센터 맞은편입니다.\n주소: 경기도 용인시 기흥구 죽전로 39 SJ타워 401호\n주차: 상가 지하 1·2층 (건물 뒤쪽 지하주차장 입구 / 우리은행 건물)`;
+  const wait=`*\n★★★\n감탄사진관은 별도의 대기 공간이 없습니다.\n예약 시간보다 일찍 오셔도 입장이 어렵습니다.\n5분 전부터 입장 가능하며, 그보다 일찍 오시면 다른 팀과 마주칠 수 있으니\n촬영 시간에 맞춰 방문 부탁드립니다.\n촬영하시는 분들만 스튜디오 입장 가능합니다.`;
+  const cancel=growth?`*\n★★★★★ 꼭 체크 부탁드립니다! ★★★★★\n예약취소는 예약금 입금일로부터 3일 이내 100% 환불 가능합니다.\n이후에는 날짜 변경만 가능합니다.\n\n촬영날짜 변경은 1회에 한해 가능합니다.\n날짜 변경 시 촬영 유효기간은 첫 예약일로부터 6개월입니다.\n기간 내 촬영이 이루어져야 하니 꼭 확인 부탁드립니다.\n\n- 평일 변경: 촬영일 5일 전까지 (예: 수요일 촬영 → 그 전 주 금요일까지)\n- 토요일·공휴일 변경: 촬영일 2주 전 토요일까지\n\n★★★ 촬영 당일 날짜 변경은 어떠한 경우라도 불가하며, 예약금은 환불되지 않습니다. ★★★`
+    :`*\n★★★★★ 꼭 체크 부탁드립니다! ★★★★★\n예약취소는 예약금 입금일로부터 3일 이내 100% 환불 가능합니다.\n\n촬영날짜 변경은 촬영일 10일 이전, 1회에 한해 (촬영날짜 기준 1개월 이내) 가능합니다.\n(예: 예약일이 8월 5일 → 7월 26일까지 무료 변경 / 8월 6일~9월 5일 중 선택)\n촬영일 10일 이내 날짜 변경 시 수수료 5만원 발생합니다.\n당일 스케줄 변경과 재촬영은 불가합니다.`;
+  const sns=`*\n촬영 사진의 일부는 감탄사진관 SNS (블로그·인스타그램 등)에 업로드될 수 있습니다.\n업로드를 원치 않으시면 촬영 날 말씀해 주시길 부탁드립니다.`;
+  const end=`*\n궁금하신 점은 카톡 또는 전화로 문의주세요.\n촬영 중에는 카톡 답변이 늦을 수 있으며, 촬영 후 바로 연락드리겠습니다.\n감사합니다.`;
+  return noPx([title,`[ ${nm(b)}님  |  ${who}  |  ${pname} ]\n${when}`,info+(b.pet?"\n(반려동물 포함 / 배변패드·간식을 챙겨주시면 좋습니다)":""),loc,dress[k]||"",wait,cancel,sns,end].filter(Boolean).join("\n\n"))}
+function frameLines(b){const fr=shipRows(b).filter(r=>r.kind==="액자"||/액자|캔버스|슬림/.test(r.kind)&&r.exk);
+  const toInch=z=>({"8x10":"8x10인치","5x7":"5x7인치","11x14":"11x14인치","16x20":"16x20인치","20x24":"20x24인치","4x6":"4x6인치","11알 액자":"11x14인치","16알 액자":"16x20인치","20알 액자":"20x24인치","20알 슬림":"20R 슬림","100×70 캔버스":"캔버스","5×7 액자":"5x7인치","8×10 액자":"8x10인치"})[z]||z;
+  if(!fr.length)return "- 8x10인치 액자 1개에 들어갈 사진 1장";
+  return fr.map(r=>{const q=r.exk?((b.ex||{})[r.exk]||1):1;return `- ${toInch(r.kind==="액자"?(r.size||"8x10"):r.kind)} 액자 ${q}개에 들어갈 사진 ${q}장`.replace("캔버스 액자","캔버스").replace("20R 슬림 액자","20R 슬림")}).join("\n")}
+const MSGS={
+  reserve:{l:"예약 접수",v:{"기본":msgReserve}},
+  paid:{l:"입금 확인",v:{"기본":msgPaid}},
+  confirm:{l:"예약확인사항",v:{"기본":msgConfirm}},
+  orig:{l:"원본",v:{
+    "기본":b=>`안녕하세요~!\n오늘 촬영하시느라 수고 많으셨습니다 :)\n방금 이메일로 원본 보내드렸어요.\n\n사진 초이스는\n${frameLines(b)}\n\n천천히 보시고 파일번호 남겨주시면 됩니다!\n\n가족분들 모두 건강 유의하시구요~\n궁금한 점 있으시면 언제든 편하게 말씀 주세요❤\n감사합니다!`,
+    "리뷰 남김":b=>`안녕하세요~!\n오늘 촬영하시느라 수고 많으셨습니다 :)\n따뜻한 후기까지 남겨주셔서 정말 감사드려요~\n방금 이메일로 원본 보내드렸어요.\n\n사진 초이스는\n${frameLines(b)}\n\n천천히 보시고 파일번호 남겨주시면 됩니다!\n\n가족분들 모두 건강 유의하시구요~\n궁금한 점 있으시면 언제든 편하게 말씀 주세요❤\n감사합니다!`}},
+  pick:{l:"선택 확인",v:{
+    "기본":()=>`안녕하세요~!\n사진 선택 확인 되었습니다\n액자는 4주 정도 소요될 예정이에요~\n예쁘게 완성 후 다시 문자 드리겠습니다❤️\n즐거운 하루 되세요~\n감사합니다!`,
+    "리뷰 남김":()=>`안녕하세요~! \n사진 선택 확인되었습니다^^ \n액자는 4주 정도 소요될 예정이에요~\n따뜻한 리뷰 또한 감사드립니다❤️ \n포켓사진과 함께 예쁘게 완성 후 \n다시 문자 드리겠습니다~ \n즐거운 한 주 되세요~ \n감사합니다`,
+    "순차 작업":()=>`안녕하세요~\n사진 확인 했습니다^^\n액자는 순차적으로 직접 작업을 하고 있어 평균 4주정도 소요될 예정이에요~\n이쁘게 완성후 다시 연락 드리겠습니다!\n감사합니다^^`}},
+  review:{l:"리뷰 감사",v:{
+    "기본":()=>`안녕하세요~!\n따뜻한 후기까지 남겨주셔서 정말 감사드려요 :)\n기분 좋으셨다니 저희도 오늘 반가웠고, 아이 웃음 덕분에 촬영 내내 즐거웠어요!\n따뜻한 하루 보내시고 \n다음 기회에 다시 만나 뵙길 바랄게요❤️\n감사합니다!`,
+    "포켓 안내":()=>`안녕하세요~!\n따뜻한 후기까지 남겨주시고 정말 감사드려요 :)\n포켓사진은 별도로 지정하지 않고 액자컷에 들어가는 사진으로 제작됩니다 :)\n참고 부탁드릴게요!\n감사합니다!`}},
+  frame:{l:"액자 완성",v:{
+    "기본":()=>`안녕하세요~!\n액자가 예쁘게 완성되어 연락 드렸습니다 :)\n시간 되실 때 방문 수령 해주시면 됩니다~\n\n저희는 매주 화요일과 수요일은 정기 휴무이니,\n이 날만 피해 방문 해주시면 감사하겠습니다.\n\n혹시라도 방문이 어려우시다면 택배비 입금 후 택배 발송 가능합니다.\n원하시면 ${ACC} 으로 입금 후 (로젠택배 7,000원) \n주소 부탁드립니다.\n\n방문 전 미리 전화나 문자 남겨 주시면,\n바로 찾아 가실 수 있도록 준비해 놓겠습니다❣️\n감사합니다!`,
+    "큰 액자":()=>`안녕하세요~!\n가족 액자가 예쁘게 완성되어 연락드렸습니다 :)\n시간 되실 때 방문 수령 해주시면 됩니다~\n\n방문 전 미리 전화나 문자 남겨 주시면,\n바로 찾으실 수 있도록 준비해 놓겠습니다❣️\n감사합니다!`}},
+  retouch:{l:"보정본",v:{
+    "찾아가심":()=>`안녕하세요 !^^\n방금 고객님께서 액자 찾아 가셨습니다.\n찾아가신 액자컷 보정본 파일 보내드립니다 :)\n가족분들 모두 건강 유의하시구요~\n다음 기회에 다시 만나 뵙길 바랄게요❤️\n감사합니다!`,
+    "이메일":()=>`안녕하세요~!\n찾아가신 액자컷 보정본 파일 이메일 통해 보내 드렸습니다 :)\n가족분들 모두 건강 유의하시구요~\n다음 기회에 다시 만나 뵙길 바랄게요❤️\n감사합니다!`,
+    "어제 찾아가심":()=>`안녕하세요~!\n어제 찾아가신 액자컷 보정본 파일 보내드립니다^^\n가족분들 모두 건강 유의하시구요~\n다음에 또 뵙기를 바라요~ \n감사합니다^^`,
+    "택배 도착":()=>`안녕하세요~^^\n방금 집으로 배송 완료 했습니다~\n액자컷 보정본 보내드립니다.\n가족분들 모두 건강 유의하시구요~\n다음 기회에 다시 만나 뵙길 바랄게요❤️\n감사합니다!^^`}},
+  parcel:{l:"택배",v:{"기본":()=>`안녕하세요~\n오늘 안전하게 포장해서 로젠택배로 발송해 드렸습니다 :)\n안전하게 포장 했지만 혹시라도 택배 받으시고 액자에 문제가 있으면 언제든지 말씀 부탁 드릴게요~\n그리고 오늘 상품 보내드린 보정본 파일은 지금 보내드렸습니다!\n\n가족분들 모두 건강 유의하시구요~\n다음 기회에 다시 만나 뵙길 바랄게요❤️\n감사합니다!`}},
+  web:{l:"웹파일",v:{"기본":()=>`안녕하세요~!\n촬영하신 사진 웹용 파일 보내드립니다 :)\n(저희가 무료로 제공해드리는 파일은 인터넷 제출용 웹용 파일입니다.\n고화질 파일이 필요하신 경우 추가로 구입하실 수 있습니다.)\n감사합니다!\nhttps://www.instagram.com/studio_gamtan/`}},
+  nopay:{l:"입금 미확인",v:{"기본":()=>`안녕하세요, 입금 확인 이 되지 않아 연락 드립니다. \n혹시 다른 이름 으로 넣으셨을수도 있으셔서`}}
+};
+function msgDefault(b){const st=status(b),k=pk(b);
+  if(PRODUCTS[k]&&PRODUCTS[k].idlike)return"web";
+  if(st.k==="미입금")return"reserve";if(st.k==="예약확정"||st.k==="미등록"||st.k==="날짜 미정")return hasDep(b)?"confirm":"reserve";
+  if(st.k==="원본 발송 전")return"orig";if(st.k==="사진 선택 대기"||st.k==="작업중"||st.k==="공방")return"pick";
+  if(st.k==="출고 연락 전"||st.k==="수령 대기")return"frame";if(st.rest)return"retouch";return"retouch"}
+function msgHTML(b){
+  const id=esc(b.id),sel=MSGSEL[b.id]||{k:msgDefault(b)},m=MSGS[sel.k]||MSGS.reserve,vk=sel.v&&m.v[sel.v]?sel.v:Object.keys(m.v)[0];
+  const txt=weekFix(m.v[vk](b));
+  return `<div class="box msgbox">
+    <div class="mchips">${Object.entries(MSGS).map(([k,x])=>`<button class="tg${k===sel.k?" on":""}" data-a="msgk" data-id="${id}" data-v="${k}">${x.l}</button>`).join("")}</div>
+    ${Object.keys(m.v).length>1?`<div class="mchips" style="margin-top:6px">${Object.keys(m.v).map(v=>`<button class="mini${v===vk?" pri":""}" data-a="msgv" data-id="${id}" data-v="${esc(v)}">${esc(v)}</button>`).join("")}</div>`:""}
+    <textarea class="msgta" id="mt-${id}" aria-label="문자 내용">${esc(txt)}</textarea>
+    <div style="display:flex;gap:6px;justify-content:flex-end"><button class="mini pri" data-a="msgcopy" data-id="${id}">복사</button></div></div>`;
+}
+/* 고객 정보 수정 (이름·전화·고객번호·방문동기·추천인·생일·기념일·가족) */
+let CEDIT=false;
+const VISIT=["네이버","인스타그램","블로그","지인 추천","재방문","지나가다","기타"];
+function custEditHTML(){
+  const list=custBookings(),last=list.slice().sort(byDate).pop(),c=CUST[openKey]||{};
+  const names=[...new Set(Object.values(B).filter(x=>ckey(x)!==openKey).map(x=>`${x.name}${x.customer_no?" #"+x.customer_no:""}`))].sort((a,b)=>a.localeCompare(b,"ko"));
+  return `<form class="cedit" id="cedit">
+    <label>이름<input class="inp" id="ce-name" value="${esc(last.name)}"></label>
+    <label>전화<input class="inp" id="ce-phone" inputmode="tel" value="${esc(fmtPhone(c.phone||""))}"></label>
+    <label>고객번호<input class="inp num" id="ce-no" inputmode="numeric" value="${esc(last.customer_no||"")}"></label>
+    <label>방문동기<select class="inp" id="ce-visit"><option value=""></option>${VISIT.map(v=>`<option${c.visit===v?" selected":""}>${v}</option>`).join("")}</select></label>
+    <label>추천인<input class="inp" id="ce-ref" list="ce-refl" value="${esc(c.refName||"")}" autocomplete="off"><datalist id="ce-refl">${names.slice(0,4000).map(n=>`<option value="${esc(n)}">`).join("")}</datalist></label>
+    <label>생일<input class="inp" id="ce-bday" value="${esc(c.bday||"")}" placeholder="예: 3/15"></label>
+    <label>기념일<input class="inp" id="ce-anniv" value="${esc(c.anniv||"")}"></label>
+    <label class="full">가족<input class="inp" id="ce-family" value="${esc(c.family||"")}" placeholder="예: 남편 김철수, 첫째 승엽(13), 둘째 하율"></label>
+    <div class="full" style="display:flex;gap:6px;justify-content:flex-end"><button type="button" class="mini" data-a="ce-cancel">닫기</button><button type="submit" class="mini pri">저장</button></div>
+  </form>`;
+}
+function refCard(key,label){const bs=Object.values(B).filter(x=>ckey(x)===key);if(!bs.length)return"";const last=bs.slice().sort(byDate).pop(),cc=CUST[key]||{};
+  const vis=bs.filter(x=>(x.steps||{}).shot||(x.date&&x.date<TODAY)).length;
+  return `<button class="refc" data-a="open" data-id="${esc(last.id)}"><span class="refl">${label}</span><b>${esc(last.name)}</b>${last.customer_no?` <span class="cno">#${last.customer_no}</span>`:""}${cc.phone?`<span class="refp tn">${esc(cc.phone)}</span>`:""}<span class="refs">${vis}회 방문 · 최근 ${last.date?last.date.slice(2).replace(/-/g,"."):"미정"} ${esc(SHORT[pk(last)]||pinfo(last)[0])}</span></button>`}
+function refHTML(c){let h="";if(c.refKey)h+=refCard(c.refKey,"이 분을 추천한 고객")||`<div class="refc"><span class="refl">이 분을 추천한 고객</span><b>${esc(c.refName||"")}</b> <span class="refs">등록 안 된 고객</span></div>`;
+  Object.entries(CUST).filter(([k,x])=>x.refKey===openKey).forEach(([k])=>{h+=refCard(k,"이 분이 추천한 고객")});return h}
+function refLink(c){if(!c.refKey)return"";const rb=Object.values(B).find(x=>ckey(x)===c.refKey);
+  return `<span class="cinfo">추천 <button class="lnk" ${rb?`data-a="open" data-id="${esc(rb.id)}"`:"disabled"}>${esc(c.refName||"")}</button></span>`}
+function referredBy(){const out=Object.entries(CUST).filter(([k,c])=>c.refKey===openKey).map(([k])=>Object.values(B).find(x=>ckey(x)===k)).filter(Boolean);
+  return out.length?`<span class="cinfo">추천한 고객 ${out.map(b=>`<button class="lnk" data-a="open" data-id="${esc(b.id)}">${esc(b.name)}</button>`).join(" ")}</span>`:""}
+async function saveCustEdit(){
+  const list=custBookings(),last=list.slice().sort(byDate).pop(),oldKey=openKey,c={...(CUST[oldKey]||{})};
+  const name=$("ce-name").value.trim()||last.name,no=digits($("ce-no").value)||null,ref=$("ce-ref").value.trim();
+  c.phone=$("ce-phone").value.trim();c.visit=$("ce-visit").value;c.bday=$("ce-bday").value.trim();c.anniv=$("ce-anniv").value.trim();c.family=$("ce-family").value.trim();
+  if(ref){const m=/#(\d+)\s*$/.exec(ref);const rk=m?"n"+m[1]:(Object.values(B).find(x=>x.name===ref)?ckey(Object.values(B).find(x=>x.name===ref)):"");c.refName=ref.replace(/\s*#\d+\s*$/,"");c.refKey=rk}else{c.refName="";c.refKey=""}
+  if(no&&no!==last.customer_no&&Object.values(B).some(x=>x.customer_no===no&&ckey(x)!==oldKey)){toast(`#${no}은 다른 고객 번호예요`);return}
+  CEDIT=false;
+  const changeName=name!==last.name,changeNo=(no||null)!==(last.customer_no||null);
+  if(changeName||changeNo){for(const b of list){await save(b.id,{name,customer_no:no,...(no?{tkey:null}:{})},null)}log(last.id,`고객 정보 수정${changeName?" 이름 "+last.name+"→"+name:""}${changeNo?" 번호 "+(last.customer_no||"없음")+"→"+(no||"없음"):""}`)}
+  const newKey=no?"n"+no:(last.tkey||"m"+name.replace(/[^\w가-힣]/g,""));
+  CUST[newKey]=c;if(newKey!==oldKey){delete CUST[oldKey];openKey=newKey;["cp-bar","cp-head","cp-stats","cp-logs"].forEach(i=>{$(i)._h=null})}
+  try{await db.doc("customers/"+newKey).set(c);if(newKey!==oldKey)await db.doc("customers/"+oldKey).delete()}catch(e){toast("고객 정보를 저장하지 못했어요")}
+  refresh();
+}
+
+/* ===== 저장: 화면 먼저, 저장은 뒤에서, 실패하면 되돌림 ===== */
+function merge(a,p){for(const k in p){const v=p[k];if(v&&typeof v==="object"&&!Array.isArray(v)&&a[k]&&typeof a[k]==="object"&&!Array.isArray(a[k]))merge(a[k],v);else a[k]=v}return a}
+const DEV=Math.random().toString(36).slice(2,10);
+const josa=w=>{const c=(w||"").charCodeAt((w||"").length-1)-0xAC00;return c>=0&&c<11172&&c%28?"이":"가"};
+const meta=()=>({_by:who(),_dev:DEV,_at:new Date().toISOString()});
+/* 같이 고친 글: 내가 쓰는 사이 다른 사람이 바꿨으면 덮어쓰지 않고 이어 붙임 */
+function mergeText(base,cur,mine){base=base||"";cur=cur||"";mine=mine||"";if(cur===base||cur===mine)return[mine,false];
+  if(mine.startsWith(base)){const add=mine.slice(base.length).trim();return[add?(cur?cur+"\n"+add:add):cur,true]}
+  return[mine?(cur?cur+"\n"+mine:mine):cur,true]}
+async function save(id,patch,logText){
+  patch={...patch,...meta()};const before=B[id];B[id]=merge(clone(B[id]),clone(patch));refresh();
+  try{await db.doc("bookings/"+id).update(patch);if(logText)log(id,logText)}
+  catch(e){B[id]=before;refresh();toast("저장하지 못했어요. 인터넷 연결을 보고 다시 눌러 주세요")}
+}
+function log(id,text){db.collection("logs").add({booking:id,text,who:who(),at:new Date(Date.now()+9*3600e3).toISOString()}).catch(()=>{})}
+const today=()=>TODAY;
+
+async function makeNext(b){
+  if(b.nextId&&B[b.nextId])return;
+  const id=uid("n"),gs=nextGs(b.gs);
+  const doc={name:b.name,customer_no:b.customer_no||null,date:"",time:"",product:"",pkey:"growth",growth:true,gs,adults:+b.adults||2,kids:+b.kids||1,
+    cal:(b.cal||"").replace(/가성\s*\d+-\d+/,gs?"가성"+gs:"").trim(),kind:"shoot",memo:"",steps:{},items:[],
+    payments:[{id:uid("p"),date:TODAY,amount:100000,kind:"예약금",method:"",receipt:""}],booked_pkey:"growth",prevId:b.id,origin:"촬영 당일 자동"};
+  B[id]={id,...doc};B[b.id]={...B[b.id],nextId:id};SEEN.add(id);EXP.add(id);refresh();
+  try{await db.doc("bookings/"+id).set(doc);await db.doc("bookings/"+b.id).update({nextId:id});log(b.id,`다음 회차 ${gs} 예약 · 예약금 100,000원`);
+    toast(`다음 회차${gs?" "+gs:""} 예약에 예약금 10만원을 넣었어요. 수단만 골라 주세요`)}
+  catch(e){delete B[id];toast("다음 회차를 만들지 못했어요")}
+}
+function setPayments(b,list,msg){save(b.id,{payments:list},msg)}
+function rowsWithEdit(b,i,patch){const r=clone(priceRows(b));if(r[i])Object.assign(r[i],patch);return r}
+function materialize(b,rid){const items=clone(b.items||[]);const r=shipRows(b).find(x=>x.id===rid);if(!r)return[items,null];
+  if(r.virtual){const n={id:uid("i"),kind:r.kind,size:r.size||"",photo:"",ready:null,shipped:null};if(r.exk)n.exk=r.exk;items.push(n);return[items,n]}
+  return[items,items.find(x=>x.id===rid)]}
+
+function toggleStep(b,k){
+  const s=b.steps||{},on=stepOn(b,k);
+  if(k==="deposit"){if(!pays(b).some(p=>p.kind==="예약금")){setPayments(b,[...clone(b.payments||[]),{id:uid("p"),date:TODAY,amount:100000,kind:"예약금",method:"",receipt:""}],"예약금 100,000원 받음")}else toast("예약금을 지우려면 입금 줄의 × 를 눌러 주세요");return}
+  if(k==="orig"){const items=clone(b.items||[]);let o=items.find(i=>i.kind==="원본");if(!o){o={id:uid("i"),kind:"원본",size:"",photo:"",ready:null,shipped:null};items.push(o)}o.shipped=on?null:TODAY;save(b.id,{items,steps:{orig:on?null:TODAY}},on?"원본 보냄 되돌림":"원본 보냄");return}
+  if(k==="delivered"){if(on){const items=clone(b.items||[]);items.forEach(it=>{if(it.kind!=="원본"&&it.kind!=="보정본")it.shipped=null});save(b.id,{items,steps:{delivered:null}},"수령 되돌림");return}const items=clone(b.items||[]);shipRows(b).filter(r=>r.kind!=="보정본").forEach(r=>{let it=r.virtual?null:items.find(x=>x.id===r.id);if(!it){it={id:uid("i"),kind:r.kind,size:r.size||"",photo:"",ready:null,shipped:null};if(r.exk)it.exk=r.exk;items.push(it)}if(!it.shipped)it.shipped=TODAY;if(it.kind!=="원본"&&!it.ready)it.ready=it.shipped});save(b.id,{items,steps:{delivered:TODAY}},"수령");return}
+  if(k==="done"&&!on){const items=clone(b.items||[]);shipRows(b).filter(r=>r.kind!=="원본").forEach(r=>{let it=r.virtual?null:items.find(x=>x.id===r.id);if(!it){it={id:uid("i"),kind:r.kind,size:r.size||"",photo:"",ready:null,shipped:null};if(r.exk)it.exk=r.exk;items.push(it)}if(!it.ready)it.ready=TODAY});save(b.id,{items,steps:{done:TODAY}},"작업 완료");return}
+  if(k==="rest"){const items=clone(b.items||[]);shipRows(b).filter(r=>!r.shipped).forEach(r=>{let it=r.virtual?null:items.find(x=>x.id===r.id);if(!it){it={id:uid("i"),kind:r.kind,size:r.size||"",photo:"",ready:null,shipped:null};if(r.exk)it.exk=r.exk;items.push(it)}it.shipped=TODAY;if(it.kind!=="원본"&&!it.ready)it.ready=TODAY});save(b.id,{items},"남은 출고");return}
+  if(k==="done"&&on){const items=clone(b.items||[]);items.forEach(it=>{if(it.kind!=="원본"){it.ready=null;it.shipped=null}});save(b.id,{items,steps:{done:null,notified:null,delivered:null}},"완료 되돌림");return}
+  const label=(stepsFor(b).find(x=>x[0]===k)||[k,k])[1];
+  if(k==="shot"&&(P(b)||{}).idlike){let ps=clone(b.payments||[]);let txt;
+    if(!on){const bal=totalOf(b)-paidOf(b);if(bal>0){const e0=ps.find(x=>!(+x.amount));if(e0){e0.amount=bal;e0.auto=1;e0.date=TODAY}else ps.push({id:uid("p"),date:TODAY,amount:bal,kind:"잔금",method:"",receipt:"",auto:1});txt=`촬영 · ${money(bal)}원 결제`}else txt="촬영"}
+    else{ps=ps.filter(x=>!(x.auto&&x.kind==="잔금"&&!x.method));txt="촬영 되돌림"}
+    save(b.id,{steps:{shot:on?null:TODAY},payments:ps},txt);return}
+  save(b.id,{steps:{[k]:on?null:TODAY}},on?`${label} 되돌림`:label);
+  if(k==="shot"&&!on&&pk(b)==="growth"&&!b.nextId)setTimeout(()=>makeNext(B[b.id]),50);
+}
+
+/* ===== 누르기 ===== */
+const calm=()=>matchMedia("(prefers-reduced-motion:reduce)").matches;
+function animOut(el,c,done){if(!el||calm()||el.hidden){done();return}if(el.classList.contains(c))return;el.classList.add(c);let f=false;const fin=()=>{if(f)return;f=true;el.classList.remove(c);done()};el.addEventListener("animationend",fin,{once:true});setTimeout(fin,400)}
+let MGEN=0;function remoteNotice(hits){const mine=hits.filter(x=>openKey&&ckey(x)===openKey);if(!mine.length)return;
+  mine.forEach(x=>{const el=$("hc-"+x.id);if(el)anim(el,"remote")});const x=mine[0],ae=document.activeElement;
+  const typing=ae&&ae.dataset&&ae.dataset.id===x.id&&/^(INPUT|TEXTAREA)$/.test(ae.tagName);
+  toast(`${x._by||"다른 사람"}${josa(x._by)} 방금 ${x.name} ${x.date?x.date.slice(5).replace("-","/"):""} 예약을 고쳤어요${typing?" — 지금 쓰는 칸 확인해 주세요":""}`)}
+function closeModal(){const m=$("modal"),g=MGEN;animOut(m,"closing",()=>{if(g===MGEN)m.hidden=true})}
+function anim(el,c){if(!el)return;el.classList.remove(c);void el.offsetWidth;el.classList.add(c);el.addEventListener("animationend",()=>el.classList.remove(c),{once:true})}
+const isPhone=()=>matchMedia("(max-width:700px)").matches;
+function showAgenda(){const g=$("agenda");if(!g)return;const r=g.getBoundingClientRect();if(r.top>innerHeight-120||r.top<0)g.scrollIntoView({behavior:"smooth",block:"start"})}
+let pickY=calY;
+function drawPick(){const n=new Date();$("mpick").innerHTML=`<div class="mp-y"><button class="nav" data-a="mpy" data-v="-1" aria-label="지난해">‹</button><b>${pickY}년</b><button class="nav" data-a="mpy" data-v="1" aria-label="다음해">›</button></div><div class="mp-m">${Array.from({length:12},(_,i)=>`<button data-a="mpm" data-v="${i}" class="${pickY===calY&&i===calM?"on":pickY===n.getFullYear()&&i===n.getMonth()?"now":""}">${i+1}월</button>`).join("")}</div>`}
+function closePick(){const m=$("mpick");if(m&&!m.hidden){m.hidden=true;$("mlabel").setAttribute("aria-expanded","false")}}
+document.addEventListener("pointerdown",e=>{if(!e.target.closest("#mpick,#mlabel"))closePick()});
+document.addEventListener("click",e=>{
+  const dc=e.target.closest("#cal .day");
+  if(dc&&isPhone()&&!e.target.closest("textarea")){e.preventDefault();selDay=dc.dataset.ds;draw();setTimeout(showAgenda,30);return}
+  const t=e.target.closest("[data-a]");if(!t)return;
+  if(/^(step|ship|flag|idq|ex|num|eth|etm)$/.test(t.dataset.a)){const q=["a","id","v","r","d"].filter(k=>t.dataset[k]!=null).map(k=>`[data-${k}="${CSS.escape(t.dataset[k])}"]`).join("");requestAnimationFrame(()=>requestAnimationFrame(()=>{const n=document.querySelector(q);if(n)anim(n,"pop")}))}if(e.target!==t&&/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))return;if(downEl&&downEl!==t&&t.contains(downEl)&&/^(INPUT|TEXTAREA|SELECT)$/.test(downEl.tagName))return;{const ae=document.activeElement;if(ae&&ae!==t&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))ae.blur()}const a=t.dataset.a,id=t.dataset.id,b=id?B[id]:null,v=t.dataset.v;
+  if(a==="tab"){view=v;document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===v));["cal","today","cust"].forEach(n=>$("v-"+n).hidden=n!==v);draw();return}
+  if(a==="calprev"||a==="calnext"){calM+=a==="calprev"?-1:1;if(calM<0){calM=11;calY--}if(calM>11){calM=0;calY++}draw();return}
+  if(a==="mpick"){const m=$("mpick");if(m.hidden){pickY=calY;drawPick();m.hidden=false;t.setAttribute("aria-expanded","true")}else closePick();return}
+  if(a==="mpy"){pickY+=+v;drawPick();return}
+  if(a==="mpm"){calY=pickY;calM=+v;closePick();draw();return}
+  if(a==="caltoday"){calY=_n.getFullYear();calM=_n.getMonth();selDay=TODAY;draw();return}
+  if(a==="day"){selDay=v;draw();return}
+  if(a==="filter"){calFilter=calFilter===v?null:v;draw();return}
+  if(a==="open"){CEDIT=false;openCust(id,t.dataset.src==="q");return}
+  if(a==="ce-open"){CEDIT=!CEDIT;$("cp-head")._h=null;drawCust();return}
+  if(a==="ce-cancel"){CEDIT=false;drawCust();return}
+  if(a==="msgcopy"){const ta=$("mt-"+id);const done=()=>{t.textContent="복사됨";setTimeout(()=>{t.textContent="복사"},1500)};
+    if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(ta.value).then(done,()=>{ta.select();try{document.execCommand("copy")}catch(e){}done()});else{ta.select();try{document.execCommand("copy")}catch(e){}done()}return}
+  if(a==="back"){animOut($("cp"),"leave",closeCust);return}
+  if(a==="newbk"||a==="newbk-here"){openModal(a==="newbk-here");return}
+  if(a==="mclose"){closeModal();return}
+  if(a==="warn"){if(!openKey)return;const old=CUST[openKey]||{},n=Math.max(0,Math.min(5,warnN(openKey)+(+v)));if(n===warnN(openKey))return;const c={...old,warn:n,...meta()};CUST[openKey]=c;$("cp-head")._h=null;refresh();
+    db.doc("customers/"+openKey).set(c).catch(()=>toast("저장하지 못했어요"));const lb=custBookings().sort(byDate).pop();if(lb)log(lb.id,`주의 표시 ${"@".repeat(n)||"없음"}`);return}
+  if(a==="bigcopy"){const done=()=>toast("복사됐어요");if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(BIGFAM_INQUIRY).then(done,()=>{const r=document.createRange();r.selectNodeContents($("n-bigfam"));const sl=getSelection();sl.removeAllRanges();sl.addRange(r);toast("길게 눌러 복사하세요")});return}
+  if(a==="ncmp"){$("n-pkey").value=v;calPreview();nPrice();return}
+  if(a==="form-close"){FORM=null;refresh();return}
+  if(a==="logshow"){LOGSHOW=!LOGSHOW;$("cp-bar")._h=null;refresh();if(LOGSHOW)setTimeout(()=>$("cp-logsec").scrollIntoView({behavior:"smooth",block:"nearest"}),60);return}
+  if(a==="logf"){LOGF=v;refresh();return}
+  if(a==="logall"){LOGALL=!LOGALL;if(LOGALL)loadCustLogs(openKey,custBookings().map(x=>x.id));refresh();return}
+  if(a==="msgx"){MSGON=null;refresh();return}
+  if(!b)return;
+  if((a==="hrow"||a==="toggle")&&Date.now()-(window._tg||0)<400)return;
+  if(a==="hrow"||a==="toggle")window._tg=Date.now();
+  if(a==="exh"){EXH.add(id);refresh();return}
+  if(a==="ack"){save(id,{ack:{...(b.ack||{}),[v]:TODAY}},`확인함: ${v}`);toast("목록에서 뺐어요");return}
+  if(a==="hrow"){EXP.add(id);withAnchor(drawCust);anim($("hc-"+id),"unfold");return}
+  if(a==="toggle"){if(downFocus&&/^(INPUT|TEXTAREA|SELECT)$/.test(downFocus.tagName)){downFocus=null;return}const wasOpen=EXP.has(id);wasOpen?EXP.delete(id):EXP.add(id);withAnchor(drawCust);anim($("hc-"+id),wasOpen?"fold":"unfold");return}
+  if(a==="goto"){EXP.add(id);refresh();requestAnimationFrame(()=>{const el=$("hc-"+id),sc=$("right");if(el)sc.scrollTop+=el.getBoundingClientRect().top-sc.getBoundingClientRect().top-$("cp-bar").offsetHeight-14});return}
+  if(a==="step"){toggleStep(b,v);return}
+  if(a==="shipm"){if((b.ship||"")===v)return;save(id,{ship:v},v?"택배로 보냄":"방문 수령으로");return}
+  if(a==="flag"){save(id,{[v]:!b[v]},(v==="review"?"리뷰·포켓 ":"SNS 동의 ")+(b[v]?"해제":"체크"));return}
+  if(a==="flagstep"){const on=!!(b.steps||{})[v];save(id,{steps:{[v]:on?null:TODAY}},(v==="canceled"?"취소":"연기")+(on?" 되돌림":" 처리"));return}
+  if(a==="makenext"){makeNext(b);return}
+  if(a==="msg"){MSGON=MSGON===id?null:id;refresh();return}
+  if(a==="msgx"){MSGON=null;refresh();return}
+  if(a==="msgk"){MSGSEL[id]={k:v};refresh();return}
+  if(a==="msgv"){MSGSEL[id]={k:(MSGSEL[id]||{k:msgDefault(b)}).k,v};refresh();return}
+  if(a==="eth"||a==="etm"){const H=a==="eth"?v:(b.time?String(+b.time.slice(0,2)):"11"),M=a==="etm"?v:(b.time?b.time.slice(3,5):"00");const t2=`${String(H).padStart(2,"0")}:${M}`;if(t2!==b.time)save(id,{time:t2},`시간 → ${tm(t2)}`);return}
+  if(a==="shiptog"){SHIPOPEN.has(id)?SHIPOPEN.delete(id):SHIPOPEN.add(id);drawCard(b);return}
+  if(a==="det"){DET.has(id)?DET.delete(id):DET.add(id);drawCard(b);return}
+  if(a==="pkey"){save(id,{pkey:v,priceItems:null,priceOverride:null,booked_pkey:b.booked_pkey||b.pkey||v},`상품 → ${PRODUCTS[v].name}`);return}
+  if(a==="num"){const pp=PRODUCTS[b.pkey]||{};const min=v==="kids"&&pp.growth?1:v==="adults"?1:0;const cur=+b[v]||(v==="adults"?(pp.perPerson||pp.perHead?1:2):v==="kids"&&pp.growth?1:0);save(id,{[v]:Math.max(min,cur+(+t.dataset.d)),priceItems:null});return}
+  if(a==="recalc"){save(id,{priceItems:null,priceOverride:null},"금액 계산대로 다시");return}
+  if(a==="toorig"){save(id,{pkey:"bigfam_orig",booked_pkey:b.booked_pkey||"bigfam",priceItems:null,needOrig:true},"대가족 → 원본형으로 변경");return}
+  if(a==="pi-add"){save(id,{priceItems:[...clone(priceRows(b)),{label:"추가 항목",amt:0}]});return}
+  if(a==="pi-del"){const r=clone(priceRows(b));r.splice(+t.dataset.i,1);save(id,{priceItems:r},"가격 항목 지움");return}
+  if(a==="pay-del"){const i=+t.dataset.i,l=clone(pays(b)),p=l[i];if(!p)return;l.splice(i,1);setPayments(b,l,p.amount?`결제 줄 지움 (${money(p.amount)}원${p.method?" · "+p.method:""})`:null);return}
+  if(a==="pay-add"){const amt=+t.dataset.amt||0;setPayments(b,[...clone(pays(b)),{id:uid("p"),date:TODAY,amount:amt,kind:v,method:"",receipt:""}],amt?`${v} ${money(amt)}원 줄 추가`:null);return}
+  if(a==="pay-del"){const l=clone(pays(b)),x=l.splice(+t.dataset.i,1)[0];setPayments(b,l,`입금 지움 (${x.kind} ${money(x.amount)})`);return}
+  if(a==="ship"){const [items,it]=materialize(b,t.dataset.r);if(!it)return;const f=v;const on=!!it[f];it[f]=on?null:TODAY;if(f==="shipped"&&!on&&it.kind!=="원본"&&!it.ready)it.ready=TODAY;
+    const patch={items};if(it.kind==="원본"&&f==="shipped")patch.steps={orig:on?null:TODAY};save(id,patch,`${it.kind} ${f==="ready"?"준비":"출고"}${on?" 되돌림":""}`);return}
+  if(a==="item-del"){save(id,{items:clone(b.items||[]).filter(x=>x.id!==t.dataset.r)},"출고 항목 지움");return}
+  if(a==="item-form"){FORM={id,type:"item"};refresh();return}
+  if(a==="item-save"){const kind=$("f-kind-"+id).value,size=$("f-isize-"+id).value.trim(),photo=$("f-iphoto-"+id).value.trim();FORM=null;save(id,{items:[...clone(b.items||[]),{id:uid("i"),kind,size,photo,ready:null,shipped:null}]},`출고 항목 추가: ${kind} ${size}`);return}
+  if(a==="pick-save"){const photo=$("f-photo-"+id).value.trim(),size=$("f-size-"+id).value;const items=clone(b.items||[]);
+    const vf=items.find(i=>i.kind==="액자"&&!i.photo);if(vf){vf.photo=photo;vf.size=size}else items.push({id:uid("i"),kind:"액자",size,photo,ready:null,shipped:null});
+    if(!items.some(i=>i.kind==="보정본"))items.push({id:uid("i"),kind:"보정본",size:"",photo,ready:null,shipped:null});
+    FORM=null;save(id,{items,steps:{picked:(b.steps||{}).picked||TODAY}},`사진 선택: ${photo} ${size}`);return}
+  if(a==="idq"){const q={...(b.idq||{})};q[v]=Math.max(0,(+q[v]||0)+(+t.dataset.d));const n=ID_TYPES.filter(x=>!x.add).reduce((s2,x)=>s2+(+q[x.k]||0),0);save(id,{idq:q,adults:n||b.adults||1,kids:0,priceItems:null});return}
+  if(a==="ex"){const ex={...(b.ex||{})};ex[v]=Math.max(0,(+ex[v]||0)+(+t.dataset.d));save(id,{ex,priceItems:null});return}
+});
+
+/* 고친 값은 칸에서 나갈 때(또는 Enter) 한 번만 저장 — 글자마다 저장하지 않음 */
+document.addEventListener("change",e=>{if(e.target.dataset&&e.target.dataset.f==="logb"){LOGB=e.target.value;e.target.blur();refresh();return}
+  const t=e.target;if(t.tagName==="SELECT"||t.type==="checkbox")setTimeout(()=>{if(document.activeElement===t)t.blur()},0);
+  if(t.dataset.memo){const ds=t.dataset.memo,v=t.value.trim();MEMO[ds]=v;db.doc("memos/"+ds).set({text:v,color:MEMOC[ds]||"k"}).catch(()=>toast("메모를 저장하지 못했어요"));refresh();return}
+  if(t.dataset.cf){if(!openKey)return;const old=CUST[openKey]||{};let val=t.value;
+    if(t.dataset.cf==="memo"){const [v,cf]=mergeText(t._base,old.memo,t.value);val=v;t._base=v;if(v!==t.value)t.value=v;if(cf)toast(`${old._by||"다른 사람"}${josa(old._by)} 먼저 고친 상담 메모가 있어서 내 글을 이어 붙였어요`)}
+    const c={...old,[t.dataset.cf]:val,...meta()};CUST[openKey]=c;db.doc("customers/"+openKey).set(c).catch(()=>toast("고객 메모를 저장하지 못했어요"));refresh();return}
+  const id=t.dataset.id,b=id&&B[id],f=t.dataset.f;if(!b||!f)return;let i=+t.dataset.i;
+  if(f==="track"){const v=t.value.trim();if(v!==(b.track||""))save(id,{track:v},`송장번호 ${v}`);return}
+  if(f==="memo"){const [v,cf]=mergeText(t._base,b.memo,t.value);t._base=v;if(v!==t.value)t.value=v;if(v!==(b.memo||""))save(id,{memo:v});if(cf)toast(`${b._by||"다른 사람"}${josa(b._by)} 먼저 고친 메모가 있어서 내 글을 이어 붙였어요`);return}
+  if(f==="pkey"){const v=t.value;if(v&&PRODUCTS[v])save(id,{pkey:v,priceItems:null,priceOverride:null,booked_pkey:b.booked_pkey||b.pkey||v},`상품 → ${PRODUCTS[v].name}`);return}
+  if(f==="m-total"){const v=digits(t.value),r=priceRows(b);if(v===totalOf(b))return;save(id,{priceItems:[{label:(r[0]&&r[0].label)||((PRODUCTS[b.pkey]||{}).name)||"촬영",amt:v}]},`금액 ${money(v)}원`);return}
+  if(f==="m-amt"){const v=digits(t.value),l=clone(pays(b));
+    if(i<0){if(!v)return;l.push({id:uid("p"),date:TODAY,amount:v,kind:t.dataset.kind,method:"",receipt:""})}
+    else{if(!l[i])return;if(!v)l.splice(i,1);else l[i].amount=v}
+    setPayments(b,l,`${t.dataset.kind==="예약금"?"예약금":"현장결제"} ${money(v)}원`);return}
+  if(f==="pi-label"){save(id,{priceItems:rowsWithEdit(b,i,{label:t.value})});return}
+  if(f==="pi-amt"){save(id,{priceItems:rowsWithEdit(b,i,{amt:digits(t.value)})},"금액 수정");return}
+  if(f.startsWith("pay-")){const l=clone(pays(b));if(i<0){if(!t.value)return;l.push({id:uid("p"),date:TODAY,amount:0,kind:t.dataset.kind||"잔금",method:"",receipt:""});i=l.length-1}const p=l[i];if(!p)return;
+    if(f==="pay-amt")p.amount=digits(t.value);if(f==="pay-kind")p.kind=t.value;
+    if(f==="pay-method"){p.method=t.value;if(!needReceipt(t.value))p.receipt=""}
+    if(f==="pay-receipt")p.receipt=t.value;
+    setPayments(b,l,`${p.kind} ${money(p.amount)}원 · ${p.method||"수단 미정"} · ${p.receipt||"증빙 미정"}`);return}
+  if(f==="ship-size"){const [items,it]=materialize(b,t.dataset.r);if(!it)return;it.size=t.value;save(id,{items},`액자 ${t.value}`);return}
+  if(f==="ship-photo"){const [items,it]=materialize(b,t.dataset.r);if(!it)return;it.photo=t.value.trim();save(id,{items});return}
+  if(f==="gs-c"||f==="gs-y"){const m=/^(\d+)-(\d+)$/.exec(b.gs||"")||[null,"",""];const c=f==="gs-c"?digits(t.value):m[1],y=f==="gs-y"?digits(t.value):m[2];save(id,{gs:c&&y?`${c}-${y}`:""},`가성 회차 ${c}-${y}`);return}
+  if(["pet","weekend","up11"].includes(f)){save(id,{[f]:t.checked,priceItems:null});return}
+  if(f==="date"||f==="time"){const patch={[f]:t.value};if(f==="date"&&t.value&&b.kind==="consult"){patch.kind="shoot";if(!b.customer_no)setTimeout(()=>assignNumber(ckey(B[id])),0)}if(f==="date"&&t.value&&(b.steps||{}).postponed)patch.steps={postponed:null};save(id,patch,`${f==="date"?"날짜":"시간"} → ${t.value}`);return}
+  if(f==="cal"){clearTimeout(t._ct);const v=calVal(b,t.value);if((b.cal||"")!==v)save(id,{cal:v});if(!v){t.value=calText({...b,cal:""});t.classList.add("auto")}return}
+});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("mpick").hidden){closePick();return}if((e.key==="Enter"||e.key===" ")&&e.target.matches('.hh[role=button]')){e.preventDefault();e.target.click();return}if(e.key==="Enter"&&e.target.matches("input.inp,input.dmemo,input.hcal")&&!e.isComposing)e.target.blur();if(e.key==="Escape"&&openKey&&!/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement||{}).tagName)){if(!$("modal").hidden)closeModal();else animOut($("cp"),"leave",closeCust)}});
+document.addEventListener("input",e=>{const t=e.target,f=t.dataset&&t.dataset.f;
+  if(["m-amt","m-total","pi-amt"].includes(f)){const v=t.value,c=t.selectionStart??v.length,nd=v.slice(0,c).replace(/\D/g,"").length,d=v.replace(/\D/g,"");
+    const out=d?(+d).toLocaleString("ko-KR"):"";if(out===v)return;t.value=out;let k=0,pos=0;while(pos<out.length&&k<nd){if(/\d/.test(out[pos]))k++;pos++}try{t.setSelectionRange(pos,pos)}catch(_){}}
+  if(f==="cal"){t.classList.remove("auto");clearTimeout(t._ct);t._ct=setTimeout(()=>{const b=B[t.dataset.id];if(!b)return;const v=calVal(b,t.value);if((b.cal||"")!==v)save(b.id,{cal:v})},700)}
+});
+function fmtPhone(v){const d=String(v).replace(/\D/g,"").slice(0,11);if(d.startsWith("02")){if(d.length<3)return d;if(d.length<6)return d.slice(0,2)+"-"+d.slice(2);if(d.length<10)return d.slice(0,2)+"-"+d.slice(2,5)+"-"+d.slice(5);return d.slice(0,2)+"-"+d.slice(2,6)+"-"+d.slice(6,10)}
+  if(d.length<4)return d;if(d.length<8)return d.slice(0,3)+"-"+d.slice(3);if(d.length<11)return d.slice(0,3)+"-"+d.slice(3,6)+"-"+d.slice(6);return d.slice(0,3)+"-"+d.slice(3,7)+"-"+d.slice(7)}
+document.addEventListener("input",e=>{const t=e.target;if(t.id!=="n-phone"&&t.id!=="ce-phone")return;const v=t.value,c=t.selectionStart??v.length,nd=v.slice(0,c).replace(/\D/g,"").length,out=fmtPhone(v);if(out===v)return;t.value=out;let k=0,pos=0;while(pos<out.length&&k<nd){if(/\d/.test(out[pos]))k++;pos++}try{t.setSelectionRange(pos,pos)}catch(_){}});
+$("q").addEventListener("input",()=>{if(view!=="cust"){view="cust";document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v==="cust"));["cal","today","cust"].forEach(n=>$("v-"+n).hidden=n!=="cust")}drawList()});
+
+/* ===== 새 예약 ===== */
+let TH="",TM="00";
+let NXH=false;function drawHours(){const ext=NXH||(TH&&HEXT.includes(+TH));$("n-hours").innerHTML=(ext?[...HMAIN,...HEXT]:HMAIN).map(h=>`<button type="button" class="tb ${h<12?"am":"pm"}${HEXT.includes(h)?" ext":""}" data-a="th" data-v="${h}">${hLab(h)}</button>`).join("")+(ext?"":`<button type="button" class="tb more" data-a="nxh">그 외</button>`);paintTime()}
+$("n-mins").innerHTML=["00","10","20","30","40","50"].map(m=>`<button type="button" class="tb" data-a="tm" data-v="${m}">${m}분</button>`).join("");
+function setTime(t){TH=t?String(+t.slice(0,2)):"";TM=t?t.slice(3,5):"00";NXH=false;drawHours()}
+function paintTime(){const v=TH?`${String(TH).padStart(2,"0")}:${TM}`:"";$("n-time").value=v;$("n-tshow").textContent=v?tmx(v):"-";$("n-tshow").className=v?ampm(v):"";
+  document.querySelectorAll("#n-hours .tb").forEach(b=>b.classList.toggle("on",b.dataset.v===TH));document.querySelectorAll("#n-mins .tb").forEach(b=>b.classList.toggle("on",!!TH&&b.dataset.v===TM))}
+const SCRIPT=[
+ {n:1,t:'가족 구성 파악',e:'먼저 묻고 듣기',lines:[
+  ['ask','"네, 가족사진 문의 주셨네요^^ 먼저 가족분이 몇 분이나 되시는지 여쭤봐도 될까요? 아이들은 몇 살이고 몇 명인지도 알려주시면 좋아요~"'],
+  ['ask','"혹시 아이가 처음 사진관 오는 거예요, 아니면 전에 촬영 경험이 있나요?"'],
+ ]},
+ {n:2,t:'성향 파악',e:'현장 케어 방향 잡기',lines:[
+  ['ask','"아이가 평소에 낯을 좀 가리는 편인가요, 아니면 활발한 편인가요?"'],
+  ['ask','"부모님들은 카메라 앞에서 표정 짓는 거 편하신 편이세요, 아니면 좀 어색해하시는 편이세요?"'],
+ ]},
+ {n:3,t:'감탄사진관 강점',e:'10분 대화 · 다이나믹 · 원본',lines:[
+  ['','"사실 저희가 낯가림 있는 아이들 촬영을 제일 자신 있어 해요. 아이가 마음 열 때까지 절대 서두르지 않거든요^^"'],
+  ['','"그래서 저희는 촬영 들어가기 전에 작가랑 10분 정도 대화 나누는 시간을 꼭 가져요. 아이도 처음 오는 공간이라 긴장이 되잖아요. 그 시간 동안 낯선 공간에 적응하고 마음을 좀 풀게 도와드리는 거예요."'],
+  ['','"그리고 그 대화가 작가한테도 중요해요. \'아, 이 가족은 이런 점이 매력이구나, 이 아이는 이럴 때 제일 환하게 웃는구나\' 하는 걸 미리 파악하거든요. 그래야 그 가족에 딱 맞게 찍어드릴 수 있어요."'],
+  ['','"이렇게 성향을 먼저 알고 나면, 그 아이에 맞게 다이나믹하게 여러 컨셉으로 찍어드려요. 가만히 앉아만 있는 게 아니라 움직이고 웃는 자연스러운 순간들을 많이 담아요."'],
+  ['','"그래서 원본도 넉넉하게 드려요. 한 장면만 건지는 게 아니라, 여러 모습 중에 가장 그 가족다운 순간을 고르실 수 있게요~"'],
+ ]},
+ {n:4,t:'원본 안내',e:'니즈 끌어내고 → 상품 방향 잡기',lines:[
+  ['ask','"혹시 촬영하시고 나서 사진 파일을, 그러니까 원본을 직접 받아서 간직하고 싶으신 편이세요? 아니면 예쁜 액자 한 점 잘 받으시면 충분하신 편이세요?"'],
+  ['tip','이 한 질문으로 상품 방향이 갈려요 — 원본 원하면 스토리/심플, 액자면 대가족.'],
+  ['','"원본을 받아두시면 좋은 게, 나중에 핸드폰 배경화면으로도 쓰시고, 연하장이나 가족 단체방에도 올리시고, 또 몇 년 지나서 \'그때 이 표정 좋았는데\' 하면서 다시 꺼내보시거든요. 액자는 한 장면이지만, 원본은 그날 가족의 여러 모습이 다 남는 거예요^^"'],
+  ['','"그래서 상품마다 조금 차이가 있는데요. 저희 감탄스토리는 원본을 100컷 이상 넉넉하게 다 드려요. 가족분들 표정 하나하나 다 골라보실 수 있어요."'],
+  ['','"심플패밀리는 원본을 30컷 이상 드리고요. 깔끔하게 핵심 컷 위주로 받으시는 거예요."'],
+  ['','"다만 대가족 촬영은 인원이 많다 보니까 구성이 좀 달라요. 이건 원본 파일은 따로 안 나가고, 제일 잘 나온 액자컷 보정본 한 장으로 정리되는 상품이에요. 대신 큰 액자(8×10)로 온 가족이 다 같이 멋지게 남는 거죠."'],
+  ['','"그래서 만약에 인원이 좀 많으시더라도 \'우리는 원본을 꼭 받고 싶다\' 하시면, 대가족보다는 감탄스토리로 진행하시는 걸 추천드려요. 그럼 인원 추가는 좀 있지만 원본을 다 받으실 수 있거든요^^"'],
+  ['','"반대로 \'액자 한 점 잘 받으면 됐다\' 하시면 대가족이 합리적이에요. 가족분들 상황에 맞춰서 편하게 골라드릴게요~"'],
+ ]},
+ {n:5,t:'마무리',e:'안심시키기',lines:[
+  ['','"아이가 좀 울거나 떼써도 전혀 걱정 안 하셔도 돼요. 그런 순간들 케어하는 게 저희 일이니까요^^ 편하게 오셔서 맡겨주시면 잘 나올 수 있게 해드릴게요."'],
+  ['','"정답이 있는 건 아니고요, 가족분들이 사진을 어떻게 간직하고 싶으신지가 제일 중요해요. 제가 두 가지 다 안내해드릴 테니 천천히 정하셔도 됩니다^^"'],
+  ['tip','②에서 들은 성향 답을 받아서 "그럼 더더욱 저희가 잘 맞겠네요" 식으로 연결하면 상담이 살아나요.'],
+ ]},
+];
+
+const BIGFAM_INQUIRY = `안녕하세요^^
+문의주신 촬영 예약은 현재 가능합니다~
+(예약은 실시간으로 진행되어 변동이 있을 수 있습니다)
+
+문의주신 대가족 가족촬영 상품 안내해드릴게요^^
+
++
+[ 첫 번째 ] 감탄 대가족 — 15만원
+· 8x10인치 액자 1개
+· 액자컷 웹용 수정본 1컷
+· 기본 액자 외 다른 사이즈의 액자·앨범 등은 별도 추가 가능합니다
+· 전체 원본 파일은 제공되지 않습니다
+
+[ 두 번째 ] 감탄스토리 가족촬영 — 80만원
+· 8x10인치 액자 1개
+· 액자컷 웹용 수정본 1컷
+· 원본 파일 100컷 이상 제공
+
+감탄스토리는 가족분들의 모습을 스냅 형식으로 자연스럽게 담아드려요~
+가족 전체 촬영과 더불어 부모님, 형제 촬영 등 다양하게 진행되며,
+저희 사진관에서 가장 많이 선택하시는 상품 중 하나입니다^^
+
++
+의상은 한 벌 또는 두 벌, 직접 준비해주시면 됩니다.
+위 두 상품은 모두 똑같은 방식으로 촬영하고,
+최종 상품은 촬영 후 모니터로 사진을 보고 결정하셔도 됩니다~
+14인 가족이면 방문 후 평균 1시간 30분~2시간 정도 예상하시면 됩니다^^
+
++
+촬영은 예약 시간에 방문하시면 바로 시작하지 않고,
+가족분들과 잠시 아이스브레이킹 시간을 가지며 이야기를 나눕니다.
+대화를 나눈 뒤 촬영을 시작하고, 가족분들의 성향에 따라 자연스럽고 다양하게 진행합니다.
+(예: 대가족, 소가족, 부모님, 부모님과 손주, 직계가족 촬영 등)
+
+다른 궁금한 점이 있으시면 언제든지 문의주세요!
+감사합니다^^`;
+
+/* 상담 대본은 10/31 뺀 (나중에 다시) — SCRIPT 내용은 코드에 남겨 둠 */
+function scriptHTML(){return `<details><summary><span class="sn">📋</span><span>대가족 문의 답변 <em>복사해서 전송</em></span></summary><pre id="n-bigfam">${esc(BIGFAM_INQUIRY)}</pre><div style="padding:0 10px 8px;text-align:right"><button type="button" class="mini pri" data-a="bigcopy">복사</button></div></details>`}
+$("n-script").innerHTML=scriptHTML();
+const CMPK=["simpfam","story","bigfam","bigfam_orig"];
+function nBook(k){return{pkey:k||null,adults:+$("n-adults").value||0,kids:+$("n-kids").value||0,pet:$("n-pet").checked,up11:$("n-up11").checked&&!!(PRODUCTS[k]||{}).up11,product:"",cal:""}}
+function nPrice(){const k=$("n-pkey").value,p=PRODUCTS[k];$("n-up11w").hidden=!(p&&p.up11);
+  const rows=k?calcRows(nBook(k))||[]:[];const tot=rows.reduce((a,r)=>a+(+r.amt||0),0);
+  $("n-price").hidden=!rows.length;setHTML($("n-price"),rows.map(r=>`<div class="pr"><span>${esc(r.label)}</span><span class="tn">${money(r.amt)}</span></div>`).join("")+(rows.length?`<div class="pt"><span>금액</span><span class="tn">${money(tot)}원</span></div>`:""));
+  const fam=!k||FAMK.includes(k)&&k!=="growth";$("n-cmp").hidden=!fam;
+  if(fam)setHTML($("n-cmp"),CMPK.map(c=>{const r=calcRows(nBook(c))||[];const t=r.reduce((a,x)=>a+(+x.amt||0),0);return `<button type="button" data-a="ncmp" data-v="${c}" aria-pressed="${c===k}">${esc(SHORT[c])}<b class="tn">${money(t)}</b></button>`}).join(""))}
+function setHTML(el,h){if(el._h!==h){el.innerHTML=h;el._h=h}}
+const nAuto=()=>calText({pkey:$("n-pkey").value||null,adults:+$("n-adults").value||0,kids:+$("n-kids").value||0,product:"",cal:""})||"";
+function calPreview(){const c=$("n-cal");if(c.dataset.dirty)return;c.value=nAuto();c.classList.add("auto")}
+$("n-cal").addEventListener("input",()=>{const c=$("n-cal");c.classList.remove("auto");c.dataset.dirty=c.value.trim()?"1":"";if(!c.dataset.dirty&&document.activeElement!==c)calPreview()});
+$("n-cal").addEventListener("blur",()=>{const c=$("n-cal");if(!c.value.trim()){c.dataset.dirty="";calPreview()}});
+$("n-phone").addEventListener("input",nHit);
+function nHit(){const el=$("n-hit");if(modalForCust){el.hidden=true;return}const k=findByPhone($("n-phone").value);if(!k){el.hidden=true;return}const bs=Object.values(B).filter(x=>ckey(x)===k).sort(byDate),l=bs[bs.length-1];el.hidden=false;el.textContent=`기존 손님: ${l.name}${l.customer_no?" #"+l.customer_no:" (번호 없음)"} · 최근 ${l.date?l.date.slice(2).replace(/-/g,"."):"미정"} ${SHORT[pk(l)]||pinfo(l)[0]} — 이 손님에게 붙어요`}
+["n-pkey","n-adults","n-kids","n-pet","n-up11"].forEach(i=>{$(i).addEventListener("input",()=>{calPreview();nPrice()});$(i).addEventListener("change",()=>{calPreview();nPrice()})});
+document.addEventListener("click",e=>{if(e.target.closest("[data-a=nxh]")){NXH=true;drawHours();return}const t=e.target.closest("[data-a=th],[data-a=tm]");if(!t)return;if(t.dataset.a==="th")TH=t.dataset.v;else{TM=t.dataset.v;if(!TH)TH="11"}paintTime()});
+let modalForCust=null;
+function openModal(here){MGEN++;$("modal").classList.remove("closing");
+  $("n-pkey").innerHTML=`<option value="">상품 고르기</option>`+Object.entries(PRODUCTS).filter(([k])=>k!=="halfid").map(([k,p])=>`<option value="${k}">${p.name}</option>`).join("");
+  modalForCust=here&&openKey?custBookings().sort(byDate).pop():null;
+  $("mtitle").textContent=modalForCust?`${modalForCust.name}님 새 예약 · 상담`:"새 예약 · 상담";
+  $("n-name").value=modalForCust?modalForCust.name:"";$("n-phone").value=modalForCust?((CUST[openKey]||{}).phone||""):"";
+  $("n-date").value=selDay||TODAY;$("n-time").value="";$("n-adults").value=modalForCust?(modalForCust.adults||2):2;$("n-kids").value=modalForCust?(modalForCust.kids||0):0;$("n-cal").value="";$("n-cal").dataset.dirty="";$("n-pet").checked=false;$("n-up11").checked=false;$("n-memo").value="";$("n-memo").style.height="";setTime("");calPreview();nPrice();nHit();
+  $("modal").hidden=false;setTimeout(()=>$(modalForCust?"n-pkey":"n-name").focus(),30);
+}
+document.addEventListener("submit",e=>{if(e.target.id==="cedit"){e.preventDefault();saveCustEdit()}});
+$("mform").addEventListener("submit",async e=>{
+  e.preventDefault();const mode=(e.submitter&&e.submitter.value)||"book";const name=$("n-name").value.trim();
+  if(!name&&mode==="book"){toast("이름을 넣어 주세요");$("n-name").focus();return}
+  const nm=name||(who().replace(/(님|씨)$/,"")+"상담");
+  if(mode==="book"&&!$("n-date").value){toast("날짜를 골라 주세요");return}
+  const phone=$("n-phone").value.trim(),pkey=$("n-pkey").value;
+  const cons=mode==="consult";let no=null,tkey=null,nmx=nm,hitKey=null;
+  if(modalForCust){const mk=ckey(modalForCust);if(modalForCust.customer_no)no=modalForCust.customer_no;else if(cons)tkey=mk;else no=await assignNumber(mk)}
+  else{hitKey=findByPhone(phone);
+    if(hitKey&&hitKey[0]==="n"){no=+hitKey.slice(1);nmx=custName(hitKey)||nm}
+    else if(hitKey){if(cons){tkey=hitKey;nmx=custName(hitKey)||nm}else no=await assignNumber(hitKey)}
+    else if(!cons)no=await rpcNo()}
+  const id=uid("b");if(cons&&!no&&!tkey)tkey="t"+id;const nowK=new Date(Date.now()+9*3600e3).toISOString();const doc={name:nmx,customer_no:no,tkey,date:cons?nowK.slice(0,10):$("n-date").value,time:cons?nowK.slice(11,16):$("n-time").value,up11:$("n-up11").checked&&!!(PRODUCTS[pkey]||{}).up11,product:"",pkey:pkey||null,booked_pkey:pkey||null,
+    adults:+$("n-adults").value||0,kids:+$("n-kids").value||0,pet:$("n-pet").checked,cal:(()=>{const v=$("n-cal").value.replace(/\s+/g," ").trim();return v===nAuto()?"":v})(),growth:pkey==="growth",gs:"",kind:cons?"consult":"shoot",memo:$("n-memo").value.trim(),steps:{},items:[],payments:[],origin:"앱에서 등록"};
+  B[id]={id,...doc};closeModal();openCust(id);
+  try{await db.doc("bookings/"+id).set(doc);{const k=no?"n"+no:tkey;if(phone&&k&&!normP((CUST[k]||{}).phone)){const c={...(CUST[k]||{}),phone};CUST[k]=c;await db.doc("customers/"+k).set(c)}}
+    if(hitKey&&!modalForCust)toast(`기존 손님 ${nmx}${no?" #"+no:""}에 붙였어요`);log(id,cons?`상담 저장${pkey?" · "+PRODUCTS[pkey].name:""}${totalOf(doc)?" "+money(totalOf(doc))+"원":""}`:`예약 등록 ${md(doc.date)} ${tm(doc.time)}`)}
+  catch(err){delete B[id];refresh();toast(cons?"상담을 저장하지 못했어요":"예약을 만들지 못했어요")}
+});
+
+/* ===== 자료: 감탄 CRM 서버(Supabase) =====
+   화면은 예약 1건 = 한 덩어리로 다루고, 서버는 계약·일정·상품내역·결제 표로 나눠 저장.
+   여기서 둘 사이를 번역함. */
+const SB_URL="https://kpznjpyovlkcstzvqdtb.supabase.co",SB_KEY="sb_publishable_vwhSzLw9E0cbEBXvP3s78Q_OokdDj00";
+const sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+let ME=null,sessUid=null;
+const CUTOFF="2026-09-01"; // 이 날짜 전 촬영은 기록이 들쭉날쭉해서 진행 확인(미입금·출고 등)에서 빼고 '완료'로 봄
+isPast=b=>!!b.legacy||(!!b.date&&b.date<CUTOFF);
+
+const isU=s=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s||"");
+const newId=()=>crypto.randomUUID?crypto.randomUUID():"10000000-1000-4000-8000-100000000000".replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));
+const D8=v=>typeof v==="string"&&/^\d{4}-\d\d-\d\d/.test(v)?v.slice(0,10):null;
+async function rpcNo(){const {data,error}=await sb.rpc("next_customer_no");if(error)throw error;return data}
+const SELF=new Map();const mine=id=>{SELF.set(id,Date.now())};const isMine=id=>(Date.now()-(SELF.get(id)||0))<5000;
+const kst=a=>new Date(new Date(a).getTime()+9*3600e3).toISOString();
+
+/* ---------- 서버 → 화면 ---------- */
+const ITEMK=(k,sm)=>{const t=(k||"")+" "+(sm||"");if(/포켓/.test(t))return"리뷰포켓";if(/액자|캔버스/.test(t))return"액자";if(/보정본/.test(t))return"보정본";if(/원본/.test(t))return"원본";if(/앨범/.test(t))return"앨범";return k||"기타"};
+const isCons=s=>s.kind==="shoot"&&(!s.state||s.state==="완료");
+const STEPCOL={shot:"shot_at",canceled:"canceled_at",postponed:"postponed_at",orig:"original_sent_at",picked:"picked_at",handoff:"handoff_at",workshop:"workshop_at",done:"done_at",notified:"notified_at",delivered:"delivered_at",slot_off:"slot_off_at"};
+const SNAP={},SNAPI={},SNAPP={},SNAPS={},BID2KEY={},CUSTROW={};
+function toB(r,cust){
+  const ss=(r.schedules||[]).slice().sort((a,b)=>(a.date+(a.start_time||"")).localeCompare(b.date+(b.start_time||"")));
+  const sh=ss.find(isCons)||null;
+  const steps={};for(const [k,c] of Object.entries(STEPCOL))if(r[c])steps[k]=r[c];
+  if(r.sm_all_shipped&&!steps.delivered)steps.delivered=(sh&&sh.date)||r.contract_date||"기존";
+  const items=(r.items||[]).filter(i=>!/^증명사진$/.test(i.kind||"")).map(i=>({id:i.id,kind:ITEMK(i.kind,i.sm_item),size:i.size||"",photo:i.photo_no||"",sm:i.sm_item||"",frame:i.frame||"",
+    ready:i.ready_at||(r.sm_all_shipped||r.legacy?"기존":null),shipped:i.shipped_at||(r.sm_all_shipped||r.legacy?"기존":null),memo:i.memo||"",...(i.request?{request:i.request}:{})}));
+  const payments=(r.payments||[]).slice().sort((a,b)=>(a.paid_at||"").localeCompare(b.paid_at||"")).map(p=>({id:p.id,kind:p.kind,amount:p.amount,method:p.method||"",receipt:p.receipt||"",date:p.paid_at}));
+  const po=r.price_override||{},ui=r.ui||{};
+  SNAP[r.id]={...r};delete SNAP[r.id].schedules;delete SNAP[r.id].items;delete SNAP[r.id].payments;
+  SNAPI[r.id]=Object.fromEntries((r.items||[]).map(i=>[i.id,i]));SNAPP[r.id]=Object.fromEntries((r.payments||[]).map(p=>[p.id,p]));
+  ss.forEach(s=>{SNAPS[s.id]=s});
+  const o={...ui,id:ui._bkey||r.id,_bid:r.id,_sid:sh?sh.id:null,kind:"shoot",name:(cust&&cust.name)||ui.name||"",customer_no:r.customer_no,
+    date:sh?sh.date:"",time:sh&&sh.start_time?sh.start_time.slice(0,5):"",
+    pkey:r.product&&r.product!=="etc"?r.product:"",product:r.booked_product||"",cal:r.calendar_memo||(sh&&sh.memo?sh.memo.split("\n")[0]:"")||"",
+    memo:r.shoot_memo||r.memo||"",growth:r.product==="growth",gs:r.gs_round?`${r.gs_round}-${r.gs_year}`:"",
+    review:!!r.review,sns:!!r.sns,ship:r.ship_method||"",track:r.track_no||"",ack:r.ack||{},pet:!!r.pets,
+    adults:r.adults??"",kids:r.kids??"",steps,items,payments,
+    priceOverride:("priceOverride" in po)?po.priceOverride:(r.base_price||0),legacy:r.legacy};
+  ["priceItems","ex","idq","up11","retouch","needOrig"].forEach(k=>{if(po[k]!=null)o[k]=po[k]});
+  if(r.prev_id)o.prevId=BID2KEY[r.prev_id]||r.prev_id;
+  delete o._bkey;return o;
+}
+const KINDMAP={consult:"consult",monitor:"visit",visit:"visit",print:"visit",other:"visit",supplement:"visit",task:"visit",shoot:"shoot"};
+const KLABEL={monitor:"모니터",print:"출력",supplement:"보충",task:"업무"};
+function sToB(s,cust){
+  SNAPS[s.id]=s;const ui=s.ui||{};
+  const steps={...(ui.steps||{})};if(s.state==="취소")steps.canceled=steps.canceled||s.date;if(["연기","보류","펑크","재촬"].includes(s.state))steps.postponed=steps.postponed||s.date;
+  if(s.kind==="consult"&&s.state==="완료")steps.closed=steps.closed||s.date;
+  if(s.kind==="consult"&&!ui.steps&&s.date<TODAY&&!s.state)steps.closed=s.date;
+  const hist=!!s.booking_id; // 계약에 붙은 지난 일정(연기·취소·보충 등) → 기록 줄
+  if(hist&&s.date<CUTOFF){delete steps.postponed}
+  const lab=hist?(s.state||KLABEL[s.kind]||""):(KLABEL[s.kind]||"");
+  const o={...ui,id:ui._bkey||"s"+s.id,_sid:s.id,_bid:null,_hist:hist,kind:hist?"visit":(KINDMAP[s.kind]||"visit"),name:(cust&&cust.name)||ui.name||s.title||"",customer_no:s.customer_no,
+    date:s.date,time:s.start_time?s.start_time.slice(0,5):"",product:ui.product??(s.title||""),cal:ui.cal??([lab,(s.memo||"").split("\n")[0]].filter(Boolean).join(" ")||s.title||""),
+    memo:ui.memo??(s.memo||""),steps,items:ui.items||[],payments:ui.payments||[]};
+  delete o._bkey;return o;
+}
+function putCust(c){CUSTROW[c.customer_no]=c;const ui=c.ui||{};CUST["n"+c.customer_no]={...ui,name:c.name,phone:c.phone||"",phone2:c.phone2||"",family:c.family||"",memo:c.memo||"",warn:c.warn||0,bday:c.bday||"",anniv:c.anniv||"",visit:c.source||"",email:c.email||""}}
+
+const LOADED_M=new Set(),LOADED_C=new Set();
+async function fetchCustomers(nos){
+  nos=[...new Set(nos.filter(n=>n&&!CUSTROW[n]))];
+  for(let i=0;i<nos.length;i+=200){const {data}=await sb.from("customers").select("*").in("customer_no",nos.slice(i,i+200));(data||[]).forEach(putCust)}
+}
+async function loadTemp(keys){keys=[...new Set(keys.filter(k=>k&&!CUST[k]))];if(!keys.length)return;const {data}=await sb.from("temp_customers").select("*").in("key",keys);(data||[]).forEach(t=>{CUST[t.key]=t.data||{}})}
+function absorb(rows){
+  rows.forEach(r=>{const cu=CUSTROW[r.customer_no];const nb=toB(r,cu);BID2KEY[r.id]=nb.id;
+    for(const k of Object.keys(B))if(B[k]._bid===r.id&&k!==nb.id)delete B[k];
+    B[nb.id]=nb;
+    (r.schedules||[]).forEach(s=>{if(nb._sid===s.id){const k="s"+s.id;if(B[k])delete B[k]}else{const x=sToB(s,cu);B[x.id]=x}})});
+}
+async function fetchBookings(q){
+  const {data,error}=await q(sb.from("bookings").select("*,schedules(*),items(*),payments(*)"));
+  if(error){console.warn(error);return[]}
+  await fetchCustomers(data.map(r=>r.customer_no));absorb(data);return data;
+}
+async function ensureMonth(y,m){
+  const k=y+"-"+m;if(LOADED_M.has(k))return;LOADED_M.add(k);
+  const from=`${y}-${p2(m+1)}-01`,to=addDays(`${m===11?y+1:y}-${p2(m===11?1:m+2)}-01`,7),from2=addDays(from,-7);
+  const {data:ss}=await sb.from("schedules").select("*").gte("date",from2).lt("date",to);
+  const bids=[...new Set((ss||[]).filter(s=>s.booking_id).map(s=>s.booking_id))];
+  for(let i=0;i<bids.length;i+=150)await fetchBookings(q=>q.in("id",bids.slice(i,i+150)));
+  const lone=(ss||[]).filter(s=>!s.booking_id);
+  await fetchCustomers(lone.map(s=>s.customer_no));await loadTemp(lone.map(s=>(s.ui||{}).tkey));
+  lone.forEach(s=>{const x=sToB(s,CUSTROW[s.customer_no]);B[x.id]=x});
+  const {data:dm}=await sb.from("day_memos").select("*").gte("date",from2).lt("date",to);
+  (dm||[]).forEach(d=>{MEMO[d.date]=d.text||"";if(d.color)MEMOC[d.date]=d.color});
+  refresh();
+}
+async function ensureCust(no){
+  if(!no||LOADED_C.has(no))return;LOADED_C.add(no);
+  await fetchBookings(q=>q.eq("customer_no",no));
+  const {data:ss}=await sb.from("schedules").select("*").eq("customer_no",no).is("booking_id",null);
+  await fetchCustomers([no]);(ss||[]).forEach(s=>{const x=sToB(s,CUSTROW[no]);B[x.id]=x});
+  refresh();
+}
+let srchT=0,srchQ="";
+async function serverSearch(q){
+  q=q.trim();if(q.length<1||q===srchQ)return;srchQ=q;
+  const d=q.replace(/\D/g,""),no=/^#?\d+$/.test(q)?+q.replace("#",""):null,qe=q.replace(/[,()]/g," ");
+  const ors=[`name.ilike.%${qe}%`,`sm_name.ilike.%${qe}%`,`family.ilike.%${qe}%`];
+  if(d.length>=4)ors.push(`phone.ilike.%${d.slice(-4)}%`,`phone2.ilike.%${d.slice(-4)}%`);
+  if(no)ors.push(`customer_no.eq.${no}`);
+  const {data}=await sb.from("customers").select("*").or(ors.join(",")).order("customer_no",{ascending:false}).limit(40);
+  (data||[]).forEach(putCust);
+  const nos=(data||[]).map(c=>c.customer_no).filter(n=>!LOADED_C.has(n));
+  if(nos.length){await fetchBookings(q=>q.in("customer_no",nos));
+    const {data:ss}=await sb.from("schedules").select("*").in("customer_no",nos).is("booking_id",null);(ss||[]).forEach(s=>{const x=sToB(s,CUSTROW[s.customer_no]);B[x.id]=x});
+    nos.forEach(n=>LOADED_C.add(n))}
+  if(view==="cust")drawList();
+}
+$("q").addEventListener("input",()=>{clearTimeout(srchT);srchT=setTimeout(()=>serverSearch($("q").value||""),250)});
+
+/* ---------- 화면 → 서버 ---------- */
+const BOOKED=new Set(["id","_bid","_sid","kind","name","customer_no","date","time","pkey","product","cal","memo","growth","gs","review","sns","ship","track","ack","pet","adults","kids","steps","items","payments","priceOverride","priceItems","ex","idq","up11","retouch","needOrig","prevId","legacy","tkey"]);
+async function ensureCustomerRow(no,name){
+  if(!no||CUSTROW[no])return;
+  const {data}=await sb.from("customers").select("*").eq("customer_no",no).maybeSingle();
+  if(data){putCust(data);return}
+  mine("c"+no);const {data:ins,error}=await sb.from("customers").insert({customer_no:no,name:name||"(이름 없음)"}).select().single();if(error)throw error;putCust(ins);
+}
+function bookingRow(b){
+  const snap=SNAP[b._bid]||{};const po={};
+  ["priceItems","ex","idq","up11","retouch","needOrig"].forEach(k=>{if(b[k]!=null&&b[k]!==false)po[k]=b[k]});
+  po.priceOverride=b.priceOverride??null;
+  const ui={};for(const k of Object.keys(b))if(!BOOKED.has(k)&&k[0]!=="_"&&b[k]!==undefined)ui[k]=b[k];
+  if(b.id!==b._bid)ui._bkey=b.id;
+  const g=(b.gs||"").match(/(\d+)\s*-\s*(\d+)/);
+  const pv=b.prevId?((B[b.prevId]||{})._bid||(isU(b.prevId)?b.prevId:null)):(snap.prev_id||null);
+  const row={customer_no:b.customer_no,product:b.pkey||(b.growth?"growth":null)||snap.product||"etc",
+    booked_product:snap.booked_product??((PRODUCTS[b.booked_pkey||b.pkey]||{}).name||null),
+    contract_date:snap.contract_date||TODAY,adults:b.adults===""||b.adults==null?null:(+b.adults||0),kids:b.kids===""||b.kids==null?null:(+b.kids||0),pets:b.pet?1:0,
+    gs_round:g?+g[1]:null,gs_year:g?+g[2]:null,base_price:totalOf(b)||0,price_override:po,
+    calendar_memo:b.cal||null,shoot_memo:b.memo||null,ship_method:b.ship||null,track_no:b.track||null,
+    review:!!b.review,sns:!!b.sns,ack:b.ack||{},ui,prev_id:isU(pv)?pv:null};
+  // 처음 저장 때 의미 없는 값 바뀜 줄이기 (빈 값 = 그대로)
+  if(snap.pets==null&&!row.pets)row.pets=snap.pets??null;
+  if(snap.sns==null&&!row.sns)row.sns=snap.sns??null;
+  if(!snap.price_override||!Object.keys(snap.price_override).length){if(Object.keys(po).length===1&&po.priceOverride===(snap.base_price||0))row.price_override=snap.price_override??{}}
+  if(row.base_price===0&&snap.base_price)row.base_price=snap.base_price;
+  for(const [k,c] of Object.entries(STEPCOL)){const v=(b.steps||{})[k];row[c]=D8(v)||(v?snap[c]||null:null)}
+  return row;
+}
+const diff=(row,snap)=>{const out={};for(const k in row){if(JSON.stringify(row[k]??null)!==JSON.stringify(snap[k]??null))out[k]=row[k]}return out};
+async function writeItems(b){
+  const old=SNAPI[b._bid]||{},keep=new Set();
+  for(const it of (b.items||[])){
+    if(it.virtual)continue;if(!isU(it.id))it.id=newId();keep.add(it.id);
+    const o=old[it.id]||{};
+    const kind=(o.kind&&ITEMK(o.kind,o.sm_item)===it.kind)?o.kind:(it.kind||"기타"); // SM 원래 이름 유지
+    const row={id:it.id,booking_id:b._bid,kind,size:it.size||null,frame:it.frame||null,photo_no:it.photo||null,request:it.request||null,
+      ready_at:D8(it.ready)||(it.ready?o.ready_at||null:null),shipped_at:D8(it.shipped)||(it.shipped?o.shipped_at||null:null),memo:it.memo||null,sm_item:it.sm||o.sm_item||null,
+      workshop_at:D8(it.workshop)||(it.workshop?o.workshop_at||null:null)};
+    const d=old[it.id]?diff(row,o):row;
+    if(Object.keys(d).length){mine(b._bid);const {error}=await sb.from("items").upsert(row);if(error)throw error;SNAPI[b._bid]={...SNAPI[b._bid],[it.id]:{...o,...row}}}
+  }
+  const gone=Object.keys(old).filter(id=>!keep.has(id)&&!/^증명사진$/.test(old[id].kind||""));
+  if(gone.length){mine(b._bid);const {error}=await sb.from("items").delete().in("id",gone);if(error)throw error;gone.forEach(id=>delete SNAPI[b._bid][id])}
+}
+async function writePays(b){
+  const old=SNAPP[b._bid]||{},keep=new Set();
+  for(const p of (b.payments||[])){
+    if(!isU(p.id))p.id=newId();keep.add(p.id);const o=old[p.id]||{};
+    const row={id:p.id,booking_id:b._bid,customer_no:b.customer_no,paid_at:D8(p.date)||TODAY,amount:+p.amount||0,kind:p.kind||"잔금",method:p.method||null,receipt:p.receipt||null,legacy:o.legacy||false};
+    const d=old[p.id]?diff(row,o):row;
+    if(Object.keys(d).length){mine(b._bid);const {error}=await sb.from("payments").upsert(row);if(error)throw error;SNAPP[b._bid]={...SNAPP[b._bid],[p.id]:{...o,...row}}}
+  }
+  const gone=Object.keys(old).filter(id=>!keep.has(id));
+  if(gone.length){mine(b._bid);const {error}=await sb.from("payments").delete().in("id",gone);if(error)throw error;gone.forEach(id=>delete SNAPP[b._bid][id])}
+}
+async function writeShootSlot(b){ // 촬영 날짜·시간 = 촬영 일정 1줄
+  const st=b.time?b.time.slice(0,5)+":00":null;
+  if(b.date){
+    if(b._sid){const o=SNAPS[b._sid]||{};const d=diff({date:b.date,start_time:st,customer_no:b.customer_no},{date:o.date,start_time:o.start_time,customer_no:o.customer_no});
+      if(Object.keys(d).length){mine(b._bid);mine(b._sid);const {error}=await sb.from("schedules").update(d).eq("id",b._sid);if(error)throw error;SNAPS[b._sid]={...o,...d}}}
+    else{const id=newId();const row={id,customer_no:b.customer_no,booking_id:b._bid,kind:"shoot",date:b.date,start_time:st,title:(PRODUCTS[b.pkey]||{}).name||b.product||null,memo:b.cal||null};
+      mine(b._bid);mine(id);const {error}=await sb.from("schedules").insert(row);if(error)throw error;b._sid=id;SNAPS[id]=row}
+  }else if(b._sid){ // 날짜를 비우면 그 일정은 '연기'로 기록에 남김
+    mine(b._bid);mine(b._sid);const {error}=await sb.from("schedules").update({state:"연기"}).eq("id",b._sid);if(error)throw error;SNAPS[b._sid]={...SNAPS[b._sid],state:"연기"};b._sid=null}
+}
+async function writeBooking(key){
+  const b=B[key];if(!b)return;
+  if(!b._bid&&b._sid&&(b._hist||!(b.kind==="shoot"||b.pkey||(b.payments||[]).length||(b.items||[]).length)))return writeSched(key);
+  if(!b.customer_no)b.customer_no=await rpcNo();
+  await ensureCustomerRow(b.customer_no,b.name);
+  const row=bookingRow(b);
+  if(!b._bid){ // 새 계약 (또는 상담 → 촬영으로 바뀜)
+    const bid=newId();mine(bid);
+    const {data,error}=await sb.from("bookings").insert({id:bid,...row,ui:{...row.ui,_bkey:key}}).select().single();if(error)throw error;
+    SNAP[bid]=data;b._bid=bid;BID2KEY[bid]=key;SNAPI[bid]={};SNAPP[bid]={};
+    if(b._sid&&SNAPS[b._sid]){mine(b._sid);const {error:e2}=await sb.from("schedules").update({booking_id:bid,kind:"shoot",state:null}).eq("id",b._sid);if(e2)throw e2;SNAPS[b._sid]={...SNAPS[b._sid],booking_id:bid,kind:"shoot",state:null}}
+  }else{
+    const d=diff(row,SNAP[b._bid]||{});
+    if(Object.keys(d).length){mine(b._bid);const {data,error}=await sb.from("bookings").update(d).eq("id",b._bid).select().single();if(error)throw error;SNAP[b._bid]=data}
+  }
+  await writeShootSlot(b);await writeItems(b);await writePays(b);
+}
+async function writeSched(key){ // 상담·모니터·방문처럼 일정만 있는 것
+  const b=B[key];const s=SNAPS[b._sid]||{};
+  if(b.customer_no)await ensureCustomerRow(b.customer_no,b.name);
+  const st=b.steps||{};
+  const state=st.canceled?"취소":st.postponed?"연기":(b.kind==="consult"&&st.closed)?"완료":(s.state&&["취소","연기"].includes(s.state)?null:s.state||null);
+  const ui={...(s.ui||{})};for(const k of Object.keys(b))if(!["id","_bid","_sid","kind","customer_no","date","time"].includes(k)&&k[0]!=="_"&&b[k]!==undefined)ui[k]=b[k];
+  if(b.id!=="s"+b._sid)ui._bkey=b.id;
+  const row={customer_no:b.customer_no||null,date:b.date||s.date||TODAY,start_time:b.time?b.time.slice(0,5)+":00":(s.start_time||null),state,ui,kind:s.kind||(b.kind==="consult"?"consult":"visit")};
+  mine(b._sid);
+  if(!SNAPS[b._sid]){Object.assign(row,{id:b._sid,title:b.product||b.name||null,memo:b.cal||null});const {error}=await sb.from("schedules").insert(row);if(error)throw error;SNAPS[b._sid]=row;return}
+  const d=diff(row,s);if(Object.keys(d).length){const {error}=await sb.from("schedules").update(d).eq("id",b._sid);if(error)throw error;SNAPS[b._sid]={...s,...d}}
+}
+const CCOL={name:"name",phone:"phone",phone2:"phone2",family:"family",memo:"memo",warn:"warn",bday:"bday",anniv:"anniv",visit:"source",email:"email"};
+async function writeCustomer(key,c){
+  if(key[0]!=="n"){const {error}=await sb.from("temp_customers").upsert({key,data:c,updated_at:new Date().toISOString()});if(error)throw error;return}
+  const no=+key.slice(1);await ensureCustomerRow(no,c.name);
+  const row={},ui={};for(const k of Object.keys(c)){if(k[0]==="_")continue;if(CCOL[k])row[CCOL[k]]=k==="warn"?(+c[k]||0):(c[k]||null);else ui[k]=c[k]}
+  if(!row.name)delete row.name;row.ui=ui;
+  const d=diff(row,CUSTROW[no]||{});if(!Object.keys(d).length)return;
+  mine("c"+no);const {data,error}=await sb.from("customers").update(d).eq("customer_no",no).select().single();if(error)throw error;CUSTROW[no]=data;
+}
+const SAVEQ=[];let qRun=false; // 저장은 한 줄로 차례차례 (순서 꼬임 방지)
+function enqueue(fn){return new Promise((res,rej)=>{SAVEQ.push([fn,res,rej]);if(!qRun)pump()})}
+async function pump(){qRun=true;while(SAVEQ.length){const [fn,res,rej]=SAVEQ.shift();try{res(await fn())}catch(e){console.warn("저장 실패",e);rej(e)}}qRun=false}
+function docRef(path){
+  const i=path.indexOf("/"),col=path.slice(0,i),key=path.slice(i+1);
+  return {
+    set(data){return enqueue(async()=>{
+      if(col==="bookings"){B[key]={...(B[key]||{}),...clone(data),id:key};const b=B[key];
+        if(data.kind==="consult"){b._sid=b._sid||newId();return writeSched(key)}return writeBooking(key)}
+      if(col==="customers")return writeCustomer(key,data);
+      if(col==="memos"){mine("m"+key);const {error}=await sb.from("day_memos").upsert({date:key,text:data.text||null,color:data.color||null,updated_at:new Date().toISOString()});if(error)throw error}
+    })},
+    update(){return enqueue(async()=>{if(col==="bookings")return writeBooking(key)})},
+    delete(){return enqueue(async()=>{if(col==="customers"&&key[0]!=="n")await sb.from("temp_customers").delete().eq("key",key)})}
+  };
+}
+db={doc:docRef,collection:name=>({
+  add:async x=>{if(name!=="logs")return;const b=B[x.booking]||{};
+    const {error}=await sb.from("logs").insert({tbl:"note",row_id:String(x.booking||""),customer_no:b.customer_no||null,action:"note",note:x.text,who:ME?ME.name:x.who});
+    if(!error){LOGS.unshift({booking:x.booking,text:x.text,who:ME?ME.name:x.who,at:x.at});refresh()}},
+  doc:id=>docRef(name+"/"+id),
+  where:(f,op,ids)=>({get:async()=>{const {data}=await sb.from("logs").select("*").eq("action","note").in("row_id",ids.map(String)).order("at",{ascending:false}).limit(500);
+    return {docs:(data||[]).map(l=>({data:()=>({booking:l.row_id,text:l.note,who:l.who,at:kst(l.at)})}))}}})
+})};
+
+/* ---------- 다른 컴퓨터에서 바뀐 것 바로 반영 ---------- */
+let rtT=0;const rtB=new Set(),rtC=new Set();
+const typing=()=>{const a=document.activeElement;return a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)};
+function rtFlush(){clearTimeout(rtT);rtT=setTimeout(async()=>{
+  if(typing()||SAVEQ.length||qRun){rtFlush();return}  // 입력 중·저장 중이면 잠깐 기다렸다가
+  const bs=[...rtB].filter(id=>!isMine(id)),cs=[...rtC].filter(n=>!isMine("c"+n));rtB.clear();rtC.clear();
+  if(bs.length)await fetchBookings(q=>q.in("id",bs));
+  if(cs.length){const {data}=await sb.from("customers").select("*").in("customer_no",cs);(data||[]).forEach(putCust)}
+  if(bs.length||cs.length){["cp-bar","cp-head","cp-stats"].forEach(i=>{const e=$(i);if(e)e._h=null});refresh()}},600)}
+function startRealtime(){
+  const ch=sb.channel("crm");
+  ["bookings","items","payments"].forEach(t=>ch.on("postgres_changes",{event:"*",schema:"public",table:t},p=>{const r=p.new&&Object.keys(p.new).length?p.new:p.old;const id=t==="bookings"?r.id:r.booking_id;if(id&&(SNAP[id]||t==="bookings")){rtB.add(id);rtFlush()}}));
+  ch.on("postgres_changes",{event:"*",schema:"public",table:"schedules"},p=>{const s=p.new||{};if(isMine(s.id)||isMine(s.booking_id))return;
+    if(s.booking_id){rtB.add(s.booking_id);rtFlush()}else if(s.id){const x=sToB(s,CUSTROW[s.customer_no]);B[x.id]=x;refresh()}});
+  ch.on("postgres_changes",{event:"*",schema:"public",table:"customers"},p=>{const c=p.new||{};if(c.customer_no&&CUSTROW[c.customer_no]){rtC.add(c.customer_no);rtFlush()}});
+  ch.on("postgres_changes",{event:"*",schema:"public",table:"day_memos"},p=>{const d=p.new||{};if(d.date&&!isMine("m"+d.date)){MEMO[d.date]=d.text||"";if(d.color)MEMOC[d.date]=d.color;refresh()}});
+  ch.on("postgres_changes",{event:"INSERT",schema:"public",table:"logs"},p=>{const l=p.new||{};if(l.action==="note"&&l.user_id!==sessUid){LOGS.unshift({booking:l.row_id,text:l.note,who:l.who,at:kst(l.at)});refresh()}});
+  ch.subscribe();
+}
+
+(async()=>{
+  buildCal();
+  $("status").textContent="불러오는 중…";
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){location.replace("login.html");return}
+  sessUid=session.user.id;
+  const {data:me}=await sb.from("user_roles").select("name,role,active").eq("user_id",session.user.id).maybeSingle();
+  if(!me||!me.active){$("status").textContent="권한 없는 계정";return}
+  ME=me;const w=$("who");w.innerHTML=`<option>${esc(me.name)}</option>`;w.disabled=true;
+  const t0=performance.now();
+  await fetchBookings(q=>q.eq("legacy",false));
+  const _draw=draw;draw=function(){ensureMonth(calY,calM);_draw()};
+  const _open=openCust;openCust=function(id,fs){const b=B[id];if(b&&b.customer_no&&!LOADED_C.has(b.customer_no))ensureCust(b.customer_no).then(()=>_open(id,fs));else _open(id,fs)};
+  await ensureMonth(calY,calM);
+  if(["owner","manager","bot"].includes(me.role)){const {data:lg}=await sb.from("logs").select("*").eq("action","note").order("at",{ascending:false}).limit(1000);
+    LOGS=(lg||[]).map(l=>({booking:l.row_id,text:l.note,who:l.who,at:kst(l.at)}))}
+  startRealtime();
+  loaded=true;
+  $("status").textContent=`${me.name} · ${Math.round(performance.now()-t0)}ms`;
+  refresh();
+})();
+
+</script>
+
+</body></html>

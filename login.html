@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>감탄 CRM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+:root{--bg:#f6f7f5;--card:#fff;--ink:#1d2320;--muted:#7a837e;--line:#e3e6e2;--brand:#16a34a;--brand-d:#12843c;--err:#c2410c}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans KR',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;padding:16px}
+.box{width:100%;max-width:340px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:28px 22px;box-shadow:0 6px 24px rgba(0,0,0,.05)}
+h1{margin:0 0 22px;font-size:20px;font-weight:700;text-align:center;letter-spacing:-.3px}
+h1 span{color:var(--brand)}
+label{display:block;font-size:13px;color:var(--muted);margin:0 0 6px}
+input{width:100%;font:inherit;font-size:16px;padding:12px 13px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);margin-bottom:14px;outline:none}
+input:focus{border-color:var(--brand)}
+button{width:100%;font:inherit;font-size:16px;font-weight:600;padding:13px;border:0;border-radius:10px;background:var(--brand);color:#fff;cursor:pointer}
+button:hover{background:var(--brand-d)}
+button:disabled{opacity:.6;cursor:default}
+button.sub{background:#fff;color:var(--ink);border:1px solid var(--line);margin-top:10px;font-weight:500}
+.msg{min-height:20px;font-size:14px;color:var(--err);text-align:center;margin:-4px 0 10px}
+.who{text-align:center;margin-bottom:18px}
+.who b{display:block;font-size:22px;margin-bottom:4px}
+.who small{font-size:13px;color:var(--muted)}
+.chk{font-size:14px;border-top:1px solid var(--line);padding-top:14px;margin-bottom:6px}
+.chk div{display:flex;justify-content:space-between;padding:4px 0}
+.ok{color:var(--brand)} .no{color:var(--muted)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="box">
+  <h1><span>감탄</span> CRM</h1>
+
+  <form id="f" autocomplete="on">
+    <label for="id">아이디</label>
+    <input id="id" name="username" autocomplete="username" autocapitalize="off" spellcheck="false" required>
+    <label for="pw">비밀번호</label>
+    <input id="pw" name="password" type="password" autocomplete="current-password" required>
+    <div class="msg" id="msg"></div>
+    <button id="go">로그인</button>
+  </form>
+
+  <div id="in" hidden>
+    <div class="who"><b id="nm"></b><small id="rl"></small></div>
+    <div class="chk" id="chk"></div>
+    <button class="sub" id="out">로그아웃</button>
+  </div>
+</div>
+
+<script>
+const SB_URL="https://kpznjpyovlkcstzvqdtb.supabase.co";
+const SB_KEY="sb_publishable_vwhSzLw9E0cbEBXvP3s78Q_OokdDj00";
+const DOMAIN="gamtan.studio";
+const ROLE={owner:"실장",manager:"팀장",staff:"직원",bot:"기록 계정"};
+const sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+const $=id=>document.getElementById(id);
+
+const toEmail=v=>{v=v.trim().toLowerCase();return v.includes("@")?v:v+"@"+DOMAIN};
+
+async function showUser(user){
+  const {data:r,error}=await sb.from("user_roles").select("name,role,active").eq("user_id",user.id).maybeSingle();
+  if(error||!r||!r.active){
+    await sb.auth.signOut();
+    $("msg").textContent=!r?"권한이 없는 계정":(!r.active?"사용 중지된 계정":"권한 확인 실패");
+    return;
+  }
+  if(!new URLSearchParams(location.search).has("check")){goApp();return}
+  $("f").hidden=true;$("in").hidden=false;
+  $("nm").textContent=r.name||user.email.split("@")[0];
+  $("rl").textContent=(ROLE[r.role]||r.role)+" · "+user.email.replace("@"+DOMAIN,"");
+  // 권한 확인 (화면 테스트용)
+  const t=async(tbl)=>{const {error}=await sb.from(tbl).select("*",{count:"exact",head:true});return !error};
+  const c=await t("customers");
+  const mgr=["owner","manager","bot"].includes(r.role);
+  $("chk").innerHTML=
+    `<div><span>고객·예약·결제</span><span class="${c?'ok':'no'}">${c?'열림':'막힘'}</span></div>`+
+    `<div><span>통계·활동 기록</span><span class="${mgr?'ok':'no'}">${mgr?'열림':'숨김'}</span></div>`;
+}
+
+$("f").addEventListener("submit",async e=>{
+  e.preventDefault();
+  $("msg").textContent="";$("go").disabled=true;
+  const {data,error}=await sb.auth.signInWithPassword({email:toEmail($("id").value),password:$("pw").value});
+  $("go").disabled=false;
+  if(error){$("msg").textContent="아이디 또는 비밀번호 확인";$("pw").value="";$("pw").focus();return}
+  $("pw").value="";
+  showUser(data.user);
+});
+
+const goApp=()=>{location.replace("index.html")};
+$("out").onclick=async()=>{await sb.auth.signOut();$("in").hidden=true;$("f").hidden=false;$("id").focus()};
+
+(async()=>{const {data}=await sb.auth.getSession();if(data.session)showUser(data.session.user);else $("id").focus()})();
+</script>
+</body>
+</html>
