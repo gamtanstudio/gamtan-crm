@@ -1,4 +1,15 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.hbook{display:inline-block;margin-left:8px;font-size:12px;color:var(--muted,#7a837e);font-weight:400}
+.phs{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.ph{width:64px;height:64px;border-radius:50%;border:1px solid var(--line);background:var(--bg,#f3f4f1);padding:0;overflow:hidden;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph.add{border-style:dashed;font-size:12px;color:var(--muted,#7a837e)}
+.phn{font-size:12px;color:var(--muted,#7a837e)}
+#phview{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:16px}
+#phview[hidden]{display:none}
+.phbox{background:var(--card,#fff);border-radius:14px;padding:10px;max-width:min(560px,100%);width:100%}
+.phbox img{width:100%;max-height:70vh;object-fit:contain;border-radius:8px;display:block;background:#000}
+.phbar{display:flex;gap:8px;margin-top:10px;align-items:center}
+.warnb{background:var(--warn,#c2410c)!important;color:#fff!important}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 </head><body>
 <title>실자료 · 감탄 고객관리</title>
@@ -582,7 +593,7 @@ const MCOL={k:"#111",b:"#2563eb",r:"#dc2626",p:"#7c3aed"},MCOLN={k:"검정",b:"�
 let AGEDIT=null;let view="cal",calY=_n.getFullYear(),calM=_n.getMonth(),selDay=TODAY,calFilter=null;
 let LOGSHOW=false;const canLog=()=>["팀장","실장님"].includes(who());
 let LOGALL=false,LOGF="all",LOGB="";
-const logCat=t=>/\d[\d,]*원|예약금|선금|중도금|잔금|총액|결제|환불|증빙|금액|입금/.test(t||"")?"money":/출고|준비|액자|보정본|원본|리뷰포켓|수령/.test(t||"")?"ship":"step";const CLOGS={};
+const logCat=t=>/\d[\d,]*원|예약금|선금|중도금|잔금|총액|결제|환불|증빙|영수증|금액|입금/.test(t||"")?"money":/출고|준비|액자|보정본|원본|리뷰포켓|수령/.test(t||"")?"ship":"step";const CLOGS={};
 async function loadCustLogs(key,ids){try{const out=[];for(let i=0;i<ids.length;i+=30){const q=await db.collection("logs").where("booking","in",ids.slice(i,i+30)).get();q.docs.forEach(d=>out.push(d.data()))}CLOGS[key]=out;refresh()}catch(e){}}let openKey=null;const EXP=new Set(),SEEN=new Set();let FORM=null; // FORM={id,type:'pick'|'item'|'pay'}
 try{const w=localStorage.getItem("gt-who");if(w)$("who").value=w}catch(e){}
 $("who").onchange=()=>{try{localStorage.setItem("gt-who",$("who").value)}catch(e){};$("who").blur();if(typeof refresh==="function"){const cb=$("cp-bar");if(cb)cb._h=null;refresh()}};
@@ -853,7 +864,7 @@ function drawToday(){
   const all=Object.values(B).sort(byDate);const crit=[];const add=(b,n)=>{if(!(b.ack||{})[n])crit.push([b,n])};
   all.forEach(b=>{const st=status(b),s=b.steps||{};if(st.crit)add(b,st.crit);
     if(st.k==="예약확정"&&!s.slot_off&&!(P(b)||{}).idlike)add(b,"증명끔 확인");
-    if(needPay(b))add(b,"수단·증빙");
+    if(needPay(b))add(b,"결제 방법·영수증");
     if(s.workshop&&!s.done&&s.workshop<=addDays(TODAY,-14))add(b,"공방 2주 지남");
     if(st.k==="미등록"){const g=gsBase(b);if(g&&g<=addDays(TODAY,-365))add(b,"가성 미등록 1년 — 연락")}});
   /* 맨 위: 오늘 찍을 손님 브리핑 (진행판 방식) — Claude가 쓴 요약(b.pts/b.brief)이 있으면 먼저, 없어도 기록 원문은 항상 자동으로 */
@@ -924,6 +935,7 @@ function drawCust(){
   {const sh=LOGSHOW&&canLog();if($("cp-logsec").hidden===sh)$("cp-logsec").hidden=!sh}
   put("cp-head",`<div class="cp-name"><h2>${esc(last.name)}님</h2><span class="warnctl" title="주의 손님 표시"><button class="sb" data-a="warn" data-v="-1" aria-label="@ 빼기">−</button><b class="atm">${"@".repeat(warnN(openKey))||"<i>@</i>"}</b><button class="sb" data-a="warn" data-v="1" aria-label="@ 더하기">+</button></span>${last.customer_no?`<span class="cno">#${last.customer_no}</span>`:`<span class="cno" style="background:var(--warn-bg);color:var(--warn)">고객번호 없음</span>`}${list.some(b=>pk(b)==="growth")?`<span class="gsb">가족성장</span>`:""}</div>
     <div class="cinfos">${c.phone?`<span class="phone" style="margin:0">${esc(c.phone)}</span>`:""}${c.visit?`<span class="cinfo">${esc(c.visit)}</span>`:""}${c.bday?`<span class="cinfo">생일 ${esc(c.bday)}</span>`:""}${c.anniv?`<span class="cinfo">기념일 ${esc(c.anniv)}</span>`:""}${c.family?`<span class="cinfo">${esc(c.family)}</span>`:""}<button class="mini" data-a="ce-open" style="margin-left:auto">수정</button></div>
+    ${photoHTML(last.customer_no,list)}
     ${CEDIT?custEditHTML():""}`);
   put("cp-stats",`<div class="stat"><small>방문 횟수</small><b class="tn">${visits}회</b></div><div class="stat"><small>계약 총액</small><b class="tn">${money(tot)}</b></div><div class="stat"><small>입금액</small><b class="tn" style="color:var(--ok)">${money(pd)}</b></div><div class="stat"><small>잔금</small><b class="tn" style="color:${tot-pd>0?"var(--crit)":"var(--muted)"}">${money(Math.max(0,tot-pd))}</b></div>`);
   setVal($("cp-memo"),c.memo||"");
@@ -1005,8 +1017,8 @@ function priceHTML(b){
   const rest=ps.map((p,i)=>i).filter(i=>i!==dep);
   if(!rest.length)cols.push({l:"현장결제",i:-1,kind:"잔금"});else rest.forEach((i,n)=>cols.push({l:ps[i].kind==="환불"?"환불":(n?"현장결제"+(n+1):"현장결제"),i,kind:ps[i].kind,extra:n>0}))}
   {const last=cols[cols.length-1],lp=last&&last.i>=0?ps[last.i]:null;if(last&&last.kind!=="예약금"&&lp&&lp.amount)last.split=true}
-  const sel=(f,i,v,opts,ph,kind,live)=>`<select class="inp ms${v||!live?"":" need"}" data-f="${f}" data-id="${id}" data-i="${i}" data-kind="${kind}" aria-label="${ph}"><option value="">${ph}</option>${(v&&!opts.includes(v)?[v,...opts]:opts).map(o=>`<option value="${o}"${o===v?" selected":""}>${o.replace("SM 기록(수단 미상)","SM 기록").replace("현금영수증(","현영 ").replace(")","")}</option>`).join("")}</select>`;
-  const cell=c=>{const p=c.i>=0?ps[c.i]:null,m=p?p.method:"",r=p?p.receipt:"",live=!!(p&&p.amount);return `<div class="mc"><label>${c.l}${c.extra?`<button class="pdel" data-a="pay-del" data-id="${id}" data-i="${c.i}" aria-label="${c.l} 지우기" title="지우기">×</button>`:""}</label><input class="inp num" inputmode="numeric" data-f="m-amt" data-id="${id}" data-i="${c.i}" data-kind="${c.kind}" value="${p&&p.amount?money(p.amount):""}" aria-label="${c.l}">${sel("pay-method",c.i,m,METHODS,"결제",c.kind,live)}${!m||needReceipt(m)?sel("pay-receipt",c.i,r,RECEIPTS,"증빙",c.kind,live&&!!m):""}${c.split?`<button class="psplit" data-a="pay-add" data-id="${id}" data-v="잔금" data-amt="0">+ 나눠 결제</button>`:""}</div>`};
+  const sel=(f,i,v,opts,ph,kind,live)=>`<select class="inp ms${v||!live?"":" need"}" data-f="${f}" data-id="${id}" data-i="${i}" data-kind="${kind}" aria-label="${ph}"><option value="">${ph}</option>${(v&&!opts.includes(v)?[v,...opts]:opts).map(o=>`<option value="${o}"${o===v?" selected":""}>${o.replace("SM 기록(수단 미상)","SM 기록").replace("현금영수증(소득공제)","현금영수증 개인").replace("현금영수증(지출증빙)","현금영수증 사업자")}</option>`).join("")}</select>`;
+  const cell=c=>{const p=c.i>=0?ps[c.i]:null,m=p?p.method:"",r=p?p.receipt:"",live=!!(p&&p.amount);return `<div class="mc"><label>${c.l}${c.extra?`<button class="pdel" data-a="pay-del" data-id="${id}" data-i="${c.i}" aria-label="${c.l} 지우기" title="지우기">×</button>`:""}</label><input class="inp num" inputmode="numeric" data-f="m-amt" data-id="${id}" data-i="${c.i}" data-kind="${c.kind}" value="${p&&p.amount?money(p.amount):""}" aria-label="${c.l}">${sel("pay-method",c.i,m,METHODS,"결제",c.kind,live)}${!m||needReceipt(m)?sel("pay-receipt",c.i,r,RECEIPTS,"영수증",c.kind,live&&!!m):""}${c.split?`<button class="psplit" data-a="pay-add" data-id="${id}" data-v="잔금" data-amt="0">+ 나눠 결제</button>`:""}</div>`};
   return `<div class="mline">
     <div class="mc mp"><label>상품${(b.steps||{}).delivered||shipRows(b).length&&shipRows(b).every(r=>r.shipped)?` <span class="okt">모든상품 출고됨</span>`:""}</label><div class="mrow"><select class="inp" data-f="pkey" data-id="${id}" aria-label="상품">${opt}</select><button class="mini${DET.has(b.id)?" pri":""}" data-a="det" data-id="${id}">내역</button></div></div>
     <div class="mc"><label>금액</label><input class="inp num" inputmode="numeric" data-f="m-total" data-id="${id}" value="${tot?money(tot):""}" aria-label="금액"></div>
@@ -1329,7 +1341,7 @@ async function makeNext(b){
     payments:[{id:uid("p"),date:TODAY,amount:100000,kind:"예약금",method:"",receipt:""}],booked_pkey:"growth",prevId:b.id,origin:"촬영 당일 자동"};
   B[id]={id,...doc};B[b.id]={...B[b.id],nextId:id};SEEN.add(id);EXP.add(id);refresh();
   try{await db.doc("bookings/"+id).set(doc);await db.doc("bookings/"+b.id).update({nextId:id});log(b.id,`다음 회차 ${gs} 예약 · 예약금 100,000원`);
-    toast(`다음 회차${gs?" "+gs:""} 예약에 예약금 10만원을 넣었어요. 수단만 골라 주세요`)}
+    toast(`다음 회차${gs?" "+gs:""} 예약에 예약금 10만원을 넣었어요. 결제 방법만 골라 주세요`)}
   catch(e){delete B[id];toast("다음 회차를 만들지 못했어요")}
 }
 function setPayments(b,list,msg){save(b.id,{payments:list},msg)}
@@ -1370,6 +1382,25 @@ let pickY=calY;
 function drawPick(){const n=new Date();$("mpick").innerHTML=`<div class="mp-y"><button class="nav" data-a="mpy" data-v="-1" aria-label="지난해">‹</button><b>${pickY}년</b><button class="nav" data-a="mpy" data-v="1" aria-label="다음해">›</button></div><div class="mp-m">${Array.from({length:12},(_,i)=>`<button data-a="mpm" data-v="${i}" class="${pickY===calY&&i===calM?"on":pickY===n.getFullYear()&&i===n.getMonth()?"now":""}">${i+1}월</button>`).join("")}</div>`}
 function closePick(){const m=$("mpick");if(m&&!m.hidden){m.hidden=true;$("mlabel").setAttribute("aria-expanded","false")}}
 document.addEventListener("pointerdown",e=>{if(!e.target.closest("#mpick,#mlabel"))closePick()});
+
+/* 얼굴 확인용 사진 — 가족·프로필은 3장까지, 증명사진만 온 고객은 1장 */
+let PHOTOS={},PHVIEW=null,PHDEL=false;
+function photoMax(list){return list.some(b=>{const k=pk(b);return k&&!["id","halfid"].includes(k)})?3:1}
+function photoHTML(no,list){if(!no)return"";const ps=PHOTOS[no]||[],mx=photoMax(list);
+  return `<div class="phs">${ps.map(p=>`<button class="ph" data-a="ph-view" data-id="${esc(p.id)}" aria-label="사진 크게 보기">${p.url?`<img src="${esc(p.url)}" alt="">`:""}</button>`).join("")}${ps.length<mx?`<label class="ph add" title="사진 넣기 (찍기·고르기)"><input type="file" accept="image/*" data-no="${no}" class="phin" hidden><span>+ 사진</span></label>`:""}${ps.length?`<span class="phn">${ps.length}/${mx}</span>`:""}</div>`}
+function phFind(id){for(const [no,ps] of Object.entries(PHOTOS)){const p=ps.find(x=>x.id===id);if(p)return{no:+no,p}}return null}
+function drawPhView(){let v=$("phview");if(!PHVIEW){if(v)v.hidden=true;return}
+  if(!v){v=document.createElement("div");v.id="phview";document.body.appendChild(v)}
+  const f=phFind(PHVIEW);if(!f){PHVIEW=null;v.hidden=true;return}
+  v.innerHTML=`<div class="phbox"><img src="${esc(f.p.url||"")}" alt=""><div class="phbar"><button class="mini${PHDEL?" warnb":""}" data-a="ph-del">${PHDEL?"정말 지울까요? 한 번 더 누르면 지워져요":"사진 지우기"}</button><span style="flex:1"></span><button class="mini pri" data-a="ph-close">닫기</button></div></div>`;v.hidden=false}
+document.addEventListener("change",e=>{const t=e.target;if(!t.matches||!t.matches(".phin"))return;const f=t.files&&t.files[0];t.value="";if(!f)return;
+  if(!window.addPhoto){toast("사진 저장은 온라인 CRM에서 돼요");return}
+  toast("사진 올리는 중…");window.addPhoto(+t.dataset.no,f).then(()=>{toast("사진 넣었어요");$("cp-head")._h=null;drawCust()}).catch(err=>toast("사진 올리기 실패: "+(err&&err.message||err)))});
+document.addEventListener("click",e=>{const t=e.target.closest("[data-a^=ph-]");if(!t){if(PHVIEW&&e.target.id==="phview"){PHVIEW=null;PHDEL=false;drawPhView()}return}
+  const a=t.dataset.a;if(a==="ph-view"){PHVIEW=t.dataset.id;PHDEL=false;drawPhView()}
+  else if(a==="ph-close"){PHVIEW=null;PHDEL=false;drawPhView()}
+  else if(a==="ph-del"){if(!PHDEL){PHDEL=true;drawPhView();return}const id=PHVIEW;PHVIEW=null;PHDEL=false;drawPhView();
+    if(window.delPhoto)window.delPhoto(id).then(()=>{toast("사진 지웠어요");$("cp-head")._h=null;drawCust()}).catch(err=>toast("지우기 실패: "+(err&&err.message||err)))}});
 
 /* 브라우저 뒤로·앞으로 — SM처럼 화면(캘린더 달·날짜·탭·연 고객)을 하나씩 되돌림 */
 let NAVPOP=false;
@@ -1480,7 +1511,7 @@ document.addEventListener("change",e=>{if(e.target.dataset&&e.target.dataset.f==
     if(f==="pay-amt")p.amount=digits(t.value);if(f==="pay-kind")p.kind=t.value;
     if(f==="pay-method"){p.method=t.value;if(!needReceipt(t.value))p.receipt=""}
     if(f==="pay-receipt")p.receipt=t.value;
-    setPayments(b,l,`${p.kind} ${money(p.amount)}원 · ${p.method||"수단 미정"} · ${p.receipt||"증빙 미정"}`);return}
+    setPayments(b,l,`${p.kind} ${money(p.amount)}원 · ${p.method||"결제 방법 미정"} · ${p.receipt||"영수증 미정"}`);return}
   if(f==="ship-size"){const [items,it]=materialize(b,t.dataset.r);if(!it)return;it.size=t.value;save(id,{items},`액자 ${t.value}`);return}
   if(f==="ship-photo"){const [items,it]=materialize(b,t.dataset.r);if(!it)return;it.photo=t.value.trim();save(id,{items});return}
   if(f==="gs-c"||f==="gs-y"){const m=/^(\d+)-(\d+)$/.exec(b.gs||"")||[null,"",""];const c=f==="gs-c"?digits(t.value):m[1],y=f==="gs-y"?digits(t.value):m[2];save(id,{gs:c&&y?`${c}-${y}`:""},`가성 회차 ${c}-${y}`);return}
@@ -1647,6 +1678,22 @@ const ITEMK=(k,sm)=>{const t=(k||"")+" "+(sm||"");if(/포켓/.test(t))return"리
 const isCons=s=>s.kind==="shoot"&&(!s.state||s.state==="완료");
 const STEPCOL={shot:"shot_at",canceled:"canceled_at",postponed:"postponed_at",orig:"original_sent_at",picked:"picked_at",handoff:"handoff_at",workshop:"workshop_at",done:"done_at",notified:"notified_at",delivered:"delivered_at",slot_off:"slot_off_at"};
 const SNAP={},SNAPI={},SNAPP={},SNAPS={},BID2KEY={},CUSTROW={};
+/* 얼굴 사진: Storage 'faces' 비공개 보관함 + photos 표 */
+const PH_LOADED=new Set();
+async function loadPhotos(no){const {data,error}=await sb.from("photos").select("id,path,created_at").eq("customer_no",no).order("created_at");if(error)return;PH_LOADED.add(no);
+  if(!data.length){PHOTOS[no]=[];return}
+  const {data:sg}=await sb.storage.from("faces").createSignedUrls(data.map(p=>p.path),3600*6);
+  PHOTOS[no]=data.map((p,i)=>({id:p.id,path:p.path,url:sg&&sg[i]?sg[i].signedUrl:""}))}
+async function shrink(file,max){let bmp;try{bmp=await createImageBitmap(file,{imageOrientation:"from-image"})}catch(e){bmp=await createImageBitmap(file)}
+  const r=Math.min(1,max/Math.max(bmp.width,bmp.height)),c=document.createElement("canvas");c.width=Math.round(bmp.width*r);c.height=Math.round(bmp.height*r);
+  c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);return await new Promise(res=>c.toBlob(res,"image/jpeg",0.82))}
+window.addPhoto=async(no,file)=>{const blob=await shrink(file,720);const path=`${no}/${crypto.randomUUID()}.jpg`;
+  const {error}=await sb.storage.from("faces").upload(path,blob,{contentType:"image/jpeg",upsert:false});if(error)throw error;
+  const {error:e2}=await sb.from("photos").insert({customer_no:no,path,kind:"face"});if(e2){await sb.storage.from("faces").remove([path]);throw e2}
+  await loadPhotos(no)};
+window.delPhoto=async id=>{const f=phFind(id);if(!f)return;const {error}=await sb.from("photos").delete().eq("id",id);if(error)throw error;
+  await sb.storage.from("faces").remove([f.p.path]);await loadPhotos(f.no)};
+
 function toB(r,cust){
   const ss=(r.schedules||[]).slice().sort((a,b)=>(a.date+(a.start_time||"")).localeCompare(b.date+(b.start_time||"")));
   const sh=ss.find(isCons)||null;
@@ -1916,6 +1963,7 @@ function startRealtime(){
   const _draw=draw;draw=function(){ensureMonth(calY,calM);_draw()};
   const _open=openCust;openCust=function(id,fs){const b=B[id];const no=b&&b.customer_no;
     if(no&&!NOTE_LOADED.has(no))loadNotes([no]).then(refresh);
+    if(no&&!PH_LOADED.has(no))loadPhotos(no).then(()=>{$("cp-head")._h=null;refresh()});
     if(no&&!LOADED_C.has(no))ensureCust(no).then(()=>_open(id,fs));else _open(id,fs)};
   await ensureMonth(calY,calM);
   loadNotes(Object.values(B).filter(b=>b.date&&b.date>=addDays(TODAY,-3)&&b.date<=addDays(TODAY,7)).map(b=>b.customer_no)).then(refresh);
