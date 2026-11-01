@@ -14,6 +14,13 @@
 .rnb{font-size:12px;font-weight:800;border-radius:6px;padding:2px 8px;background:#fae8ff;color:#a21caf;margin-left:6px;white-space:nowrap}
 .tg.rnt.on{background:#fae8ff;color:#a21caf;border-color:#e879f9}
 @media (prefers-color-scheme:dark){.rnb{background:#4a1d55;color:#f5d0fe}.rnn{color:#e879f9!important}}
+.wph{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 10px;padding:8px 10px;border:1px dashed var(--line);border-radius:10px}
+.wpt{font-size:12px;font-weight:700;color:var(--muted,#7a837e);margin-right:4px}
+.ph.sq{border-radius:8px;width:72px;height:72px;position:relative}
+.ph.sq small{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);color:#fff;font-size:10px;padding:1px 3px;text-align:center}
+.wpl{width:140px}
+.wpb{cursor:pointer}
+.nph{display:block;width:96px;height:96px;margin-top:6px}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 </head><body>
 <title>실자료 · 감탄 고객관리</title>
@@ -911,9 +918,11 @@ function drawList(){
 /* ===== 고객 화면 ===== */
 /* ===== 이력 (SM 이력처럼: 날짜 시간 · 작성자 · 내용, 최신이 위) ===== */
 let NOTES={},NOTEALL=null;
-function notesHTML(key){const ns=(NOTES[key]||[]).slice().sort((a,b)=>(b.at||"").localeCompare(a.at||""));if(!ns.length)return`<div class="nnone">이력 없음</div>`;
+function notesHTML(key){const nob=Object.values(B).find(x=>ckey(x)===key),pno=nob&&nob.customer_no;
+  const pev=(PHOTOS[pno]||[]).filter(p=>!isFace(p)).map(p=>({at:p.at||"",who:p.who||"",text:(p.kind==="final"?"보정본 사진":"선택 사진")+(p.label?" "+p.label:""),pid:p.id,url:p.url}));
+  const ns=[...(NOTES[key]||[]),...pev].slice().sort((a,b)=>(b.at||"").localeCompare(a.at||""));if(!ns.length)return`<div class="nnone">이력 없음</div>`;
   const all=NOTEALL===key,show=all?ns:ns.slice(0,6);
-  return show.map(n=>`<div class="nrow"><div class="nmeta">${esc((n.at||"").slice(2,16).replace("T"," ").replace(/-/g,"."))}${n.who?` · <b>${esc(n.who)}</b>`:""}</div><div class="ntext"${n.color&&!/^#?(161616|000000|000)$/i.test(n.color)?` style="color:${esc(n.color)}"`:""}>${esc(n.text)}</div></div>`).join("")
+  return show.map(n=>`<div class="nrow"><div class="nmeta">${esc((n.at||"").slice(2,16).replace("T"," ").replace(/-/g,"."))}${n.who?` · <b>${esc(n.who)}</b>`:""}</div><div class="ntext"${n.color&&!/^#?(161616|000000|000)$/i.test(n.color)?` style="color:${esc(n.color)}"`:""}>${esc(n.text)}${n.pid?`<button class="ph sq nph" data-a="ph-view" data-id="${esc(n.pid)}" aria-label="크게 보기">${n.url?`<img src="${esc(n.url)}" alt="">`:""}</button>`:""}</div></div>`).join("")
    +(ns.length>6?`<button class="mini nmore" type="button" onclick="NOTEALL=NOTEALL?null:openKey;refresh()">${all?"접기":`이력 ${ns.length-6}개 더 보기`}</button>`:"");}
 document.addEventListener("submit",async e=>{if(e.target.id!=="cp-nform")return;e.preventDefault();const t=$("cp-nin"),v=t.value.trim();if(!v||!openKey)return;
   const n={at:new Date(Date.now()+9*3600e3).toISOString().slice(0,19),who:who(),text:v};(NOTES[openKey]=NOTES[openKey]||[]).push(n);t.value="";refresh();
@@ -1068,7 +1077,7 @@ function shipHTML(b){
     <td class="c">${r.virtual?"":`<button class="xb" data-a="item-del" data-id="${esc(b.id)}" data-r="${esc(r.id)}" aria-label="항목 지우기">×</button>`}</td></tr>`};
   const F=FORM&&FORM.id===b.id?FORM.type:null;
   const open=SHIPOPEN.has(b.id),left=rows.filter(r=>!r.shipped).length;
-  return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+  return `${workPhotoHTML(b)}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
       <button class="tg${b.review?" on":""}" data-a="flag" data-id="${esc(b.id)}" data-v="review">${b.review?"✓ ":""}리뷰·포켓</button>
       <button class="tg red${b.sns?" on":""}" data-a="flag" data-id="${esc(b.id)}" data-v="sns">${b.sns?"✓ ":""}SNS 동의</button>
       <button class="tg rnt${b.rn?" on":""}" data-a="flag" data-id="${esc(b.id)}" data-v="rn" title="리뷰노트 체험단 — 촬영비 0원">${b.rn?"✓ ":""}리뷰노트 (0원)</button>
@@ -1392,8 +1401,17 @@ document.addEventListener("pointerdown",e=>{if(!e.target.closest("#mpick,#mlabel
 /* 얼굴 확인용 사진 — 가족·프로필은 3장까지, 증명사진만 온 고객은 1장 */
 let PHOTOS={},PHVIEW=null,PHDEL=false;
 function photoMax(list){return list.some(b=>{const k=pk(b);return k&&!["id","halfid"].includes(k)})?3:1}
-function photoHTML(no,list){if(!no)return"";const ps=PHOTOS[no]||[],mx=photoMax(list);
+const isFace=p=>p.kind!=="pick"&&p.kind!=="final";
+function photoHTML(no,list){if(!no)return"";const ps=(PHOTOS[no]||[]).filter(isFace),mx=photoMax(list);
   return `<div class="phs">${ps.map(p=>`<button class="ph" data-a="ph-view" data-id="${esc(p.id)}" aria-label="사진 크게 보기">${p.url?`<img src="${esc(p.url)}" alt="">`:""}</button>`).join("")}${ps.length<mx?`<label class="ph add" title="사진 넣기 (찍기·고르기)"><input type="file" accept="image/*" data-no="${no}" class="phin" hidden><span>+ 사진</span></label>`:""}${ps.length?`<span class="phn">${ps.length}/${mx}</span>`:""}</div>`}
+/* 선택 사진·보정본 사진 — 예약마다, 이력에도 같이 나옴 */
+function workPhotoHTML(b){const no=b.customer_no;const st=b.steps||{};if(!no||(P(b)||{}).idlike||!(st.shot||st.orig||(b.date&&b.date<=TODAY)))return"";const bid=b._bid||b.id;
+  const ps=(PHOTOS[no]||[]).filter(p=>!isFace(p)&&p.bid===bid);
+  return `<div class="wph"><span class="wpt">선택·보정본 사진</span>${ps.map(p=>`<button class="ph sq" data-a="ph-view" data-id="${esc(p.id)}" aria-label="크게 보기">${p.url?`<img src="${esc(p.url)}" alt="">`:""}<small>${p.kind==="final"?"보정본":"선택"}${p.label?" "+esc(p.label):""}</small></button>`).join("")}
+  <input class="inp wpl" id="wpl-${esc(b.id)}" placeholder="사진 번호 (예: 0139)" aria-label="사진 번호">
+  <label class="mini wpb">+ 선택 사진<input type="file" accept="image/*" hidden class="phin" data-no="${no}" data-kind="pick" data-bid="${esc(bid)}" data-b="${esc(b.id)}"></label>
+  <label class="mini wpb">+ 보정본<input type="file" accept="image/*" hidden class="phin" data-no="${no}" data-kind="final" data-bid="${esc(bid)}" data-b="${esc(b.id)}"></label></div>`}
+
 function phFind(id){for(const [no,ps] of Object.entries(PHOTOS)){const p=ps.find(x=>x.id===id);if(p)return{no:+no,p}}return null}
 function drawPhView(){let v=$("phview");if(!PHVIEW){if(v)v.hidden=true;return}
   if(!v){v=document.createElement("div");v.id="phview";document.body.appendChild(v)}
@@ -1401,7 +1419,11 @@ function drawPhView(){let v=$("phview");if(!PHVIEW){if(v)v.hidden=true;return}
   v.innerHTML=`<div class="phbox"><img src="${esc(f.p.url||"")}" alt=""><div class="phbar"><button class="mini${PHDEL?" warnb":""}" data-a="ph-del">${PHDEL?"정말 지울까요? 한 번 더 누르면 지워져요":"사진 지우기"}</button><span style="flex:1"></span><button class="mini pri" data-a="ph-close">닫기</button></div></div>`;v.hidden=false}
 document.addEventListener("change",e=>{const t=e.target;if(!t.matches||!t.matches(".phin"))return;const f=t.files&&t.files[0];t.value="";if(!f)return;
   if(!window.addPhoto){toast("사진 저장은 온라인 CRM에서 돼요");return}
-  toast("사진 올리는 중…");window.addPhoto(+t.dataset.no,f).then(()=>{toast("사진 넣었어요");$("cp-head")._h=null;drawCust()}).catch(err=>toast("사진 올리기 실패: "+(err&&err.message||err)))});
+  const kind=t.dataset.kind||"face",bk=t.dataset.b,lbl=bk&&$("wpl-"+bk)?$("wpl-"+bk).value.trim():"";
+  toast("사진 올리는 중…");window.addPhoto(+t.dataset.no,f,{kind,label:lbl,booking_id:t.dataset.bid||null}).then(()=>{toast(kind==="pick"?"선택 사진 넣었어요":kind==="final"?"보정본 사진 넣었어요":"사진 넣었어요");
+    const b=bk&&B[bk];if(b&&kind==="pick"&&!(b.steps||{}).picked)save(b.id,{steps:{picked:TODAY}},"사진 선택"+(lbl?" "+lbl:""));
+    if(bk&&$("wpl-"+bk))$("wpl-"+bk).value="";if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+    $("cp-head")._h=null;drawCust()}).catch(err=>toast("사진 올리기 실패: "+(err&&err.message||err)))});
 document.addEventListener("click",e=>{const t=e.target.closest("[data-a^=ph-]");if(!t){if(PHVIEW&&e.target.id==="phview"){PHVIEW=null;PHDEL=false;drawPhView()}return}
   const a=t.dataset.a;if(a==="ph-view"){PHVIEW=t.dataset.id;PHDEL=false;drawPhView()}
   else if(a==="ph-close"){PHVIEW=null;PHDEL=false;drawPhView()}
@@ -1686,16 +1708,16 @@ const STEPCOL={shot:"shot_at",canceled:"canceled_at",postponed:"postponed_at",or
 const SNAP={},SNAPI={},SNAPP={},SNAPS={},BID2KEY={},CUSTROW={};
 /* 얼굴 사진: Storage 'faces' 비공개 보관함 + photos 표 */
 const PH_LOADED=new Set();
-async function loadPhotos(no){const {data,error}=await sb.from("photos").select("id,path,created_at").eq("customer_no",no).order("created_at");if(error)return;PH_LOADED.add(no);
+async function loadPhotos(no){const {data,error}=await sb.from("photos").select("id,path,created_at,kind,label,who,booking_id").eq("customer_no",no).order("created_at");if(error)return;PH_LOADED.add(no);
   if(!data.length){PHOTOS[no]=[];return}
   const {data:sg}=await sb.storage.from("faces").createSignedUrls(data.map(p=>p.path),3600*6);
-  PHOTOS[no]=data.map((p,i)=>({id:p.id,path:p.path,url:sg&&sg[i]?sg[i].signedUrl:""}))}
+  PHOTOS[no]=data.map((p,i)=>({id:p.id,path:p.path,url:sg&&sg[i]?sg[i].signedUrl:"",kind:p.kind,label:p.label||"",who:p.who||"",bid:p.booking_id,at:kst(p.created_at||Date.now()).slice(0,19)}))}
 async function shrink(file,max){let bmp;try{bmp=await createImageBitmap(file,{imageOrientation:"from-image"})}catch(e){bmp=await createImageBitmap(file)}
   const r=Math.min(1,max/Math.max(bmp.width,bmp.height)),c=document.createElement("canvas");c.width=Math.round(bmp.width*r);c.height=Math.round(bmp.height*r);
   c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);return await new Promise(res=>c.toBlob(res,"image/jpeg",0.82))}
-window.addPhoto=async(no,file)=>{const blob=await shrink(file,720);const path=`${no}/${crypto.randomUUID()}.jpg`;
+window.addPhoto=async(no,file,o={})=>{const kind=o.kind||"face";const blob=await shrink(file,kind==="face"?720:1400);const path=`${no}/${crypto.randomUUID()}.jpg`;
   const {error}=await sb.storage.from("faces").upload(path,blob,{contentType:"image/jpeg",upsert:false});if(error)throw error;
-  const {error:e2}=await sb.from("photos").insert({customer_no:no,path,kind:"face"});if(e2){await sb.storage.from("faces").remove([path]);throw e2}
+  const {error:e2}=await sb.from("photos").insert({customer_no:no,path,kind,label:o.label||null,booking_id:o.booking_id&&isU(o.booking_id)?o.booking_id:null,who:ME?ME.name:null});if(e2){await sb.storage.from("faces").remove([path]);throw e2}
   await loadPhotos(no)};
 window.delPhoto=async id=>{const f=phFind(id);if(!f)return;const {error}=await sb.from("photos").delete().eq("id",id);if(error)throw error;
   await sb.storage.from("faces").remove([f.p.path]);await loadPhotos(f.no)};
