@@ -182,6 +182,17 @@ html.lock,html.lock body{overflow:hidden}
 .grp{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:12px;overflow:hidden}
 .grp h3{margin:0;padding:10px 14px;font-size:14px;font-weight:800;display:flex;justify-content:space-between;border-bottom:1px solid var(--line2)}
 .grp h3 span{color:var(--muted);font-weight:600}
+.ibox .ibc{border-top:1px solid var(--line2);padding:10px 14px}
+.ibox .ibc.ok{background:color-mix(in srgb,var(--ok,#16a34a) 6%,transparent)}
+.ibh{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:14px}
+.ibk{font-size:11.5px;font-weight:800;padding:2px 7px;border-radius:99px;background:var(--line2);color:var(--muted)}
+.ibk-id{background:#e2e8f0;color:#475569}.ibk-folder,.ibk-orig_ready{background:#dbeafe;color:#1d4ed8}.ibk-orig_sent{background:#dcfce7;color:#15803d}
+.ibt{margin-left:auto;color:var(--muted);font-size:12px}
+.ibb{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
+.ibb .mini{min-height:34px}.ibq{color:var(--muted);font-size:12.5px}.ibn{color:#b45309;font-size:12.5px}
+.ibnm{font-size:13px;word-break:break-all}.ibx{margin-left:auto}
+.ibauto{border-top:1px solid var(--line2);padding:8px 14px;font-size:12.5px;color:var(--muted)}
+
 .grp.crit h3{color:var(--crit);background:var(--crit-bg)}
 .row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:transparent;border:0;border-top:1px solid var(--line2);padding:10px 14px;min-height:48px}
 .row:first-of-type{border-top:0}
@@ -883,10 +894,67 @@ function drawToday(){
     if(st.k==="미등록"){const g=gsBase(b);if(g&&g<=addDays(TODAY,-365))add(b,"가성 미등록 1년 — 연락")}});
   /* 맨 위: 오늘 찍을 손님 브리핑 (진행판 방식) — Claude가 쓴 요약(b.pts/b.brief)이 있으면 먼저, 없어도 기록 원문은 항상 자동으로 */
   const tl=all.filter(b=>b.date===TODAY&&!(b.steps||{}).canceled).sort(byDate);
-  put("tg-0",`<div class="grp"><h3>오늘 손님 · ${md(TODAY)} ${dow(TODAY)}<span>${tl.length}건</span></h3>${tl.map(briefHTML).join("")||`<div class="empty">오늘 예약 없음</div>`}</div>`);
+  put("tg-0",inboxHTML()+`<div class="grp"><h3>오늘 손님 · ${md(TODAY)} ${dow(TODAY)}<span>${tl.length}건</span></h3>${tl.map(briefHTML).join("")||`<div class="empty">오늘 예약 없음</div>`}</div>`);
   put("tg-1",grp("놓친 것",crit,true,([b,n])=>`<div class="rowa">${rowHTML(b,n+(n==="공방 2주 지남"?` · ${md((b.steps||{}).workshop)} 보냄`:""))}<button class="ackb" data-a="ack" data-id="${esc(b.id)}" data-v="${esc(n)}" title="확인함 — 목록에서 빼기">확인</button></div>`));
   ["tg-2","tg-3","tg-4","tg-5","tg-6"].forEach(i=>put(i,""));
 }
+
+/* ===== 오늘 들어온 일 (감탄 지킴이가 폴더를 보고 올림) ===== */
+const IBK={id:"증명",folder:"촬영 폴더",orig_ready:"원본 준비",orig_sent:"원본 발송"};
+const ibRows=()=>(typeof window.INBOX==="function"?window.INBOX():window.INBOX)||[];
+const ibB=bid=>bid?Object.values(B).find(x=>x._bid===bid||x.id===bid):null;
+const fmtPh=d=>String(d||"").replace(/^(\d{3})(\d{3,4})(\d{4})$/,"$1-$2-$3");
+function ibCands(day){ /* 그날(없으면 지난 7일) 가족 촬영 예약 */
+  const ok=b=>b.kind==="shoot"&&b.date&&!(P(b)||{}).idlike&&!(b.steps||{}).canceled;
+  const same=Object.values(B).filter(b=>ok(b)&&b.date===day).sort(byDate);
+  const near=Object.values(B).filter(b=>ok(b)&&b.date<day&&b.date>=addDays(day,-7)&&!(b.steps||{}).orig).sort(byDate).reverse();
+  return [...same,...near].slice(0,8)}
+function ibName(b,folder){const n=(+b.adults||0)+(+b.kids||0);const nick=String(folder||"").replace(/#\s*\d+/g,"").trim();
+  return `${b.name}님 ${n?n+"인가족 ":""}${nick?`(${nick}) `:""}${b.gs?`가성 ${b.gs} `:""}#${b.customer_no}`.replace(/\s+/g," ").trim()}
+function ibCopyBtn(label,text){return `<button type="button" class="mini" data-a="ib-copy" data-v="${esc(text)}">${esc(label)}</button>`}
+function inboxHTML(){
+  const rows=ibRows();if(!rows.length)return"";
+  const show=rows.filter(r=>r.state==="new"||(r.state==="info"&&r.day>=addDays(TODAY,-1)));
+  const auto=rows.filter(r=>r.state==="done"&&r.day===TODAY&&r.done_by==="지킴이"&&r.kind!=="id");
+  if(!show.length&&!auto.length)return"";
+  /* 증명은 같은 전화번호끼리 한 장으로 */
+  const ids={},cards=[];
+  show.forEach(r=>{if(r.kind==="id"){const k=r.day+"|"+r.phone;if(!ids[k]){ids[k]={...r,uses:[],ids:[]};cards.push(ids[k])}ids[k].uses.push(r.purpose);ids[k].ids.push(r.id)}else cards.push(r)});
+  const card=r=>{
+    const head=t=>`<div class="ibh"><span class="ibk ibk-${r.kind}">${IBK[r.kind]}</span>${t}<span class="ibt">${r.day===TODAY?"오늘":md(r.day)} ${esc((r.created_at?kst(r.created_at):"").slice(11,16))}</span></div>`;
+    const skip=`<button type="button" class="ghost ibx" data-a="ib-skip" data-id="${esc((r.ids||[r.id]).join(","))}">${r.state==="info"?"닫기":"건너뛰기"}</button>`;
+    if(r.kind==="id"){const half=r.uses.some(u=>/반명함/.test(u));
+      return `<div class="ibc">${head(`<b>${esc(r.name)}</b> · ${esc(fmtPh(r.phone))} · ${esc([...new Set(r.uses)].join(", "))}`)}
+        <div class="ibb"><span class="ibq">결제</span>${["카드","현금","계좌이체"].map(m=>`<button type="button" class="mini ibpay" data-a="ib-id" data-id="${esc(r.ids.join(","))}" data-v="${m}">${m}</button>`).join("")}${skip}</div>${half?`<div class="ibn">반명함 상품으로 넣어요</div>`:""}</div>`}
+    const b=ibB(r.booking_id);
+    if(r.state==="info"&&b){
+      if(r.kind==="orig_sent"){const c=CUST[ckey(b)]||{};const msg=(MSGS.orig.v[b.review?"리뷰 남김":"기본"]||MSGS.orig.v["기본"])(b);
+        return `<div class="ibc ok">${head(`<button class="lnk" data-a="open" data-id="${esc(b.id)}"><b>${esc(b.name)}</b></button> #${b.customer_no} · 원본 발송 ✔`)}
+          <div class="ibb">${c.email?`<span class="ibq">메일</span><b class="tn">${esc(c.email)}</b>${ibCopyBtn("주소 복사",c.email)}`:`<span class="ibq">메일 주소 없음</span>`}${ibCopyBtn("원본 문구 복사",msg)}${skip}</div></div>`}
+      const want=ibName(b,r.prev_name||r.name);const named=/#\s*\d+/.test(r.name||"");
+      return `<div class="ibc ok">${head(`<button class="lnk" data-a="open" data-id="${esc(b.id)}"><b>${esc(b.name)}</b></button> #${b.customer_no} · 촬영 완료 ✔`)}
+        <div class="ibb">${named?`<span class="ibq">${esc(r.name)}</span>`:`<span class="ibq">폴더 이름</span><b class="tn ibnm">${esc(want)}</b>${ibCopyBtn("복사",want)}`}${skip}</div></div>`}
+    const cs=ibCands(r.day);
+    return `<div class="ibc">${head(`<b>${esc(r.name||"")}</b>${r.note?` <span class="ibn">${esc(r.note)}</span>`:""} — 누구세요?`)}
+      <div class="ibb">${cs.map(x=>`<button type="button" class="mini" data-a="ib-pick" data-id="${esc(r.id)}" data-v="${esc(x._bid||"")}"${x._bid?"":" disabled"}>${x.date===r.day?(x.time?tm(x.time):"시간 미정"):md(x.date)} ${esc(x.name)}님 ${((+x.adults||0)+(+x.kids||0))||""}${((+x.adults||0)+(+x.kids||0))?"인":""}${x.gs?" 가성"+esc(x.gs):""} <span class="cno">#${x.customer_no||""}</span></button>`).join("")||`<span class="ibq">맞는 예약이 없어요</span>`}${skip}</div></div>`};
+  return `<div class="grp ibox"><h3>오늘 들어온 일<span>${cards.length}건</span></h3>${cards.map(card).join("")}${auto.length?`<div class="ibauto">자동 체크 ${auto.length}건 · ${auto.map(r=>{const b=ibB(r.booking_id);return esc((b?b.name+"님 ":"")+(IBK[r.kind]||""))}).join(" · ")}</div>`:""}</div>`}
+async function ibMakeId(ids,method){
+  const rows=ibRows().filter(r=>ids.includes(r.id));if(!rows.length)return;const r=rows[0];
+  const uses=[...new Set(rows.map(x=>x.purpose))];const pkey=uses.some(u=>/반명함/.test(u))?"halfid":"id";
+  let no=null,nm=r.name;const hit=findByPhone(r.phone);
+  if(hit&&hit[0]==="n"){no=+hit.slice(1);nm=custName(hit)||nm}else if(hit)no=await assignNumber(hit);else no=(typeof rpcNo==="function")?await rpcNo():newNo();
+  const id=uid("b");const nowK=new Date(Date.now()+9*3600e3).toISOString();
+  const doc={name:nm,customer_no:no,tkey:null,date:r.day,time:nowK.slice(11,16),up11:false,product:"",pkey,booked_pkey:pkey,adults:1,kids:0,pet:false,cal:uses.join("·"),growth:false,gs:"",kind:"shoot",
+    memo:"",steps:{shot:r.day},items:[],payments:[],origin:"지킴이"};
+  doc.payments=[{id:uid("p"),date:r.day,amount:totalOf(doc),kind:"잔금",method,receipt:""}];
+  B[id]={id,...doc};refresh();
+  try{await db.doc("bookings/"+id).set(doc);
+    {const k="n"+no;if(!normP((CUST[k]||{}).phone)){const c={...(CUST[k]||{}),name:(CUST[k]||{}).name||nm,phone:fmtPh(r.phone)};CUST[k]=c;await db.doc("customers/"+k).set(c)}}
+    log(id,`증명 등록 · ${uses.join(", ")} · ${money(totalOf(doc))}원 ${method}`);
+    if(window.ibUpdate)await window.ibUpdate(ids,{state:"done",customer_no:no,booking_id:isUuid(B[id]._bid||id)?(B[id]._bid||id):null});
+    toast(`${nm}님 증명 ${money(totalOf(doc))}원 ${method}${hit?" · 기존 손님":""}`);openCust(id)}
+  catch(err){delete B[id];refresh();toast("증명을 넣지 못했어요")}}
+const isUuid=s=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s||"");
 const lines=t=>String(t||"").split(/\n+/).map(s=>s.trim()).filter(Boolean);
 function briefHTML(b){
   const k=ckey(b),c=CUST[k]||{},isId=!!(P(b)||{}).idlike,st=status(b);
@@ -1478,6 +1546,10 @@ document.addEventListener("click",e=>{
   if(a==="logf"){LOGF=v;refresh();return}
   if(a==="logall"){LOGALL=!LOGALL;if(LOGALL)loadCustLogs(openKey,custBookings().map(x=>x.id));refresh();return}
   if(a==="msgx"){MSGON=null;refresh();return}
+  if(a==="ib-copy"){const tx=t.dataset.v||"";const done=()=>toast("복사됐어요");if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(tx).then(done,()=>toast("복사하지 못했어요"));else toast("복사하지 못했어요");return}
+  if(a==="ib-skip"){const ids=String(id||"").split(",").filter(Boolean);if(window.ibUpdate)window.ibUpdate(ids,{state:"skip"}).catch(()=>toast("저장하지 못했어요"));return}
+  if(a==="ib-pick"){if(!v)return;t.disabled=true;if(window.ibPick)window.ibPick(id,v).then(()=>toast("촬영 완료로 체크했어요"),()=>{t.disabled=false;toast("저장하지 못했어요")});return}
+  if(a==="ib-id"){const ids=String(id||"").split(",").filter(Boolean);t.closest(".ibb").querySelectorAll("button").forEach(x=>x.disabled=true);ibMakeId(ids,v);return}
   if(!b)return;
   if((a==="hrow"||a==="toggle")&&Date.now()-(window._tg||0)<400)return;
   if(a==="hrow"||a==="toggle")window._tg=Date.now();
@@ -1969,6 +2041,15 @@ function rtFlush(){clearTimeout(rtT);rtT=setTimeout(async()=>{
   if(bs.length)await fetchBookings(q=>q.in("id",bs));
   if(cs.length){const {data}=await sb.from("customers").select("*").in("customer_no",cs);(data||[]).forEach(putCust)}
   if(bs.length||cs.length){["cp-bar","cp-head","cp-stats"].forEach(i=>{const e=$(i);if(e)e._h=null});refresh()}},600)}
+
+/* 오늘 들어온 일 (감탄 지킴이) */
+let INBOX=[];window.INBOX=()=>INBOX;
+async function loadInbox(){const {data,error}=await sb.from("inbox").select("*").gte("day",addDays(TODAY,-7)).order("created_at");if(error)return;INBOX=data||[];
+  const miss=[...new Set(INBOX.filter(r=>r.booking_id&&!Object.values(B).some(x=>x._bid===r.booking_id)).map(r=>r.booking_id))];
+  if(miss.length)await fetchBookings(q=>q.in("id",miss));refresh()}
+window.ibUpdate=async(ids,patch)=>{ids=[].concat(ids);const row={...patch,done_by:ME?ME.name:null,done_at:new Date().toISOString()};
+  const {error}=await sb.from("inbox").update(row).in("id",ids);if(error)throw error;INBOX.forEach(r=>{if(ids.includes(r.id))Object.assign(r,row)});refresh()};
+window.ibPick=async(id,bid)=>{const {error}=await sb.rpc("inbox_pick",{iid:id,bid});if(error)throw error;await fetchBookings(q=>q.eq("id",bid));await loadInbox()};
 function startRealtime(){
   const ch=sb.channel("crm");
   ["bookings","items","payments"].forEach(t=>ch.on("postgres_changes",{event:"*",schema:"public",table:t},p=>{const r=p.new&&Object.keys(p.new).length?p.new:p.old;const id=t==="bookings"?r.id:r.booking_id;if(id&&(SNAP[id]||t==="bookings")){rtB.add(id);rtFlush()}}));
@@ -1978,6 +2059,8 @@ function startRealtime(){
   ch.on("postgres_changes",{event:"*",schema:"public",table:"day_memos"},p=>{const d=p.new||{};if(d.date&&!isMine("m"+d.date)){MEMO[d.date]=d.text||"";if(d.color)MEMOC[d.date]=d.color;refresh()}});
   ch.on("postgres_changes",{event:"INSERT",schema:"public",table:"logs"},p=>{const l=p.new||{};if(l.action==="note"&&l.user_id!==sessUid){LOGS.unshift({booking:l.row_id,text:l.note,who:l.who,at:kst(l.at)});refresh()}});
   ch.on("postgres_changes",{event:"INSERT",schema:"public",table:"notes"},p=>{const r=p.new||{};if(!r.customer_no||isMine("note"+r.id)||r.user_id===sessUid)return;if(NOTE_LOADED.has(r.customer_no)){const a=NOTES["n"+r.customer_no];if(!a.some(x=>x.id===r.id)){a.push(noteRow(r));refresh()}}});
+  ch.on("postgres_changes",{event:"*",schema:"public",table:"inbox"},p=>{const r=p.new||{};if(!r.id)return;const i=INBOX.findIndex(x=>x.id===r.id);if(i>=0)INBOX[i]=r;else INBOX.push(r);
+    if(r.booking_id){rtB.add(r.booking_id);rtFlush()}else refresh()});
   ch.subscribe();
 }
 
@@ -2002,6 +2085,7 @@ function startRealtime(){
   if(["owner","manager","bot"].includes(me.role)){const {data:lg}=await sb.from("logs").select("*").eq("action","note").order("at",{ascending:false}).limit(1000);
     LOGS=(lg||[]).map(l=>({booking:l.row_id,text:l.note,who:l.who,at:kst(l.at)}))}
   startRealtime();
+  loadInbox();
   loaded=true;
   $("status").textContent=`${me.name} · ${Math.round(performance.now()-t0)}ms`;
   refresh();
