@@ -191,6 +191,7 @@ html.lock,html.lock body{overflow:hidden}
 .ibb{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
 .ibb .mini{min-height:34px}.ibq{color:var(--muted);font-size:12.5px}.ibn{color:#b45309;font-size:12.5px}
 .ibnm{font-size:13px;word-break:break-all}.ibx{margin-left:auto}
+.ibsm{color:#b45309;font-weight:600}
 .ibauto{border-top:1px solid var(--line2);padding:8px 14px;font-size:12.5px;color:var(--muted)}
 
 .grp.crit h3{color:var(--crit);background:var(--crit-bg)}
@@ -916,7 +917,9 @@ function inboxHTML(){
   const rows=ibRows();if(!rows.length)return"";
   const show=rows.filter(r=>r.state==="new"||(r.state==="info"&&r.day>=addDays(TODAY,-1)));
   const auto=rows.filter(r=>r.state==="done"&&r.day===TODAY&&r.done_by==="지킴이"&&r.kind!=="id");
-  if(!show.length&&!auto.length)return"";
+  const smw=rows.filter(r=>r.kind==="id"&&r.state==="done"&&/SM 등록 대기/.test(r.note||"")&&r.day>=addDays(TODAY,-7));
+  const smg={};smw.forEach(r=>{const k=r.day+"|"+r.phone;(smg[k]=smg[k]||{n:r.name,m:(r.note||"").replace(/^결제 | · SM 등록 대기$/g,""),d:r.day})});
+  if(!show.length&&!auto.length&&!smw.length)return"";
   /* 증명은 같은 전화번호끼리 한 장으로 */
   const ids={},cards=[];
   show.forEach(r=>{if(r.kind==="id"){const k=r.day+"|"+r.phone;if(!ids[k]){ids[k]={...r,uses:[],ids:[]};cards.push(ids[k])}ids[k].uses.push(r.purpose);ids[k].ids.push(r.id)}else cards.push(r)});
@@ -937,7 +940,7 @@ function inboxHTML(){
     const cs=ibCands(r.day);
     return `<div class="ibc">${head(`<b>${esc(r.name||"")}</b>${r.note?` <span class="ibn">${esc(r.note)}</span>`:""} — 누구세요?`)}
       <div class="ibb">${cs.map(x=>`<button type="button" class="mini" data-a="ib-pick" data-id="${esc(r.id)}" data-v="${esc(x._bid||"")}"${x._bid?"":" disabled"}>${x.date===r.day?(x.time?tm(x.time):"시간 미정"):md(x.date)} ${esc(x.name)}님 ${((+x.adults||0)+(+x.kids||0))||""}${((+x.adults||0)+(+x.kids||0))?"인":""}${x.gs?" 가성"+esc(x.gs):""} <span class="cno">#${x.customer_no||""}</span></button>`).join("")||`<span class="ibq">맞는 예약이 없어요</span>`}${skip}</div></div>`};
-  return `<div class="grp ibox"><h3>오늘 들어온 일<span>${cards.length}건</span></h3>${cards.map(card).join("")}${auto.length?`<div class="ibauto">자동 체크 ${auto.length}건 · ${auto.map(r=>{const b=ibB(r.booking_id);return esc((b?b.name+"님 ":"")+(IBK[r.kind]||""))}).join(" · ")}</div>`:""}</div>`}
+  return `<div class="grp ibox"><h3>오늘 들어온 일<span>${cards.length}건</span></h3>${cards.map(card).join("")}${Object.keys(smg).length?`<div class="ibauto ibsm">SM 등록 대기 ${Object.keys(smg).length}명 · ${Object.values(smg).map(x=>esc(`${x.n}(${x.m}${x.d!==TODAY?" "+md(x.d):""})`)).join(" · ")}</div>`:""}${auto.length?`<div class="ibauto">자동 체크 ${auto.length}건 · ${auto.map(r=>{const b=ibB(r.booking_id);return esc((b?b.name+"님 ":"")+(IBK[r.kind]||""))}).join(" · ")}</div>`:""}</div>`}
 async function ibMakeId(ids,method){
   const rows=ibRows().filter(r=>ids.includes(r.id));if(!rows.length)return;const r=rows[0];
   const uses=[...new Set(rows.map(x=>x.purpose))];const pkey=uses.some(u=>/반명함/.test(u))?"halfid":"id";
@@ -1549,7 +1552,7 @@ document.addEventListener("click",e=>{
   if(a==="ib-copy"){const tx=t.dataset.v||"";const done=()=>toast("복사됐어요");if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(tx).then(done,()=>toast("복사하지 못했어요"));else toast("복사하지 못했어요");return}
   if(a==="ib-skip"){const ids=String(id||"").split(",").filter(Boolean);if(window.ibUpdate)window.ibUpdate(ids,{state:"skip"}).catch(()=>toast("저장하지 못했어요"));return}
   if(a==="ib-pick"){if(!v)return;t.disabled=true;if(window.ibPick)window.ibPick(id,v).then(()=>toast("촬영 완료로 체크했어요"),()=>{t.disabled=false;toast("저장하지 못했어요")});return}
-  if(a==="ib-id"){const ids=String(id||"").split(",").filter(Boolean);t.closest(".ibb").querySelectorAll("button").forEach(x=>x.disabled=true);ibMakeId(ids,v);return}
+  if(a==="ib-id"){const ids=String(id||"").split(",").filter(Boolean);t.closest(".ibb").querySelectorAll("button").forEach(x=>x.disabled=true);if(window.ibUpdate)window.ibUpdate(ids,{state:"done",note:"결제 "+v+" · SM 등록 대기"}).then(()=>toast(`${v} 저장 · SM 등록은 Claude에게 말씀해 주세요`),()=>toast("저장하지 못했어요"));return}
   if(!b)return;
   if((a==="hrow"||a==="toggle")&&Date.now()-(window._tg||0)<400)return;
   if(a==="hrow"||a==="toggle")window._tg=Date.now();
