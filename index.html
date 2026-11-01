@@ -192,6 +192,8 @@ html.lock,html.lock body{overflow:hidden}
 .ibb .mini{min-height:34px}.ibq{color:var(--muted);font-size:12.5px}.ibn{color:#b45309;font-size:12.5px}
 .ibnm{font-size:13px;word-break:break-all}.ibx{margin-left:auto}
 .ibsm{color:#b45309;font-weight:600}
+.status{display:inline-block}
+.logout{background:none;border:0;padding:4px 6px;margin:0 0 8px 6px;font-size:12px;color:var(--muted);text-decoration:underline;cursor:pointer}
 .ibauto{border-top:1px solid var(--line2);padding:8px 14px;font-size:12.5px;color:var(--muted)}
 
 .grp.crit h3{color:var(--crit);background:var(--crit-bg)}
@@ -984,7 +986,7 @@ function drawList(){
       const m=memos.find(t=>t.toLowerCase().includes(terms[0]))||memos.find(has)||"";HIT[k]=m;return true})}
   const lastD=k=>groups[k].reduce((m,b)=>b.date&&b.date>m?b.date:m,"");
   keys.sort((a,b)=>lastD(b).localeCompare(lastD(a))||groups[a][0].name.localeCompare(groups[b][0].name,"ko")); /* 최근 촬영한 고객이 위로 */
-  put("clist",`<div class="grp"><h3>${q?`'${esc(q)}' 찾은 고객`:"고객"}<span>${keys.length}명</span></h3>${keys.map(k=>{const bs=groups[k].sort(byDate),last=bs[bs.length-1],st=status(last);
+  put("clist",`<div class="grp"><h3>${q?`'${esc(q)}' 찾은 고객`:"최근 고객"}<span>${keys.length}명${!q&&window.CUSTTOTAL?` · 전체 ${money(window.CUSTTOTAL)}명`:""}</span></h3>${!q&&window.CUSTTOTAL?`<div class="empty" style="text-align:left;padding:8px 14px">최근 촬영·예약 손님만 보여요. 위 검색칸에 이름·전화·번호를 넣으면 전체에서 찾아요.</div>`:""}${keys.map(k=>{const bs=groups[k].sort(byDate),last=bs[bs.length-1],st=status(last);
     return `<button class="row" data-a="open" data-src="q" data-id="${esc(last.id)}"><span class="b"><b>${esc(last.name)}</b>${atHTML(k)}${last.customer_no?` <span class="cno">#${last.customer_no}</span>`:""}<span style="display:block;font-size:12.5px;color:var(--muted)">촬영 ${bs.length}건 · 최근 ${md(last.date)} ${esc(calText(last))}</span>${HIT[k]?`<span class="mhit">${hitSnip(HIT[k],q)}</span>`:""}</span><span class="sc ${chipC(last,st)}">${esc(st.k)}</span></button>`}).join("")||`<div class="empty">찾는 고객이 없어요</div>`}</div>`);
 }
 
@@ -2045,6 +2047,7 @@ function rtFlush(){clearTimeout(rtT);rtT=setTimeout(async()=>{
   if(cs.length){const {data}=await sb.from("customers").select("*").in("customer_no",cs);(data||[]).forEach(putCust)}
   if(bs.length||cs.length){["cp-bar","cp-head","cp-stats"].forEach(i=>{const e=$(i);if(e)e._h=null});refresh()}},600)}
 
+let OUTT=0;function confirmOut(){const b=$("logout");if(Date.now()-OUTT<3000)return true;OUTT=Date.now();b.textContent="한 번 더 누르면 로그아웃";setTimeout(()=>{b.textContent="로그아웃"},3000);return false}
 /* 오늘 들어온 일 (감탄 지킴이) */
 let INBOX=[];window.INBOX=()=>INBOX;
 async function loadInbox(){const {data,error}=await sb.from("inbox").select("*").gte("day",addDays(TODAY,-7)).order("created_at");if(error)return;INBOX=data||[];
@@ -2076,6 +2079,9 @@ function startRealtime(){
   const {data:me}=await sb.from("user_roles").select("name,role,active").eq("user_id",session.user.id).maybeSingle();
   if(!me||!me.active){$("status").textContent="권한 없는 계정";return}
   ME=me;const w=$("who");w.innerHTML=`<option>${esc(me.name)}</option>`;w.disabled=true;
+  if(!$("logout")){const lb=document.createElement("button");lb.id="logout";lb.type="button";lb.className="logout";lb.textContent="로그아웃";
+    lb.onclick=async()=>{if(!confirmOut()){return}await sb.auth.signOut();location.replace("login.html")};$("status").after(lb)}
+  sb.from("customers").select("customer_no",{count:"exact",head:true}).then(({count})=>{if(count){window.CUSTTOTAL=count;if(view==="cust")drawList()}});
   const t0=performance.now();
   await fetchBookings(q=>q.eq("legacy",false));
   const _draw=draw;draw=function(){ensureMonth(calY,calM);_draw()};
