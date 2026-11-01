@@ -21,6 +21,8 @@
 .wpl{width:140px}
 .wpb{cursor:pointer}
 .nph{display:block;width:96px;height:96px;margin-top:6px}
+.ph.pk{position:relative;border-color:#e879f9}
+.ph.pk small{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.5);color:#fff;font-size:9px;text-align:center;line-height:1.4}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 </head><body>
 <title>실자료 · 감탄 고객관리</title>
@@ -1403,7 +1405,8 @@ let PHOTOS={},PHVIEW=null,PHDEL=false;
 function photoMax(list){return list.some(b=>{const k=pk(b);return k&&!["id","halfid"].includes(k)})?3:1}
 const isFace=p=>p.kind!=="pick"&&p.kind!=="final";
 function photoHTML(no,list){if(!no)return"";const ps=(PHOTOS[no]||[]).filter(isFace),mx=photoMax(list);
-  return `<div class="phs">${ps.map(p=>`<button class="ph" data-a="ph-view" data-id="${esc(p.id)}" aria-label="사진 크게 보기">${p.url?`<img src="${esc(p.url)}" alt="">`:""}</button>`).join("")}${ps.length<mx?`<label class="ph add" title="사진 넣기 (찍기·고르기)"><input type="file" accept="image/*" data-no="${no}" class="phin" hidden><span>+ 사진</span></label>`:""}${ps.length?`<span class="phn">${ps.length}/${mx}</span>`:""}</div>`}
+  const pk=(PHOTOS[no]||[]).filter(p=>p.kind==="pick").sort((x,y)=>(y.at||"").localeCompare(x.at||"")).slice(0,Math.max(1,3-ps.length));
+  return `<div class="phs">${pk.map(p=>`<button class="ph pk" data-a="ph-view" data-id="${esc(p.id)}" title="고른 사진 ${esc(p.label||"")} (${esc((p.at||"").slice(0,10))})" aria-label="고른 사진 크게 보기">${p.url?`<img src="${esc(p.url)}" alt="">`:""}<small>${esc((p.at||"").slice(2,4))}·${esc(p.label||"선택")}</small></button>`).join("")}${ps.map(p=>`<button class="ph" data-a="ph-view" data-id="${esc(p.id)}" aria-label="사진 크게 보기">${p.url?`<img src="${esc(p.url)}" alt="">`:""}</button>`).join("")}${ps.length<mx?`<label class="ph add" title="사진 넣기 (찍기·고르기)"><input type="file" accept="image/*" data-no="${no}" class="phin" hidden><span>+ 사진</span></label>`:""}${ps.length?`<span class="phn">${ps.length}/${mx}</span>`:""}</div>`}
 /* 선택 사진·보정본 사진 — 예약마다, 이력에도 같이 나옴 */
 function workPhotoHTML(b){const no=b.customer_no;const st=b.steps||{};if(!no||(P(b)||{}).idlike||!(st.shot||st.orig||(b.date&&b.date<=TODAY)))return"";const bid=b._bid||b.id;
   const ps=(PHOTOS[no]||[]).filter(p=>!isFace(p)&&p.bid===bid);
