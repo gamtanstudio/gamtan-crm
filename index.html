@@ -697,7 +697,7 @@ function status(b){
   if(b.kind==="visit")return (b.date||"")<TODAY?{k:"완료",c:"c-ok"}:{k:"방문 예정",c:"c-acc"};
   if(!b.date&&!s.shot){if(b.growth||pk(b)==="growth"){const g=gsBase(b);return g&&g<=addDays(TODAY,-365*3)?{k:"중단",c:"c-mute"}:{k:"미등록",c:"c-tbd"}}return{k:"날짜 미정",c:"c-tbd"}}
   if(!s.shot){
-    if((b.date||"")>=TODAY)return(hasDep(b)||(p&&p.idlike))?{k:"예약확정",c:"c-ok"}:{k:"미입금",c:"c-crit",crit:"미입금"};
+    if((b.date||"")>=TODAY)return(hasDep(b)||(p&&p.idlike)||b.rn||(Array.isArray(b.priceItems)&&totalOf(b)===0))?{k:"예약확정",c:"c-ok"}:{k:"미입금",c:"c-crit",crit:"미입금"};
     return{k:"촬영 기록 없음",c:"c-crit",crit:"촬영 기록 없음"};
   }
   if(p&&p.idlike){const t=totalOf(b);return t&&paidOf(b)>=t&&!pays(b).some(x=>x.amount&&!x.method)?{k:"완료",c:"c-ok"}:{k:"결제 확인",c:"c-crit",crit:"미결제"}}
