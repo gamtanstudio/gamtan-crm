@@ -138,14 +138,17 @@ html.lock,html.lock body{overflow:hidden}
 .k-cend{color:var(--k-cend)}
 .k-cancel{color:var(--k-cancel);text-decoration:line-through}
 .agenda{display:none}
+.agm{padding:10px 14px;border-bottom:1px solid var(--line)}
+.agtx{white-space:pre-wrap;font-size:14.5px;line-height:1.6;font-weight:600;background:#f1f1f1;border-radius:8px;padding:9px 12px;margin-bottom:6px}
+.agta{display:block;width:100%;box-sizing:border-box;font:inherit;font-size:15px;line-height:1.6;font-weight:600;border:1px solid var(--line);border-radius:8px;padding:9px 12px;resize:vertical;background:#fff}
+.agbtn{display:flex;justify-content:flex-end;margin-top:4px}.agbtn .ghost{font-size:13px;padding:5px 12px}
+.agcols{display:flex!important;gap:8px;margin-bottom:6px}.agcols span{width:22px;height:22px;border-radius:50%;cursor:pointer}
 @media (max-width:700px){
   .day{min-height:74px;padding:3px}
   .dmemo{display:none}.dmemo.has{display:block;font-size:10.5px;padding:1px 3px;min-height:0}
-  /* 폰: 날짜 메모는 평소 한 줄, 누르면 크게 펼쳐서 읽고 고침 */
-  .dmemo.has:not(:focus){height:1.7em!important;white-space:nowrap;overflow:hidden;line-height:1.7em;padding:0 3px;font-size:10px;text-align:left}
-  .dmemo:focus{display:block;position:fixed;left:16px;right:auto;width:calc(100vw - 32px)!important;box-sizing:border-box;top:22vh;z-index:200;height:auto!important;min-height:32vh;max-height:60vh;overflow:auto;
-    font-size:15px;line-height:1.6;text-align:left;padding:14px 16px;background:var(--card,#fff);border:1px solid var(--line,#ddd);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.28);white-space:pre-wrap}
-  .dmbox:focus-within .mcols{position:fixed;left:16px;top:calc(22vh - 34px);z-index:201;background:var(--card,#fff);padding:6px 8px;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+  /* 폰: 칸 안 메모는 한 줄 보기만 — 날짜를 누르면 아래 그날 칸에서 전체 보기·수정 */
+  .dmemo.has{height:1.7em!important;white-space:nowrap;overflow:hidden;line-height:1.7em;padding:0 3px;font-size:10px;text-align:left;pointer-events:none}
+  .dmbox .mcols{display:none!important}
   .ev{font-size:11px;padding:1px}.ev .evx,.ev .sc{display:none}.ev .t{display:none}
   .agenda{display:block;margin-top:12px}
 }
@@ -565,7 +568,7 @@ function toast(m){const t=$("toast");t.textContent=m;t.hidden=false;clearTimeout
 
 let db=null,B={},CUST={},LOGS=[],MEMO={},MEMOC={},loaded=false;
 const MCOL={k:"#111",b:"#2563eb",r:"#dc2626",p:"#7c3aed"},MCOLN={k:"검정",b:"파랑",r:"빨강",p:"보라"};
-let view="cal",calY=_n.getFullYear(),calM=_n.getMonth(),selDay=TODAY,calFilter=null;
+let AGEDIT=null;let view="cal",calY=_n.getFullYear(),calM=_n.getMonth(),selDay=TODAY,calFilter=null;
 let LOGSHOW=false;const canLog=()=>["팀장","실장님"].includes(who());
 let LOGALL=false,LOGF="all",LOGB="";
 const logCat=t=>/\d[\d,]*원|예약금|선금|중도금|잔금|총액|결제|환불|증빙|금액|입금/.test(t||"")?"money":/출고|준비|액자|보정본|원본|리뷰포켓|수령/.test(t||"")?"ship":"step";const CLOGS={};
@@ -823,7 +826,10 @@ function drawCal(){
       <div class="dmbox"><div class="mcols">${Object.entries(MCOL).map(([k,c])=>`<span data-mcol="${k}" data-ds="${ds}" style="background:${c}" title="${MCOLN[k]}"></span>`).join("")}</div><textarea class="dmemo${m?" has":""}" data-memo="${ds}" rows="2" placeholder="메모..." style="color:${mc}" aria-label="${md(ds)} 메모">${esc(m)}</textarea></div>${list.map(evHTML).join("")}`);
     el.classList.toggle("sel",ds===selDay)});
   const list=(by[selDay]||[]).sort(byDate);
-  put("agenda",`<div class="grp"><h3>${md(selDay)} ${dow(selDay)}${selDay===TODAY?" · 오늘":""}<span>${list.length}건</span></h3>${list.map(b=>rowHTML(b)).join("")||`<div class="empty">예약 없음</div>`}</div>`);
+  const am=MEMO[selDay]||"",amc=MCOL[MEMOC[selDay]]||MCOL.k,ed=AGEDIT===selDay;
+  const amHTML=ed?`<div class="agm"><div class="mcols agcols">${Object.entries(MCOL).map(([k,c])=>`<span data-mcol="${k}" data-ds="${selDay}" style="background:${c}" title="${MCOLN[k]}"></span>`).join("")}</div><textarea class="agta" data-memo="${selDay}" rows="4" placeholder="이 날 메모" style="color:${amc}">${esc(am)}</textarea><div class="agbtn"><button type="button" class="ghost" onclick="AGEDIT=null;document.activeElement&&document.activeElement.blur();refresh()">닫기</button></div></div>`
+    :`<div class="agm">${am?`<div class="agtx" style="color:${amc}">${esc(am)}</div>`:""}<div class="agbtn"><button type="button" class="ghost" onclick="AGEDIT=selDay;refresh();setTimeout(()=>{const t=document.querySelector('.agta');if(t){t.focus();t.setSelectionRange(t.value.length,t.value.length)}},60)">${am?"메모 수정":"+ 메모"}</button></div></div>`;
+  put("agenda",`<div class="grp"><h3>${md(selDay)} ${dow(selDay)}${selDay===TODAY?" · 오늘":""}<span>${list.length}건</span></h3>${amHTML}${list.map(b=>rowHTML(b)).join("")||`<div class="empty">예약 없음</div>`}</div>`);
 }
 
 /* ===== 목록 ===== */
