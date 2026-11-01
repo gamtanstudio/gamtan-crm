@@ -1583,6 +1583,7 @@ const sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefr
 let ME=null,sessUid=null;
 const CUTOFF="2026-09-01"; // 이 날짜 전 촬영은 기록이 들쭉날쭉해서 진행 확인(미입금·출고 등)에서 빼고 '완료'로 봄
 isPast=b=>!!b.legacy||(!!b.date&&b.date<CUTOFF);
+{const _sr=shipRows;shipRows=b=>{const r=_sr(b);return isPast(b)?r.map(x=>({...x,ready:x.ready||"기존",shipped:x.shipped||"기존"})):r}} // 9월 전 촬영은 출고된 것으로
 
 const isU=s=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s||"");
 const newId=()=>crypto.randomUUID?crypto.randomUUID():"10000000-1000-4000-8000-100000000000".replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));
