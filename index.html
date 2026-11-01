@@ -10,6 +10,10 @@
 .phbox img{width:100%;max-height:70vh;object-fit:contain;border-radius:8px;display:block;background:#000}
 .phbar{display:flex;gap:8px;margin-top:10px;align-items:center}
 .warnb{background:var(--warn,#c2410c)!important;color:#fff!important}
+.rnn{color:#c026d3!important;text-decoration:underline dotted 2px;text-underline-offset:3px}
+.rnb{font-size:12px;font-weight:800;border-radius:6px;padding:2px 8px;background:#fae8ff;color:#a21caf;margin-left:6px;white-space:nowrap}
+.tg.rnt.on{background:#fae8ff;color:#a21caf;border-color:#e879f9}
+@media (prefers-color-scheme:dark){.rnb{background:#4a1d55;color:#f5d0fe}.rnn{color:#e879f9!important}}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 </head><body>
 <title>실자료 · 감탄 고객관리</title>
@@ -648,6 +652,7 @@ function calcRows(b){
 }
 function priceRows(b){
   if(Array.isArray(b.priceItems))return b.priceItems;
+  if(b.rn&&!(+b.priceOverride)){const ex=(calcRows(b)||[]).filter(r=>/\d+개( \(50% 할인\))?$/.test(r.label));return [{label:"리뷰노트 체험 (촬영 무료)",amt:0},...ex]}
   const c=calcRows(b);
   if(c&&b.priceOverride){return [{label:c[0].label,amt:+b.priceOverride}]}
   if(c)return c;
@@ -832,7 +837,7 @@ function buildCal(){
 }
 const hm=s=>{const h=+s.slice(0,2),m=s.slice(3,5);return `${h>12?h-12:h}시${m&&m!=="00"?m:""}`};
 function evHTML(b){const st=status(b),sc=chipC(b,st);const t=b.time?`<span class="t ${ampm(b.time)}">${hm(b.time)}</span>`:"";
-  return `<button class="ev ${kindCls(b)}" data-a="open" data-id="${esc(b.id)}" title="${esc(b.name)} · ${esc(st.k)}">${t}<b>${esc(b.name)}</b>${atHTML(ckey(b))}<span class="evx">-${esc(calText(b))}</span>${b.ship==="택배"?`<span class="sc kc k-cend">택배</span>`:""}${st.k!=="예약확정"?`<span class="sc ${sc}">${esc(st.k)}</span>`:""}</button>`}
+  return `<button class="ev ${kindCls(b)}" data-a="open" data-id="${esc(b.id)}" title="${esc(b.name)} · ${esc(st.k)}${b.rn?" · 리뷰노트":""}">${t}<b${b.rn?' class="rnn"':""}>${esc(b.name)}</b>${atHTML(ckey(b))}<span class="evx">-${esc(calText(b))}</span>${b.ship==="택배"?`<span class="sc kc k-cend">택배</span>`:""}${st.k!=="예약확정"?`<span class="sc ${sc}">${esc(st.k)}</span>`:""}</button>`}
 function drawCal(){
   buildCal();
   const all=Object.values(B);const cnt={};all.forEach(b=>{const k=fkey(b);cnt[k]=(cnt[k]||0)+1});
@@ -858,7 +863,7 @@ function drawCal(){
 const chipC=(b,st)=>st.k==="미입금"?"c-crit":"kc "+kindCls(b);
 function rowHTML(b,note){const st=status(b),sc=chipC(b,st);
   return `<button class="row" data-a="open" data-id="${esc(b.id)}"><span class="d tn">${md(b.date)}${b.date?" "+dow(b.date):""}${b.time?`<br><b class="${ampm(b.time)}">${tm(b.time)}</b>`:""}</span>
-  <span class="b"><span class="${kindCls(b)}"><b>${esc(b.name)}</b>${atHTML(ckey(b))}-${esc(calText(b))}</span>${note?`<span class="note">${esc(note)}</span>`:""}</span><span class="sc ${sc}">${esc(st.k)}</span></button>`}
+  <span class="b"><span class="${kindCls(b)}"><b${b.rn?' class="rnn"':""}>${esc(b.name)}</b>${atHTML(ckey(b))}-${esc(calText(b))}</span>${note?`<span class="note">${esc(note)}</span>`:""}</span><span class="sc ${sc}">${esc(st.k)}</span></button>`}
 function grp(title,list,crit,fn){return `<div class="grp${crit?" crit":""}"><h3>${title}<span>${list.length}건</span></h3>${list.map(fn||(b=>rowHTML(b))).join("")||`<div class="empty">없음</div>`}</div>`}
 function drawToday(){
   const all=Object.values(B).sort(byDate);const crit=[];const add=(b,n)=>{if(!(b.ack||{})[n])crit.push([b,n])};
@@ -883,7 +888,7 @@ function briefHTML(b){
   const nts=(NOTES[k]||[]).slice().sort((a,b2)=>(b2.at||"").localeCompare(a.at||"")).slice(0,8);
   const raw=(c.memo||c.family?`<h4>고객 메모</h4>${ul([c.family,...lines(c.memo)].filter(Boolean))}`:"")+(nts.length?`<h4>최근 이력</h4>${ul(nts.map(n=>`${(n.at||"").slice(2,10).replace(/-/g,".")}${n.who?" "+n.who:""} · ${n.text}`))}`:"")+past.map(x=>`<h4>${x.date.slice(2).replace(/-/g,".")} ${esc(calText(x))}</h4>${ul([...lines(x.hugi),...lines(x.memo)])||`<div class="bnone">기록 없음</div>`}`).join("");
   const body=(mine?`<div class="bsum">${mine}</div>`:"")+(raw?(mine?`<details class="braw"><summary>기록 원문</summary>${raw}</details>`:raw):"");
-  return `<div class="brow"><span class="d tn">${b.time?`<b class="${ampm(b.time)}">${tm(b.time)}</b>`:"시간 미정"}</span><div class="b"><button class="lnk bnm" data-a="open" data-id="${esc(b.id)}">${esc(b.name)}</button>${atHTML(k)}${b.customer_no?` <span class="cno">#${b.customer_no}</span>`:""} <span class="${kindCls(b)}">${esc(calText(b))}</span> <span class="sc ${chipC(b,st)}">${esc(st.k)}</span>${ul(pts)}${!isId&&body?`<details class="bbox"><summary>촬영 전 숙지${mine?"":" (기록)"}</summary><div class="bbody">${body}</div></details>`:""}</div></div>`}
+  return `<div class="brow"><span class="d tn">${b.time?`<b class="${ampm(b.time)}">${tm(b.time)}</b>`:"시간 미정"}</span><div class="b"><button class="lnk bnm${b.rn?" rnn":""}" data-a="open" data-id="${esc(b.id)}">${esc(b.name)}</button>${b.rn?`<span class="rnb">리뷰노트</span>`:""}${atHTML(k)}${b.customer_no?` <span class="cno">#${b.customer_no}</span>`:""} <span class="${kindCls(b)}">${esc(calText(b))}</span> <span class="sc ${chipC(b,st)}">${esc(st.k)}</span>${ul(pts)}${!isId&&body?`<details class="bbox"><summary>촬영 전 숙지${mine?"":" (기록)"}</summary><div class="bbody">${body}</div></details>`:""}</div></div>`}
 function hitSnip(t,q){t=String(t).replace(/\s+/g," ");const terms=q.split(/\s+/).filter(Boolean),lo=t.toLowerCase(),i=Math.max(0,lo.indexOf(terms[0].toLowerCase()));const a=Math.max(0,i-14),cut=(a>0?"…":"")+t.slice(a,a+46)+(a+46<t.length?"…":"");
   let h=esc(cut);terms.forEach(w=>{const e=esc(w).replace(/[.*+?^${}()|[\]\\]/g,"\\$&");h=h.replace(new RegExp(e,"gi"),m=>`<mark>${m}</mark>`)});return h}
 function drawList(){
@@ -933,7 +938,7 @@ function drawCust(){
   const visits=list.filter(b=>(b.steps||{}).shot||(b.date&&b.date<TODAY&&!(b.steps||{}).canceled)).length;
   put("cp-bar",`<button class="back" data-a="back">‹ 닫기</button><b>${esc(last.name)}님</b>${atHTML(openKey)}${last.customer_no?`<span class="cno">#${last.customer_no}</span>`:""}<span style="flex:1"></span>${canLog()?`<button class="mini${LOGSHOW?" pri":""}" data-a="logshow">기록</button>`:""}<button class="mini pri" data-a="newbk-here">+ 예약 추가</button>`);
   {const sh=LOGSHOW&&canLog();if($("cp-logsec").hidden===sh)$("cp-logsec").hidden=!sh}
-  put("cp-head",`<div class="cp-name"><h2>${esc(last.name)}님</h2><span class="warnctl" title="주의 손님 표시"><button class="sb" data-a="warn" data-v="-1" aria-label="@ 빼기">−</button><b class="atm">${"@".repeat(warnN(openKey))||"<i>@</i>"}</b><button class="sb" data-a="warn" data-v="1" aria-label="@ 더하기">+</button></span>${last.customer_no?`<span class="cno">#${last.customer_no}</span>`:`<span class="cno" style="background:var(--warn-bg);color:var(--warn)">고객번호 없음</span>`}${list.some(b=>pk(b)==="growth")?`<span class="gsb">가족성장</span>`:""}</div>
+  put("cp-head",`<div class="cp-name"><h2>${esc(last.name)}님</h2><span class="warnctl" title="주의 손님 표시"><button class="sb" data-a="warn" data-v="-1" aria-label="@ 빼기">−</button><b class="atm">${"@".repeat(warnN(openKey))||"<i>@</i>"}</b><button class="sb" data-a="warn" data-v="1" aria-label="@ 더하기">+</button></span>${last.customer_no?`<span class="cno">#${last.customer_no}</span>`:`<span class="cno" style="background:var(--warn-bg);color:var(--warn)">고객번호 없음</span>`}${list.some(b=>pk(b)==="growth")?`<span class="gsb">가족성장</span>`:""}${(n=>n?`<span class="rnb" title="리뷰노트(무료 체험)로 온 횟수">리뷰노트 ${n}회${list.some(b=>!b.rn&&totalOf(b)>0)?" · 유료 방문 있음":""}</span>`:"")(list.filter(b=>b.rn).length)}</div>
     <div class="cinfos">${c.phone?`<span class="phone" style="margin:0">${esc(c.phone)}</span>`:""}${c.visit?`<span class="cinfo">${esc(c.visit)}</span>`:""}${c.bday?`<span class="cinfo">생일 ${esc(c.bday)}</span>`:""}${c.anniv?`<span class="cinfo">기념일 ${esc(c.anniv)}</span>`:""}${c.family?`<span class="cinfo">${esc(c.family)}</span>`:""}<button class="mini" data-a="ce-open" style="margin-left:auto">수정</button></div>
     ${photoHTML(last.customer_no,list)}
     ${CEDIT?custEditHTML():""}`);
@@ -973,7 +978,7 @@ function drawCard(b){
   const tag=s.canceled?`<span class="tag" style="background:var(--k-cancel)">취소</span>`:s.postponed?`<span class="tag" style="background:var(--k-delay)">연기</span>`:b.kind==="consult"&&!s.shot?`<span class="tag" style="background:${pc}">${consOpen(b)?"상담":"상담 끝"}</span>`:!b.date?`<span class="tag" style="background:var(--tbd)">날짜 미정</span>`:st.k==="완료"?`<span class="tag" style="background:${pc}">완료</span>`:"";
   put("hh-"+id,`<div class="hh" role="button" tabindex="0" data-a="toggle" data-id="${esc(id)}" aria-expanded="${open}"><span class="hh-l">${tag}
     <span class="hdate tn">${b.date?fullDate(b.date):"날짜 미정"}${b.time?` <span class="${ampm(b.time)}">${tm(b.time)}</span>`:""}</span>${b.booked&&b.booked!==b.date?`<span class="hbook tn">예약 접수 ${b.booked.slice(2).replace(/-/g,".")}</span>`:""}
-    <span class="pb" style="background:${pc}">${esc(pn)}</span>${b.gs?`<span class="gsb">${esc(b.gs)}</span>`:""}${n?`<span class="ppl">${n}명</span>`:""}
+    <span class="pb" style="background:${pc}">${esc(pn)}</span>${b.gs?`<span class="gsb">${esc(b.gs)}</span>`:""}${b.rn?`<span class="rnb">리뷰노트</span>`:""}${n?`<span class="ppl">${n}명</span>`:""}
     <span class="sc ${chipC(b,st)}">${esc(st.k)}</span><input class="hcal${b.cal?"":" auto"}" data-f="cal" data-id="${esc(id)}" value="${esc(calText(b))}" placeholder="캘린더 문구" title="캘린더 문구" aria-label="캘린더 문구"></span>
     <span class="hh-r tn">${tot?(bal>0?`잔금 <b>${money(bal)}</b>`:`${money(tot)} 완납`):""}${shipSummary(b)}</span><span class="chev" aria-hidden="true">${open?"▴":"▾"}</span></div>`);
   setVal($("hm-"+id),b.memo||"");
@@ -1066,6 +1071,7 @@ function shipHTML(b){
   return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
       <button class="tg${b.review?" on":""}" data-a="flag" data-id="${esc(b.id)}" data-v="review">${b.review?"✓ ":""}리뷰·포켓</button>
       <button class="tg red${b.sns?" on":""}" data-a="flag" data-id="${esc(b.id)}" data-v="sns">${b.sns?"✓ ":""}SNS 동의</button>
+      <button class="tg rnt${b.rn?" on":""}" data-a="flag" data-id="${esc(b.id)}" data-v="rn" title="리뷰노트 체험단 — 촬영비 0원">${b.rn?"✓ ":""}리뷰노트 (0원)</button>
       <span class="shipm"><button class="tg${b.ship!=="택배"?" on":""}" data-a="shipm" data-id="${esc(b.id)}" data-v="">방문 수령</button><button class="tg${b.ship==="택배"?" on":""}" data-a="shipm" data-id="${esc(b.id)}" data-v="택배">택배</button></span>
       ${b.ship==="택배"?`<input class="inp trk" data-f="track" data-id="${esc(b.id)}" value="${esc(b.track||"")}" placeholder="송장번호" inputmode="numeric" aria-label="송장번호">`:""}</div>
     <div class="box"><button class="bx-h shiph" data-a="shiptog" data-id="${esc(b.id)}" aria-expanded="${open}">출고 <span class="${left?"due":"okt"}" style="font-weight:700;font-size:12px">${rows.length?(left?`남음 ${left}`:"모두 출고됨"):""}</span><span style="margin-left:auto;color:var(--muted)">${open?"▴":"▾"}</span></button>
@@ -1457,7 +1463,7 @@ document.addEventListener("click",e=>{
   if(a==="goto"){EXP.add(id);refresh();requestAnimationFrame(()=>{const el=$("hc-"+id),sc=$("right");if(el)sc.scrollTop+=el.getBoundingClientRect().top-sc.getBoundingClientRect().top-$("cp-bar").offsetHeight-14});return}
   if(a==="step"){toggleStep(b,v);return}
   if(a==="shipm"){if((b.ship||"")===v)return;save(id,{ship:v},v?"택배로 보냄":"방문 수령으로");return}
-  if(a==="flag"){save(id,{[v]:!b[v]},(v==="review"?"리뷰·포켓 ":"SNS 동의 ")+(b[v]?"해제":"체크"));return}
+  if(a==="flag"){if(v==="rn"){save(id,{rn:!b.rn,...(!b.rn?{priceOverride:null}:{})},"리뷰노트 "+(b.rn?"해제":"체크 · 촬영비 0원"));return}save(id,{[v]:!b[v]},(v==="review"?"리뷰·포켓 ":"SNS 동의 ")+(b[v]?"해제":"체크"));return}
   if(a==="flagstep"){const on=!!(b.steps||{})[v];save(id,{steps:{[v]:on?null:TODAY}},(v==="canceled"?"취소":"연기")+(on?" 되돌림":" 처리"));return}
   if(a==="makenext"){makeNext(b);return}
   if(a==="msg"){MSGON=MSGON===id?null:id;refresh();return}
@@ -1712,7 +1718,7 @@ function toB(r,cust){
     memo:r.shoot_memo||r.memo||"",growth:r.product==="growth",gs:r.gs_round?`${r.gs_round}-${r.gs_year}`:"",
     review:!!r.review,sns:!!r.sns,ship:r.ship_method||"",track:r.track_no||"",ack:r.ack||{},pet:!!r.pets,
     adults:r.adults??"",kids:r.kids??"",steps,items,payments,
-    priceOverride:("priceOverride" in po)?po.priceOverride:(r.base_price||0),legacy:r.legacy,booked:r.contract_date||""};
+    priceOverride:("priceOverride" in po)?po.priceOverride:(r.base_price||0),legacy:r.legacy,booked:r.contract_date||"",rn:r.channel==="리뷰노트"};
   ["priceItems","ex","idq","up11","retouch","needOrig"].forEach(k=>{if(po[k]!=null)o[k]=po[k]});
   if(r.prev_id)o.prevId=BID2KEY[r.prev_id]||r.prev_id;
   delete o._bkey;return o;
@@ -1789,7 +1795,7 @@ async function serverSearch(q){
 $("q").addEventListener("input",()=>{clearTimeout(srchT);srchT=setTimeout(()=>serverSearch($("q").value||""),250)});
 
 /* ---------- 화면 → 서버 ---------- */
-const BOOKED=new Set(["id","_bid","_sid","kind","name","customer_no","date","time","pkey","product","cal","memo","growth","gs","review","sns","ship","track","ack","pet","adults","kids","steps","items","payments","priceOverride","priceItems","ex","idq","up11","retouch","needOrig","prevId","legacy","tkey"]);
+const BOOKED=new Set(["id","_bid","_sid","kind","name","customer_no","date","time","pkey","product","cal","memo","growth","gs","review","sns","ship","track","ack","pet","adults","kids","steps","items","payments","priceOverride","priceItems","ex","idq","up11","retouch","needOrig","prevId","legacy","tkey","rn"]);
 async function ensureCustomerRow(no,name){
   if(!no||CUSTROW[no])return;
   const {data}=await sb.from("customers").select("*").eq("customer_no",no).maybeSingle();
@@ -1809,12 +1815,13 @@ function bookingRow(b){
     contract_date:snap.contract_date||TODAY,adults:b.adults===""||b.adults==null?null:(+b.adults||0),kids:b.kids===""||b.kids==null?null:(+b.kids||0),pets:b.pet?1:0,
     gs_round:g?+g[1]:null,gs_year:g?+g[2]:null,base_price:totalOf(b)||0,price_override:po,
     calendar_memo:b.cal||null,shoot_memo:b.memo||null,ship_method:b.ship||null,track_no:b.track||null,
-    review:!!b.review,sns:!!b.sns,ack:b.ack||{},ui,prev_id:isU(pv)?pv:null};
+    review:!!b.review,sns:!!b.sns,ack:b.ack||{},ui,prev_id:isU(pv)?pv:null,
+    channel:b.rn?"리뷰노트":(snap.channel==="리뷰노트"?null:(snap.channel??null))};
   // 처음 저장 때 의미 없는 값 바뀜 줄이기 (빈 값 = 그대로)
   if(snap.pets==null&&!row.pets)row.pets=snap.pets??null;
   if(snap.sns==null&&!row.sns)row.sns=snap.sns??null;
   if(!snap.price_override||!Object.keys(snap.price_override).length){if(Object.keys(po).length===1&&po.priceOverride===(snap.base_price||0))row.price_override=snap.price_override??{}}
-  if(row.base_price===0&&snap.base_price)row.base_price=snap.base_price;
+  if(row.base_price===0&&snap.base_price&&!b.rn)row.base_price=snap.base_price;
   for(const [k,c] of Object.entries(STEPCOL)){const v=(b.steps||{})[k];row[c]=D8(v)||(v?snap[c]||null:null)}
   return row;
 }
