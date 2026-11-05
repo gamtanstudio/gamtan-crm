@@ -646,7 +646,7 @@ const PRODUCTS={
 const ID_TYPES=[{k:"passport",label:"여권",p:30000},{k:"jumin",label:"주민증",p:30000},{k:"half",label:"반명함",p:30000},{k:"visa",label:"비자",p:35000},{k:"job",label:"취업·프로필",p:50000},{k:"addPass",label:"여권 추가",p:10000,add:1},{k:"addJumin",label:"주민증 추가",p:10000,add:1},{k:"web",label:"웹파일",p:5000,add:1}];
 const idqSum=b=>ID_TYPES.filter(t=>!t.add&&(b.idq||{})[t.k]).map(t=>t.label+(+b.idq[t.k]>1?b.idq[t.k]:"")).join(", ");
 const PRICE_META=[{k:"f5x7",label:"5×7 액자",p:30000},{k:"f8x10",label:"8×10 액자",p:50000},{k:"f11al",label:"11알 액자",p:500000,big:1},{k:"f16al",label:"16알 액자",p:700000,big:1},
-  {k:"f20al",label:"20알 액자",p:800000,big:1},{k:"f20slim",label:"20알 슬림",p:800000,big:1},{k:"canvas",label:"100×70 캔버스",p:1200000,big:1},{k:"album",label:"8×11 앨범",p:3000000},{k:"origadd",label:"원본 추가",p:0},{k:"idadd",label:"증명 추가",p:30000,noship:1}];
+  {k:"f20al",label:"20알 액자",p:800000,big:1},{k:"f20slim",label:"20알 슬림",p:800000,big:1},{k:"canvas",label:"100×70 캔버스",p:1200000,big:1},{k:"album",label:"8×11 앨범",p:3000000},{k:"origadd",label:"원본 추가",p:0},{k:"idadd",label:"증명 추가",p:30000}];
 function guessKey(b){const t=[b.product,b.cal].join(" ");
   if(b.growth||/가성|가족성장/.test(t))return"growth";if(/원본형/.test(t))return"bigfam_orig";if(/대가족/.test(t))return"bigfam";
   if(/스토리/.test(t))return"story";if(/장수|복원/.test(t))return"jangsu";if(/우정/.test(t))return"friend";
@@ -1594,7 +1594,7 @@ document.addEventListener("click",e=>{
     if(!items.some(i=>i.kind==="보정본"))items.push({id:uid("i"),kind:"보정본",size:"",photo,ready:null,shipped:null});
     FORM=null;save(id,{items,steps:{picked:(b.steps||{}).picked||TODAY}},`사진 선택: ${photo} ${size}`);return}
   if(a==="idq"){const q={...(b.idq||{})};q[v]=Math.max(0,(+q[v]||0)+(+t.dataset.d));const n=ID_TYPES.filter(x=>!x.add).reduce((s2,x)=>s2+(+q[x.k]||0),0);save(id,{idq:q,adults:n||b.adults||1,kids:0,priceItems:null});return}
-  if(a==="ex"){const ex={...(b.ex||{})};ex[v]=Math.max(0,(+ex[v]||0)+(+t.dataset.d));save(id,{ex,priceItems:null});return}
+  if(a==="ex"){const m=PRICE_META.find(x=>x.k===v)||{};const ex={...(b.ex||{})};const old=+ex[v]||0;ex[v]=Math.max(0,old+(+t.dataset.d));const dq=ex[v]-old;const patch={ex,priceItems:null};if(dq&&+b.priceOverride&&m.p)patch.priceOverride=+b.priceOverride+dq*(m.big?Math.round(m.p/2):m.p);save(id,patch);return}
 });
 
 /* 고친 값은 칸에서 나갈 때(또는 Enter) 한 번만 저장 — 글자마다 저장하지 않음 */
