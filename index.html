@@ -25,7 +25,7 @@
 .ph.pk small{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.5);color:#fff;font-size:9px;text-align:center;line-height:1.4}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 </head><body>
-<title>실자료 · 감탄 고객관리</title>
+<title>감탄 고객관리</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700;800;900&display=swap">
@@ -2102,4 +2102,29 @@ function startRealtime(){
 
 </script>
 
+<script>
+/* 자동 새로고침 (2026-11-05): 날짜가 바뀌거나 새 버전이 올라오면, 입력·고객창·모달이 없을 때 화면을 다시 불러옴 */
+(function(){
+  const today=()=>{const n=new Date();return n.getFullYear()+"-"+String(n.getMonth()+1).padStart(2,"0")+"-"+String(n.getDate()).padStart(2,"0")};
+  const START=today();let etag=null,want=false,lastVer=0;
+  const busy=()=>{const a=document.activeElement;
+    if(a&&(/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)||a.isContentEditable))return true;
+    const cp=document.getElementById("cp");if(cp&&!cp.hidden)return true;
+    if([...document.querySelectorAll(".modal")].some(m=>!m.hidden))return true;
+    return false};
+  async function verChanged(){
+    try{const r=await fetch(location.pathname+"?v="+Date.now(),{method:"HEAD",cache:"no-store"});
+      const t=r.headers.get("etag")||r.headers.get("last-modified");if(!t)return false;
+      if(etag===null){etag=t;return false}return t!==etag}catch(e){return false}}
+  async function check(){
+    if(today()!==START)want=true;
+    if(!want&&Date.now()-lastVer>5*60*1000){lastVer=Date.now();if(await verChanged())want=true}
+    if(want&&!busy())location.reload()}
+  verChanged();
+  setInterval(check,60*1000);
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden){lastVer=0;check()}});
+  addEventListener("focus",()=>check());
+  document.addEventListener("focusout",()=>setTimeout(()=>{if(want)check()},800));
+})();
+</script>
 </body></html>
