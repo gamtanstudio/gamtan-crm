@@ -164,6 +164,13 @@ html.lock,html.lock body{overflow:hidden}
 .k-cend{color:var(--k-cend)}
 .k-cancel{color:var(--k-cancel);text-decoration:line-through}
 @media (min-width:701px){#v-cal .day{gap:1px}#v-cal .dmbox{margin-bottom:4px}#v-cal .ev{padding:0 3px;margin-bottom:0;line-height:1.25}}
+/* PC 캘린더 칸 구분선 — SM처럼 칸 사이를 한 줄 선으로 */
+#v-cal{--grid:#bcc2cd}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #v-cal{--grid:#3d4153}}
+:root[data-theme="dark"] #v-cal{--grid:#3d4153}
+@media (min-width:701px){#v-cal .cal{gap:0}#v-cal .day{border:0;border-right:1px solid var(--grid);border-bottom:1px solid var(--grid);border-radius:0}
+  #v-cal .day:nth-child(7n+1){border-left:1px solid var(--grid)}#v-cal .day:nth-child(-n+14){border-top:1px solid var(--grid)}
+  #v-cal .day.today{box-shadow:inset 0 0 0 2px var(--acc)}#v-cal .dow{padding:6px 0}}
 :root:not([data-theme="dark"]) #v-cal .ev.k-id{color:#1d4ed8}:root:not([data-theme="dark"]) #v-cal .ev.k-fam{color:#2f7d0e}:root:not([data-theme="dark"]) #v-cal .ev.k-pro{color:#6d28d9}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #v-cal .ev.k-id{color:var(--k-id)}:root:not([data-theme="light"]) #v-cal .ev.k-fam{color:var(--k-fam)}:root:not([data-theme="light"]) #v-cal .ev.k-pro{color:var(--k-pro)}}
 .agenda{display:none}
