@@ -114,7 +114,7 @@ html.lock,html.lock body{overflow:hidden}
 .empty{color:var(--muted);text-align:center;padding:28px 12px}
 
 /* 캘린더 (v17) — 캘린더만 예전 글씨체(Noto Sans KR) */
-#v-cal{font-family:'Noto Sans KR',system-ui,-apple-system,'Malgun Gothic',sans-serif}
+#v-cal{font-family:'Malgun Gothic','맑은 고딕','Apple SD Gothic Neo','Noto Sans KR',system-ui,sans-serif}
 .calbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
 .calbar{position:relative}
 .calbar h2{margin:0;font-size:20px;font-weight:800;min-width:118px;text-align:center}
@@ -861,7 +861,7 @@ function buildCal(){
 }
 const hm=s=>{const h=+s.slice(0,2),m=s.slice(3,5);return `${h>12?h-12:h}시${m&&m!=="00"?m:""}`};
 function evHTML(b){const st=status(b),sc=chipC(b,st);const t=b.time?`<span class="t ${ampm(b.time)}">${hm(b.time)}</span>`:"";
-  return `<button class="ev ${kindCls(b)}" data-a="open" data-id="${esc(b.id)}" title="${esc(b.name)} · ${esc(st.k)}${b.rn?" · 리뷰노트":""}">${t}<b${b.rn?' class="rnn"':""}>${esc(b.name)}</b>${atHTML(ckey(b))}<span class="evx">-${esc(calText(b))}</span>${b.rn?`<span class="sc rnc">리뷰노트</span>`:""}${b.ship==="택배"?`<span class="sc kc k-cend">택배</span>`:""}${st.k!=="예약확정"?`<span class="sc ${sc}">${esc(st.k)}</span>`:""}</button>`}
+  return `<button class="ev ${kindCls(b)}" data-a="open" data-id="${esc(b.id)}" title="${esc(b.name)} · ${esc(st.k)}${b.rn?" · 리뷰노트":""}">${t}<b${b.rn?' class="rnn"':""}>${esc(b.name)}</b>${atHTML(ckey(b))}<span class="evx">-${esc(calText(b))}</span>${b.rn?`<span class="sc rnc">리뷰노트</span>`:""}${b.ship==="택배"?`<span class="sc kc k-cend">택배</span>`:""}${st.k!=="예약확정"&&!((P(b)||{}).idlike&&st.k==="완료")?`<span class="sc ${sc}">${esc(st.k)}</span>`:""}</button>`}
 function drawCal(){
   buildCal();
   const all=Object.values(B);const cnt={};all.forEach(b=>{const k=fkey(b);cnt[k]=(cnt[k]||0)+1});
