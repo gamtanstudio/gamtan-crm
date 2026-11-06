@@ -1389,7 +1389,7 @@ function custEditHTML(){
     <label>이메일<input class="inp" id="ce-email" type="email" inputmode="email" autocomplete="off" value="${esc(c.email||"")}" placeholder="원본 받을 메일"></label>
     <label>고객번호<input class="inp num" id="ce-no" inputmode="numeric" value="${esc(last.customer_no||"")}"></label>
     <label>방문동기<select class="inp" id="ce-visit"><option value=""></option>${c.visit&&!VISIT.includes(c.visit)?`<option selected>${esc(c.visit)}</option>`:""}${VISIT.map(v=>`<option${c.visit===v?" selected":""}>${v}</option>`).join("")}</select></label>
-    <label>추천인<input class="inp" id="ce-ref" list="ce-refl" value="${esc(c.refName||"")}" autocomplete="off"><datalist id="ce-refl">${names.slice(0,4000).map(n=>`<option value="${esc(n)}">`).join("")}</datalist></label>
+    <label>추천인<input class="inp" id="ce-ref" list="ce-refl" value="${esc((c.refName||"")+(c.refName&&/^n\d+$/.test(c.refKey||"")?" #"+c.refKey.slice(1):""))}" autocomplete="off"><datalist id="ce-refl">${names.slice(0,4000).map(n=>`<option value="${esc(n)}">`).join("")}</datalist></label>
     <label>생일<input class="inp" id="ce-bday" value="${esc(c.bday||"")}" placeholder="예: 3/15"></label>
     <label>기념일<input class="inp" id="ce-anniv" value="${esc(c.anniv||"")}"></label>
     <label class="full">가족<input class="inp" id="ce-family" value="${esc(c.family||"")}" placeholder="예: 남편 김철수, 첫째 승엽(13), 둘째 하율"></label>
