@@ -1398,8 +1398,15 @@ function custEditHTML(){
 function refCard(key,label){const bs=Object.values(B).filter(x=>ckey(x)===key);if(!bs.length)return"";const last=bs.slice().sort(byDate).pop(),cc=CUST[key]||{};
   const vis=bs.filter(x=>(x.steps||{}).shot||(x.date&&x.date<TODAY)).length;
   return `<button class="refc" data-a="open" data-id="${esc(last.id)}"><span class="refl">${label}</span><b>${esc(last.name)}</b>${last.customer_no?` <span class="cno">#${last.customer_no}</span>`:""}${cc.phone?`<span class="refp tn">${esc(cc.phone)}</span>`:""}<span class="refs">${vis}회 방문 · 최근 ${last.date?last.date.slice(2).replace(/-/g,"."):"미정"} ${esc(SHORT[pk(last)]||pinfo(last)[0])}</span></button>`}
-function refHTML(c){let h="";if(c.refKey)h+=refCard(c.refKey,"이 분을 추천한 고객")||`<div class="refc"><span class="refl">이 분을 추천한 고객</span><b>${esc(c.refName||"")}</b> <span class="refs">등록 안 된 고객</span></div>`;
-  Object.entries(CUST).filter(([k,x])=>x.refKey===openKey).forEach(([k])=>{h+=refCard(k,"이 분이 추천한 고객")});return h}
+/* 추천인: 추천인 칸(refKey) 또는 방문동기 글자 "추천 (이름 #번호)"에서 찾음. 추천인 자료가 아직 안 불러와졌으면 불러온 뒤 다시 그림 */
+const refOf=c=>{if(!c)return null;if(c.refKey)return{k:c.refKey,n:c.refName||""};const m=/추천[^#]*#(\d+)/.exec(c.visit||"");return m?{k:"n"+m[1],n:((c.visit||"").match(/추천\s*\(?\s*([^#()]+?)\s*#/)||[])[1]||""}:null};
+const REFQ=new Set();
+function refHTML(c){let h="";const r=refOf(c);
+  if(r){const card=refCard(r.k,"이 분을 추천한 고객");const no=+String(r.k).replace(/^n/,"");
+    if(card)h+=card;else{if(no&&window.ensureCust&&!LOADED_C.has(no))ensureCust(no);h+=`<div class="refc"><span class="refl">이 분을 추천한 고객</span><b>${esc(r.n)}</b>${no?` <span class="cno">#${no}</span>`:""} <span class="refs">${no?"":"등록 안 된 고객"}</span></div>`}}
+  const myNo=/^n\d+$/.test(openKey||"")?+openKey.slice(1):0;
+  if(myNo&&!REFQ.has(myNo)&&typeof sb!=="undefined"){REFQ.add(myNo);sb.from("customers").select("*").or(`source.ilike.%#${myNo}%,ui->>refKey.eq.n${myNo}`).limit(20).then(({data})=>{const got=(data||[]).filter(x=>x.customer_no!==myNo&&(((x.ui||{}).refKey)==="n"+myNo||new RegExp("추천[^#]*#"+myNo+"(?!\\d)").test(x.source||"")));got.forEach(putCust);Promise.all(got.map(x=>ensureCust(x.customer_no))).then(()=>{if(got.length&&$("cp-head"))refresh()})})}
+  Object.entries(CUST).filter(([k,x])=>k!==openKey&&(refOf(x)||{}).k===openKey).forEach(([k])=>{h+=refCard(k,"이 분이 추천한 고객")});return h}
 function refLink(c){if(!c.refKey)return"";const rb=Object.values(B).find(x=>ckey(x)===c.refKey);
   return `<span class="cinfo">추천 <button class="lnk" ${rb?`data-a="open" data-id="${esc(rb.id)}"`:"disabled"}>${esc(c.refName||"")}</button></span>`}
 function referredBy(){const out=Object.entries(CUST).filter(([k,c])=>c.refKey===openKey).map(([k])=>Object.values(B).find(x=>ckey(x)===k)).filter(Boolean);
