@@ -1897,7 +1897,21 @@ async function serverSearch(q){
   if(no)ors.push(`customer_no.eq.${no}`);
   const {data}=await sb.from("customers").select("*").or(ors.join(",")).order("customer_no",{ascending:false}).limit(40);
   (data||[]).forEach(putCust);
-  const nos=(data||[]).map(c=>c.customer_no).filter(n=>!LOADED_C.has(n));
+  const found=new Set((data||[]).map(c=>c.customer_no));
+  /* 메모로도 찾기: 예약 메모·일정 메모·고객 메모에서 (예: '회장 선거 프로필') — 여러 낱말이면 가장 긴 낱말로 서버에서 찾고 화면에서 나머지 낱말로 거름 */
+  const tw=qe.split(/\s+/).filter(w=>w&&!/^#?\d+$/.test(w)).sort((x,y)=>y.length-x.length)[0];
+  if(tw&&tw.length>=2){try{const lk=`%${tw}%`;
+    const [r1,r2,r3]=await Promise.all([
+      sb.from("bookings").select("customer_no").or(`calendar_memo.ilike.${lk},memo.ilike.${lk},shoot_memo.ilike.${lk}`).order("contract_date",{ascending:false}).limit(80),
+      sb.from("schedules").select("customer_no").or(`title.ilike.${lk},memo.ilike.${lk}`).order("date",{ascending:false}).limit(80),
+      sb.from("customers").select("*").ilike("memo",lk).order("customer_no",{ascending:false}).limit(40)]);
+    (r3.data||[]).forEach(c=>{putCust(c);found.add(c.customer_no)});
+    const more=[...new Set([...(r1.data||[]),...(r2.data||[])].map(x=>x.customer_no).filter(Boolean))].filter(n=>!found.has(n)).slice(0,60);
+    const need=more.filter(n=>!CUSTROW[n]);
+    if(need.length){const {data:cs}=await sb.from("customers").select("*").in("customer_no",need);(cs||[]).forEach(putCust)}
+    more.forEach(n=>found.add(n))}catch(e){}}
+  if(q!==srchQ)return;
+  const nos=[...found].filter(n=>!LOADED_C.has(n));
   if(nos.length){await fetchBookings(q=>q.in("customer_no",nos));
     const {data:ss}=await sb.from("schedules").select("*").in("customer_no",nos).is("booking_id",null);(ss||[]).forEach(s=>{const x=sToB(s,CUSTROW[s.customer_no]);B[x.id]=x});
     nos.forEach(n=>LOADED_C.add(n))}
