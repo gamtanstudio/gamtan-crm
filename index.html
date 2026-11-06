@@ -990,7 +990,7 @@ function drawList(){
       const m=memos.find(t=>t.toLowerCase().includes(terms[0]))||memos.find(has)||"";HIT[k]=m;return true})}
   const lastD=k=>groups[k].reduce((m,b)=>b.date&&b.date>m?b.date:m,"");
   keys.sort((a,b)=>lastD(b).localeCompare(lastD(a))||groups[a][0].name.localeCompare(groups[b][0].name,"ko")); /* 최근 촬영한 고객이 위로 */
-  put("clist",`<div class="grp"><h3>${q?`'${esc(q)}' 찾은 고객`:"최근 고객"}<span>${keys.length}명${!q&&window.CUSTTOTAL?` · 전체 ${money(window.CUSTTOTAL)}명`:""}</span></h3>${!q&&window.CUSTTOTAL?`<div class="empty" style="text-align:left;padding:8px 14px">최근 촬영·예약 손님만 보여요. 위 검색칸에 이름·전화·번호를 넣으면 전체에서 찾아요.</div>`:""}${keys.map(k=>{const bs=groups[k].sort(byDate),last=bs[bs.length-1],st=status(last);
+  put("clist",`<div class="grp"><h3>${q?`'${esc(q)}' 찾은 고객`:"최근 고객"}<span>${q&&window.SRCHBUSY?"찾는 중… ":""}${keys.length}명${!q&&window.CUSTTOTAL?` · 전체 ${money(window.CUSTTOTAL)}명`:""}</span></h3>${!q&&window.CUSTTOTAL?`<div class="empty" style="text-align:left;padding:8px 14px">최근 촬영·예약 손님만 보여요. 위 검색칸에 이름·전화·번호를 넣으면 전체에서 찾아요.</div>`:""}${keys.map(k=>{const bs=groups[k].sort(byDate),last=bs[bs.length-1],st=status(last);
     return `<button class="row" data-a="open" data-src="q" data-id="${esc(last.id)}"><span class="b"><b>${esc(last.name)}</b>${atHTML(k)}${last.customer_no?` <span class="cno">#${last.customer_no}</span>`:""}<span style="display:block;font-size:12.5px;color:var(--muted)">촬영 ${bs.length}건 · 최근 ${md(last.date)} ${esc(calText(last))}</span>${HIT[k]?`<span class="mhit">${hitSnip(HIT[k],q)}</span>`:""}</span><span class="sc ${chipC(last,st)}">${esc(st.k)}</span></button>`}).join("")||`<div class="empty">찾는 고객이 없어요</div>`}</div>`);
 }
 
@@ -1891,33 +1891,33 @@ async function ensureCust(no){
 let srchT=0,srchQ="";
 async function serverSearch(q){
   q=q.trim();if(q.length<1||q===srchQ)return;srchQ=q;
+  const busy=v=>{if(srchQ!==q)return;window.SRCHBUSY=v;if(view==="cust")drawList()};busy(true);
+  try{
   const d=q.replace(/\D/g,""),no=/^#?\d+$/.test(q)?+q.replace("#",""):null,qe=q.replace(/[,()]/g," ");
   const ors=[`name.ilike.%${qe}%`,`sm_name.ilike.%${qe}%`,`family.ilike.%${qe}%`];
   if(d.length>=4)ors.push(`phone.ilike.%${d.slice(-4)}%`,`phone2.ilike.%${d.slice(-4)}%`);
   if(no)ors.push(`customer_no.eq.${no}`);
-  const {data}=await sb.from("customers").select("*").or(ors.join(",")).order("customer_no",{ascending:false}).limit(40);
-  (data||[]).forEach(putCust);
-  const found=new Set((data||[]).map(c=>c.customer_no));
-  /* 메모로도 찾기: 예약 메모·일정 메모·고객 메모에서 (예: '회장 선거 프로필') — 낱말이 여럿이면 한 메모 안에 모두 들어 있는 것만 */
+  /* 이름·전화·번호 찾기와 메모 찾기(예약 메모·일정 메모·고객 메모)를 한꺼번에 — 낱말이 여럿이면 한 메모 안에 모두 들어 있는 것만 */
   const tws=qe.split(/\s+/).filter(w=>w&&!/^#?\d+$/.test(w));
-  if(tws.join("").length>=2){try{const cnd=col=>tws.length>1?`and(${tws.map(w=>`${col}.ilike.%${w}%`).join(",")})`:`${col}.ilike.%${tws[0]}%`;
-    const [r1,r2,r3]=await Promise.all([
-      sb.from("bookings").select("customer_no").or(["calendar_memo","memo","shoot_memo"].map(cnd).join(",")).order("contract_date",{ascending:false}).limit(80),
-      sb.from("schedules").select("customer_no").or(["title","memo"].map(cnd).join(",")).order("date",{ascending:false}).limit(80),
-      sb.from("customers").select("*").or(cnd("memo")).order("customer_no",{ascending:false}).limit(40)]);
-    (r3.data||[]).forEach(c=>{putCust(c);found.add(c.customer_no)});
-    const more=[...new Set([...(r1.data||[]),...(r2.data||[])].map(x=>x.customer_no).filter(Boolean))].filter(n=>!found.has(n)).slice(0,60);
-    const need=more.filter(n=>!CUSTROW[n]);
-    if(need.length){const {data:cs}=await sb.from("customers").select("*").in("customer_no",need);(cs||[]).forEach(putCust)}
-    more.forEach(n=>found.add(n))}catch(e){}}
+  const memo=tws.join("").length>=2,cnd=col=>tws.length>1?`and(${tws.map(w=>`${col}.ilike.%${w}%`).join(",")})`:`${col}.ilike.%${tws[0]}%`;
+  const none=Promise.resolve({data:[]});
+  const [r0,r1,r2,r3]=await Promise.all([
+    sb.from("customers").select("*").or(ors.join(",")).order("customer_no",{ascending:false}).limit(40),
+    memo?sb.from("bookings").select("customer_no").or(["calendar_memo","memo","shoot_memo"].map(cnd).join(",")).order("contract_date",{ascending:false}).limit(80):none,
+    memo?sb.from("schedules").select("customer_no").or(["title","memo"].map(cnd).join(",")).order("date",{ascending:false}).limit(80):none,
+    memo?sb.from("customers").select("*").or(cnd("memo")).order("customer_no",{ascending:false}).limit(40):none]).catch(()=>[{data:[]},{data:[]},{data:[]},{data:[]}]);
+  const found=new Set();
+  [...(r0.data||[]),...(r3.data||[])].forEach(c=>{putCust(c);found.add(c.customer_no)});
+  [...(r1.data||[]),...(r2.data||[])].map(x=>x.customer_no).filter(Boolean).forEach(n=>{if(found.size<120)found.add(n)});
   if(q!==srchQ)return;
   const nos=[...found].filter(n=>!LOADED_C.has(n));
-  if(nos.length){await fetchBookings(q=>q.in("customer_no",nos));
-    const {data:ss}=await sb.from("schedules").select("*").in("customer_no",nos).is("booking_id",null);(ss||[]).forEach(s=>{const x=sToB(s,CUSTROW[s.customer_no]);B[x.id]=x});
+  if(nos.length){await Promise.all([fetchBookings(x=>x.in("customer_no",nos)),
+      (async()=>{const {data:ss}=await sb.from("schedules").select("*").in("customer_no",nos).is("booking_id",null);
+        if(ss&&ss.length){await fetchCustomers(ss.map(s=>s.customer_no));ss.forEach(s=>{const x=sToB(s,CUSTROW[s.customer_no]);B[x.id]=x})}})()]);
     nos.forEach(n=>LOADED_C.add(n))}
-  if(view==="cust")drawList();
+  }finally{busy(false)}
 }
-$("q").addEventListener("input",()=>{clearTimeout(srchT);srchT=setTimeout(()=>serverSearch($("q").value||""),250)});
+$("q").addEventListener("input",()=>{clearTimeout(srchT);srchT=setTimeout(()=>serverSearch($("q").value||""),350)});
 
 /* ---------- 화면 → 서버 ---------- */
 const BOOKED=new Set(["id","_bid","_sid","kind","name","customer_no","date","time","pkey","product","cal","memo","growth","gs","review","sns","ship","track","ack","pet","adults","kids","steps","items","payments","priceOverride","priceItems","ex","idq","up11","retouch","needOrig","prevId","legacy","tkey","rn"]);
