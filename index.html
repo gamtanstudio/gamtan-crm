@@ -862,7 +862,7 @@ function buildCal(){
     h+=`<div class="day${x.getMonth()!==calM?" off":""}${ds===TODAY?" today":""}" id="cd-${ds}" data-ds="${ds}"></div>`}
   const cal=$("cal");cal.innerHTML=h;
 }
-const hm=s=>{const h=+s.slice(0,2),m=s.slice(3,5);return `${h>12?h-12:h}시${m&&m!=="00"?m:""}`};
+const hm=s=>{const h=+s.slice(0,2),m=s.slice(3,5);return `${h>12?h-12:h}시${m||"00"}`};
 function evHTML(b){const st=status(b),sc=chipC(b,st);const t=b.time?`<span class="t ${ampm(b.time)}">${hm(b.time)}</span>`:"";
   return `<button class="ev ${kindCls(b)}" data-a="open" data-id="${esc(b.id)}" title="${esc(b.name)} · ${esc(st.k)}${b.rn?" · 리뷰노트":""}">${t}<b${b.rn?' class="rnn"':""}>${esc(b.name)}</b>${atHTML(ckey(b))}<span class="evx">-${esc(calText(b))}</span>${b.rn?`<span class="sc rnc">리뷰노트</span>`:""}${b.ship==="택배"?`<span class="sc kc k-cend">택배</span>`:""}${st.k!=="예약확정"&&!((P(b)||{}).idlike&&st.k==="완료")?`<span class="sc ${sc}">${esc(st.k)}</span>`:""}</button>`}
 function drawCal(){
