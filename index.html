@@ -1016,6 +1016,7 @@ function openCust(id,fromSearch){ /* 캘린더 등에서 누르면 그 예약을
   $("cp").hidden=false;$("cp-empty").hidden=true;if(newCust)anim($("cp"),"enter");$("right").classList.add("open");document.documentElement.classList.add("lock");
   drawCust();
   requestAnimationFrame(()=>{const sc=$("right"),t=(!fromSearch&&$("hc-"+id))||$("hlist").previousElementSibling||$("hlist");sc.scrollTop+=t.getBoundingClientRect().top-sc.getBoundingClientRect().top-$("cp-bar").offsetHeight-8});
+  setTimeout(navSync,0);
 }
 let LASTOPEN=null,QOPEN=false;
 function clearQ(){if(!$("q").value)return;$("q").value="";if(view==="cust")drawList()}
