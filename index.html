@@ -1036,7 +1036,7 @@ function drawCust(){
   put("cp-bar",`<button class="back" data-a="back">‹ 닫기</button><b>${esc(last.name)}님</b>${atHTML(openKey)}${last.customer_no?`<span class="cno">#${last.customer_no}</span>`:""}<span style="flex:1"></span>${canLog()?`<button class="mini${LOGSHOW?" pri":""}" data-a="logshow">기록</button>`:""}<button class="mini pri" data-a="newbk-here">+ 예약 추가</button>`);
   {const sh=LOGSHOW&&canLog();if($("cp-logsec").hidden===sh)$("cp-logsec").hidden=!sh}
   put("cp-head",`<div class="cp-name"><h2>${esc(last.name)}님</h2><span class="warnctl" title="주의 손님 표시"><button class="sb" data-a="warn" data-v="-1" aria-label="@ 빼기">−</button><b class="atm">${"@".repeat(warnN(openKey))||"<i>@</i>"}</b><button class="sb" data-a="warn" data-v="1" aria-label="@ 더하기">+</button></span>${last.customer_no?`<span class="cno">#${last.customer_no}</span>`:`<span class="cno" style="background:var(--warn-bg);color:var(--warn)">고객번호 없음</span>`}${list.some(b=>pk(b)==="growth")?`<span class="gsb">가족성장</span>`:""}${(n=>n?`<span class="rnb" title="리뷰노트(무료 체험)로 온 횟수">리뷰노트 ${n}회${list.some(b=>!b.rn&&totalOf(b)>0)?" · 유료 방문 있음":""}</span>`:"")(list.filter(b=>b.rn).length)}</div>
-    <div class="cinfos">${c.phone?`<span class="phone" style="margin:0">${esc(c.phone)}</span>`:""}${c.visit?`<span class="cinfo">${esc(c.visit)}</span>`:""}${c.bday?`<span class="cinfo">생일 ${esc(c.bday)}</span>`:""}${c.anniv?`<span class="cinfo">기념일 ${esc(c.anniv)}</span>`:""}${c.family?`<span class="cinfo">${esc(c.family)}</span>`:""}<button class="mini" data-a="ce-open" style="margin-left:auto">수정</button></div>
+    <div class="cinfos">${c.phone?`<span class="phone" style="margin:0">${esc(c.phone)}</span>`:""}${c.email?`<button type="button" class="cinfo" data-a="ib-copy" data-v="${esc(c.email)}" title="누르면 메일 주소 복사" style="border:0;cursor:pointer;font-family:inherit">✉ ${esc(c.email)}</button>`:""}${c.visit?`<span class="cinfo">${esc(c.visit)}</span>`:""}${c.bday?`<span class="cinfo">생일 ${esc(c.bday)}</span>`:""}${c.anniv?`<span class="cinfo">기념일 ${esc(c.anniv)}</span>`:""}${c.family?`<span class="cinfo">${esc(c.family)}</span>`:""}<button class="mini" data-a="ce-open" style="margin-left:auto">수정</button></div>
     ${photoHTML(last.customer_no,list)}
     ${CEDIT?custEditHTML():""}`);
   put("cp-stats",`<div class="stat"><small>방문 횟수</small><b class="tn">${visits}회</b></div><div class="stat"><small>계약 총액</small><b class="tn">${money(tot)}</b></div><div class="stat"><small>입금액</small><b class="tn" style="color:var(--ok)">${money(pd)}</b></div><div class="stat"><small>잔금</small><b class="tn" style="color:${tot-pd>0?"var(--crit)":"var(--muted)"}">${money(Math.max(0,tot-pd))}</b></div>`);
@@ -1386,8 +1386,9 @@ function custEditHTML(){
   return `<form class="cedit" id="cedit">
     <label>이름<input class="inp" id="ce-name" value="${esc(last.name)}"></label>
     <label>전화<input class="inp" id="ce-phone" inputmode="tel" value="${esc(fmtPhone(c.phone||""))}"></label>
+    <label>이메일<input class="inp" id="ce-email" type="email" inputmode="email" autocomplete="off" value="${esc(c.email||"")}" placeholder="원본 받을 메일"></label>
     <label>고객번호<input class="inp num" id="ce-no" inputmode="numeric" value="${esc(last.customer_no||"")}"></label>
-    <label>방문동기<select class="inp" id="ce-visit"><option value=""></option>${VISIT.map(v=>`<option${c.visit===v?" selected":""}>${v}</option>`).join("")}</select></label>
+    <label>방문동기<select class="inp" id="ce-visit"><option value=""></option>${c.visit&&!VISIT.includes(c.visit)?`<option selected>${esc(c.visit)}</option>`:""}${VISIT.map(v=>`<option${c.visit===v?" selected":""}>${v}</option>`).join("")}</select></label>
     <label>추천인<input class="inp" id="ce-ref" list="ce-refl" value="${esc(c.refName||"")}" autocomplete="off"><datalist id="ce-refl">${names.slice(0,4000).map(n=>`<option value="${esc(n)}">`).join("")}</datalist></label>
     <label>생일<input class="inp" id="ce-bday" value="${esc(c.bday||"")}" placeholder="예: 3/15"></label>
     <label>기념일<input class="inp" id="ce-anniv" value="${esc(c.anniv||"")}"></label>
@@ -1414,7 +1415,7 @@ function referredBy(){const out=Object.entries(CUST).filter(([k,c])=>c.refKey===
 async function saveCustEdit(){
   const list=custBookings(),last=list.slice().sort(byDate).pop(),oldKey=openKey,c={...(CUST[oldKey]||{})};
   const name=$("ce-name").value.trim()||last.name,no=digits($("ce-no").value)||null,ref=$("ce-ref").value.trim();
-  c.phone=$("ce-phone").value.trim();c.visit=$("ce-visit").value;c.bday=$("ce-bday").value.trim();c.anniv=$("ce-anniv").value.trim();c.family=$("ce-family").value.trim();
+  c.phone=$("ce-phone").value.trim();c.email=$("ce-email").value.trim();c.visit=$("ce-visit").value;c.bday=$("ce-bday").value.trim();c.anniv=$("ce-anniv").value.trim();c.family=$("ce-family").value.trim();
   if(ref){const m=/#(\d+)\s*$/.exec(ref);const rk=m?"n"+m[1]:(Object.values(B).find(x=>x.name===ref)?ckey(Object.values(B).find(x=>x.name===ref)):"");c.refName=ref.replace(/\s*#\d+\s*$/,"");c.refKey=rk}else{c.refName="";c.refKey=""}
   if(no&&no!==last.customer_no&&Object.values(B).some(x=>x.customer_no===no&&ckey(x)!==oldKey)){toast(`#${no}은 다른 고객 번호예요`);return}
   CEDIT=false;
