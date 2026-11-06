@@ -862,7 +862,7 @@ function buildCal(){
     h+=`<div class="day${x.getMonth()!==calM?" off":""}${ds===TODAY?" today":""}" id="cd-${ds}" data-ds="${ds}"></div>`}
   const cal=$("cal");cal.innerHTML=h;
 }
-const hm=s=>{const h=+s.slice(0,2),m=s.slice(3,5);return `${h>12?h-12:h}시${m||"00"}`};
+const hm=s=>{const h=+s.slice(0,2),m=s.slice(3,5);return `${h>12?h-12:h}:${m||"00"}`};
 function evHTML(b){const st=status(b),sc=chipC(b,st);const t=b.time?`<span class="t ${ampm(b.time)}">${hm(b.time)}</span>`:"";
   return `<button class="ev ${kindCls(b)}" data-a="open" data-id="${esc(b.id)}" title="${esc(b.name)} · ${esc(st.k)}${b.rn?" · 리뷰노트":""}">${t}<b${b.rn?' class="rnn"':""}>${esc(b.name)}</b>${atHTML(ckey(b))}<span class="evx">-${esc(calText(b))}</span>${b.rn?`<span class="sc rnc">리뷰노트</span>`:""}${b.ship==="택배"?`<span class="sc kc k-cend">택배</span>`:""}${st.k!=="예약확정"&&!((P(b)||{}).idlike&&st.k==="완료")?`<span class="sc ${sc}">${esc(st.k)}</span>`:""}</button>`}
 function drawCal(){
@@ -1008,7 +1008,7 @@ document.addEventListener("submit",async e=>{if(e.target.id!=="cp-nform")return;
   try{if(window.saveNote)await window.saveNote(openKey,n);else toast("시험판에서는 이력이 저장되지 않아요")}catch(err){NOTES[openKey]=NOTES[openKey].filter(x=>x!==n);t.value=v;refresh();toast("이력을 저장하지 못했어요")}});
 function custBookings(){return Object.values(B).filter(b=>ckey(b)===openKey)}
 function openCust(id,fromSearch){ /* 캘린더 등에서 누르면 그 예약을 엶 · 검색으로 들어오면 진행 중인 것만 열림 */
-  const b=B[id];if(!b)return;LASTOPEN=id;const k=ckey(b);
+  const b=B[id];if(!b)return;LASTOPEN=id;if(fromSearch)QOPEN=true;const k=ckey(b);
   if(openKey!==k){openKey=k;LOGSHOW=false;LOGALL=false;LOGF="all";LOGB="";EXP.clear();SEEN.clear();$("hlist").innerHTML="";FORM=null;
     ["cp-bar","cp-head","cp-stats","cp-logs"].forEach(i=>{$(i)._h=null});$("right").scrollTop=0}
   if(!fromSearch||!isDone(b))EXP.add(id);
@@ -1017,8 +1017,9 @@ function openCust(id,fromSearch){ /* 캘린더 등에서 누르면 그 예약을
   drawCust();
   requestAnimationFrame(()=>{const sc=$("right"),t=(!fromSearch&&$("hc-"+id))||$("hlist").previousElementSibling||$("hlist");sc.scrollTop+=t.getBoundingClientRect().top-sc.getBoundingClientRect().top-$("cp-bar").offsetHeight-8});
 }
-let LASTOPEN=null;
-function closeCust(){openKey=null;LASTOPEN=null;$("cp").hidden=true;$("right").classList.remove("open");document.documentElement.classList.remove("lock");setTimeout(navSync,0)}
+let LASTOPEN=null,QOPEN=false;
+function clearQ(){if(!$("q").value)return;$("q").value="";if(view==="cust")drawList()}
+function closeCust(){openKey=null;LASTOPEN=null;if(QOPEN){QOPEN=false;setTimeout(clearQ,0)}$("cp").hidden=true;$("right").classList.remove("open");document.documentElement.classList.remove("lock");setTimeout(navSync,0)}
 function drawCust(){
   const list=custBookings();if(!list.length){closeCust();return}
   const last=list.slice().sort(byDate).pop(),c=CUST[openKey]||{};
@@ -1511,26 +1512,29 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-a^=ph-]");
     if(window.delPhoto)window.delPhoto(id).then(()=>{toast("사진 지웠어요");$("cp-head")._h=null;drawCust()}).catch(err=>toast("지우기 실패: "+(err&&err.message||err)))}});
 
 /* 브라우저 뒤로·앞으로 — SM처럼 화면(캘린더 달·날짜·탭·연 고객)을 하나씩 되돌림 */
-let NAVPOP=false;
+let NAVPOP=false,NAVSKIP=0;
 function navState(){return{v:view,y:calY,m:calM,d:selDay,c:openKey?LASTOPEN:null}}
 function navSame(a,b){return a&&b&&a.v===b.v&&a.y===b.y&&a.m===b.m&&a.d===b.d&&a.c===b.c}
-function navSync(){if(NAVPOP)return;const s=navState();if(navSame(s,history.state))return;
-  if(!history.state)history.replaceState(s,"");else history.pushState(s,"")}
-addEventListener("popstate",e=>{const s=e.state;if(!s)return;NAVPOP=true;
+function navSync(){if(NAVPOP||Date.now()<NAVSKIP)return;const s=navState(),h=history.state;if(navSame(s,h))return;
+  s.cd=s.c?(h&&h.c?(h.cd||1)+1:1):0;
+  if(!h)history.replaceState(s,"");else history.pushState(s,"")}
+/* 고객 닫기: 고객을 열 때 쌓인 기록만큼 되돌아가서, 닫은 뒤 뒤로가기를 눌러도 그 고객이 다시 열리지 않게 */
+function closeNav(){animOut($("cp"),"leave",()=>{const h=history.state,n=h&&h.c&&h.c===LASTOPEN&&h.cd>0?h.cd:0;closeCust();if(n){NAVSKIP=Date.now()+1500;history.go(-n)}})}
+addEventListener("popstate",e=>{NAVSKIP=0;const s=e.state;if(!s)return;NAVPOP=true;
   try{view=s.v;document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===view));["cal","today","cust"].forEach(n=>$("v-"+n).hidden=n!==view);
-    calY=s.y;calM=s.m;selDay=s.d;
+    calY=s.y;calM=s.m;selDay=s.d;if(view!=="cust")clearQ();
     if(!$("modal").hidden)closeModal();
     if(s.c&&B[s.c]){CEDIT=false;openCust(s.c)}else if(openKey)closeCust();
     draw()}finally{setTimeout(()=>{NAVPOP=false},400)}});
 document.addEventListener("click",()=>setTimeout(navSync,60));
 document.addEventListener("keyup",e=>{if(e.key==="Enter"||e.key==="Escape")setTimeout(navSync,60)});
-setTimeout(()=>{if(!history.state)history.replaceState(navState(),"")},0);
+setTimeout(()=>{const s=navState();s.cd=0;history.replaceState(s,"")},0);
 document.addEventListener("click",e=>{
   const dc=e.target.closest("#cal .day");
   if(dc&&isPhone()&&!e.target.closest("textarea")){e.preventDefault();selDay=dc.dataset.ds;draw();setTimeout(showAgenda,30);return}
   const t=e.target.closest("[data-a]");if(!t)return;
   if(/^(step|ship|flag|idq|ex|num|eth|etm)$/.test(t.dataset.a)){const q=["a","id","v","r","d"].filter(k=>t.dataset[k]!=null).map(k=>`[data-${k}="${CSS.escape(t.dataset[k])}"]`).join("");requestAnimationFrame(()=>requestAnimationFrame(()=>{const n=document.querySelector(q);if(n)anim(n,"pop")}))}if(e.target!==t&&/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))return;if(downEl&&downEl!==t&&t.contains(downEl)&&/^(INPUT|TEXTAREA|SELECT)$/.test(downEl.tagName))return;{const ae=document.activeElement;if(ae&&ae!==t&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))ae.blur()}const a=t.dataset.a,id=t.dataset.id,b=id?B[id]:null,v=t.dataset.v;
-  if(a==="tab"){view=v;document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===v));["cal","today","cust"].forEach(n=>$("v-"+n).hidden=n!==v);draw();return}
+  if(a==="tab"){if(v!=="cust")clearQ();view=v;document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===v));["cal","today","cust"].forEach(n=>$("v-"+n).hidden=n!==v);draw();return}
   if(a==="calprev"||a==="calnext"){calM+=a==="calprev"?-1:1;if(calM<0){calM=11;calY--}if(calM>11){calM=0;calY++}draw();return}
   if(a==="mpick"){const m=$("mpick");if(m.hidden){pickY=calY;drawPick();m.hidden=false;t.setAttribute("aria-expanded","true")}else closePick();return}
   if(a==="mpy"){pickY+=+v;drawPick();return}
@@ -1543,7 +1547,7 @@ document.addEventListener("click",e=>{
   if(a==="ce-cancel"){CEDIT=false;drawCust();return}
   if(a==="msgcopy"){const ta=$("mt-"+id);const done=()=>{t.textContent="복사됨";setTimeout(()=>{t.textContent="복사"},1500)};
     if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(ta.value).then(done,()=>{ta.select();try{document.execCommand("copy")}catch(e){}done()});else{ta.select();try{document.execCommand("copy")}catch(e){}done()}return}
-  if(a==="back"){animOut($("cp"),"leave",closeCust);return}
+  if(a==="back"){closeNav();return}
   if(a==="newbk"||a==="newbk-here"){openModal(a==="newbk-here");return}
   if(a==="mclose"){closeModal();return}
   if(a==="warn"){if(!openKey)return;const old=CUST[openKey]||{},n=Math.max(0,Math.min(5,warnN(openKey)+(+v)));if(n===warnN(openKey))return;const c={...old,warn:n,...meta()};CUST[openKey]=c;$("cp-head")._h=null;refresh();
@@ -1631,7 +1635,7 @@ document.addEventListener("change",e=>{if(e.target.dataset&&e.target.dataset.f==
   if(f==="date"||f==="time"){const patch={[f]:t.value};if(f==="date"&&t.value&&b.kind==="consult"){patch.kind="shoot";if(!b.customer_no)setTimeout(()=>assignNumber(ckey(B[id])),0)}if(f==="date"&&t.value&&(b.steps||{}).postponed)patch.steps={postponed:null};save(id,patch,`${f==="date"?"날짜":"시간"} → ${t.value}`);return}
   if(f==="cal"){clearTimeout(t._ct);const v=calVal(b,t.value);if((b.cal||"")!==v)save(id,{cal:v});if(!v){t.value=calText({...b,cal:""});t.classList.add("auto")}return}
 });
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("mpick").hidden){closePick();return}if((e.key==="Enter"||e.key===" ")&&e.target.matches('.hh[role=button]')){e.preventDefault();e.target.click();return}if(e.key==="Enter"&&e.target.matches("input.inp,input.dmemo,input.hcal")&&!e.isComposing)e.target.blur();if(e.key==="Escape"&&openKey&&!/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement||{}).tagName)){if(!$("modal").hidden)closeModal();else animOut($("cp"),"leave",closeCust)}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("mpick").hidden){closePick();return}if((e.key==="Enter"||e.key===" ")&&e.target.matches('.hh[role=button]')){e.preventDefault();e.target.click();return}if(e.key==="Enter"&&e.target.matches("input.inp,input.dmemo,input.hcal")&&!e.isComposing)e.target.blur();if(e.key==="Escape"&&openKey&&!/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement||{}).tagName)){if(!$("modal").hidden)closeModal();else closeNav()}});
 document.addEventListener("input",e=>{const t=e.target,f=t.dataset&&t.dataset.f;
   if(["m-amt","m-total","pi-amt"].includes(f)){const v=t.value,c=t.selectionStart??v.length,nd=v.slice(0,c).replace(/\D/g,"").length,d=v.replace(/\D/g,"");
     const out=d?(+d).toLocaleString("ko-KR"):"";if(out===v)return;t.value=out;let k=0,pos=0;while(pos<out.length&&k<nd){if(/\d/.test(out[pos]))k++;pos++}try{t.setSelectionRange(pos,pos)}catch(_){}}
@@ -1640,7 +1644,7 @@ document.addEventListener("input",e=>{const t=e.target,f=t.dataset&&t.dataset.f;
 function fmtPhone(v){const d=String(v).replace(/\D/g,"").slice(0,11);if(d.startsWith("02")){if(d.length<3)return d;if(d.length<6)return d.slice(0,2)+"-"+d.slice(2);if(d.length<10)return d.slice(0,2)+"-"+d.slice(2,5)+"-"+d.slice(5);return d.slice(0,2)+"-"+d.slice(2,6)+"-"+d.slice(6,10)}
   if(d.length<4)return d;if(d.length<8)return d.slice(0,3)+"-"+d.slice(3);if(d.length<11)return d.slice(0,3)+"-"+d.slice(3,6)+"-"+d.slice(6);return d.slice(0,3)+"-"+d.slice(3,7)+"-"+d.slice(7)}
 document.addEventListener("input",e=>{const t=e.target;if(t.id!=="n-phone"&&t.id!=="ce-phone")return;const v=t.value,c=t.selectionStart??v.length,nd=v.slice(0,c).replace(/\D/g,"").length,out=fmtPhone(v);if(out===v)return;t.value=out;let k=0,pos=0;while(pos<out.length&&k<nd){if(/\d/.test(out[pos]))k++;pos++}try{t.setSelectionRange(pos,pos)}catch(_){}});
-$("q").addEventListener("input",()=>{if(view!=="cust"){view="cust";document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v==="cust"));["cal","today","cust"].forEach(n=>$("v-"+n).hidden=n!=="cust")}drawList()});
+$("q").addEventListener("input",()=>{if(view!=="cust"){view="cust";document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v==="cust"));["cal","today","cust"].forEach(n=>$("v-"+n).hidden=n!=="cust");setTimeout(navSync,0)}drawList()});
 
 /* ===== 새 예약 ===== */
 let TH="",TM="00";
