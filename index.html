@@ -980,8 +980,8 @@ const isUuid=s=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const lines=t=>String(t||"").split(/\n+/).map(s=>s.trim()).filter(Boolean);
 /* 올해 나이: 지난 촬영 기록(캘린더 문구·메모·후기)에 적힌 아이 나이·학년 + 지난 햇수 */
 function agesFrom(t){t=String(t||"").replace(/(\d{1,2})\s*[,·]\s*(?=\d{1,2}\s*(살|세))/g,"$1$2 ");const out=[];let m;
-  const re=/([가-힣]{1,4})?\s*\(?\s*(\d{1,2})\s*(살|세|개월)/g;
-  while((m=re.exec(t))){let lab=m[1]||"";if(/인가족|가족|성인|가성|명$|프로필|키즈|베이비|증명|여권|장수|심플|스토리|촬영|사진|아기|^인$/.test(lab))lab="";const n=+m[2],u=m[3];
+  const re=/([가-힣]{1,4})?\s*\(?\s*(\d{1,2})\s*(살|세|개월)(?!\s*\?)/g;
+  while((m=re.exec(t))){let lab=m[1]||"";if(/인가족|가족|성인|가성|명$|프로필|키즈|베이비|증명|여권|장수|심플|스토리|촬영|사진|아기|^인$|주년|결혼|기념|년$|생일|돌$|되서|오늘/.test(lab))lab="";const n=+m[2],u=m[3];
     if(u!=="개월"&&(n<1||n>19))continue;if(u==="개월"&&(n<1||n>60))continue;out.push({lab,n,u})}
   const gr=/(초등|초|중|고)\s*(\d)(?![\d인명살세개])/g;
   while((m=gr.exec(t))){const g=m[1][0],n=+m[2];const age=(g==="초"?7:g==="중"?13:16)+n;if((g==="초"&&n<=6)||(g!=="초"&&n<=3))out.push({lab:"",n:age,u:"학년"})}
@@ -989,9 +989,10 @@ function agesFrom(t){t=String(t||"").replace(/(\d{1,2})\s*[,·]\s*(?=\d{1,2}\s*(
 const gname=a=>a>=8&&a<=13?`초${a-7}`:a>=14&&a<=16?`중${a-13}`:a>=17&&a<=19?`고${a-16}`:"";
 function agesNow(b){const k=ckey(b),ref=b.date||TODAY,yr=+ref.slice(0,4);
   const xs=Object.values(B).filter(x=>ckey(x)===k&&x.id!==b.id&&!(x.steps||{}).canceled&&x.date&&x.date<=ref).sort(byDate).reverse();
-  for(const x of xs){const a=agesFrom([calText(x),x.memo,x.hugi].filter(Boolean).join(" "));if(!a.length)continue;
+  for(const x of xs){if(x.date<addDays(ref,-365*6))break;let a=agesFrom(calText(x));if(!a.length)a=agesFrom([x.memo,x.hugi].filter(Boolean).join(" "));if(!a.length)continue;
+    {const lv=new Set(a.filter(o=>o.lab).map(o=>o.n+o.u));a=a.filter(o=>o.lab||!lv.has(o.n+o.u))}
     const dy=yr-+x.date.slice(0,4),dm=dy*12+(+ref.slice(5,7))-(+x.date.slice(5,7));const seen=new Set();
-    const list=a.map(o=>{if(o.u==="개월"){const mm=o.n+dm;return (o.lab?o.lab+" ":"")+(mm<36?`${mm}개월`:`만 ${Math.floor(mm/12)}세`)}if(o.u==="학년"){const g=o.n+dy;return gname(g)?`${gname(g)}(${g}살)`:`${g}살`}return (o.lab?o.lab+" ":"")+`${o.n+dy}${o.u}`}).filter(s=>!seen.has(s)&&seen.add(s));
+    const list=a.map(o=>{if(o.u==="개월"){const mm=o.n+dm;return (o.lab?o.lab+" ":"")+(mm<48?`${mm}개월`:`${yr-Math.floor(((+x.date.slice(0,4))*12+(+x.date.slice(5,7))-1-o.n)/12)+1}살`)}if(o.u==="학년"){const g=o.n+dy;return gname(g)?`${gname(g)}(${g}살)`:`${g}살`}return (o.lab?o.lab+" ":"")+`${o.n+dy}${o.u}`}).filter(s=>!seen.has(s)&&seen.add(s));
     return {list,from:x}}
   return null}
 function briefHTML(b){
