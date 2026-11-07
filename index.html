@@ -978,6 +978,22 @@ async function ibMakeId(ids,method){
   catch(err){delete B[id];refresh();toast("증명을 넣지 못했어요")}}
 const isUuid=s=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s||"");
 const lines=t=>String(t||"").split(/\n+/).map(s=>s.trim()).filter(Boolean);
+/* 올해 나이: 지난 촬영 기록(캘린더 문구·메모·후기)에 적힌 아이 나이·학년 + 지난 햇수 */
+function agesFrom(t){t=String(t||"").replace(/(\d{1,2})\s*[,·]\s*(?=\d{1,2}\s*(살|세))/g,"$1$2 ");const out=[];let m;
+  const re=/([가-힣]{1,4})?\s*\(?\s*(\d{1,2})\s*(살|세|개월)/g;
+  while((m=re.exec(t))){let lab=m[1]||"";if(/인가족|가족|성인|가성|명$|프로필|키즈|베이비|증명|여권|장수|심플|스토리|촬영|사진|아기|^인$/.test(lab))lab="";const n=+m[2],u=m[3];
+    if(u!=="개월"&&(n<1||n>19))continue;if(u==="개월"&&(n<1||n>60))continue;out.push({lab,n,u})}
+  const gr=/(초등|초|중|고)\s*(\d)(?![\d인명살세개])/g;
+  while((m=gr.exec(t))){const g=m[1][0],n=+m[2];const age=(g==="초"?7:g==="중"?13:16)+n;if((g==="초"&&n<=6)||(g!=="초"&&n<=3))out.push({lab:"",n:age,u:"학년"})}
+  return out}
+const gname=a=>a>=8&&a<=13?`초${a-7}`:a>=14&&a<=16?`중${a-13}`:a>=17&&a<=19?`고${a-16}`:"";
+function agesNow(b){const k=ckey(b),ref=b.date||TODAY,yr=+ref.slice(0,4);
+  const xs=Object.values(B).filter(x=>ckey(x)===k&&x.id!==b.id&&!(x.steps||{}).canceled&&x.date&&x.date<=ref).sort(byDate).reverse();
+  for(const x of xs){const a=agesFrom([calText(x),x.memo,x.hugi].filter(Boolean).join(" "));if(!a.length)continue;
+    const dy=yr-+x.date.slice(0,4),dm=dy*12+(+ref.slice(5,7))-(+x.date.slice(5,7));const seen=new Set();
+    const list=a.map(o=>{if(o.u==="개월"){const mm=o.n+dm;return (o.lab?o.lab+" ":"")+(mm<36?`${mm}개월`:`만 ${Math.floor(mm/12)}세`)}if(o.u==="학년"){const g=o.n+dy;return gname(g)?`${gname(g)}(${g}살)`:`${g}살`}return (o.lab?o.lab+" ":"")+`${o.n+dy}${o.u}`}).filter(s=>!seen.has(s)&&seen.add(s));
+    return {list,from:x}}
+  return null}
 function briefHTML(b){
   const k=ckey(b),c=CUST[k]||{},isId=!!(P(b)||{}).idlike,st=status(b);
   const pts=Array.isArray(b.pts)&&b.pts.length?b.pts:lines(b.memo);
@@ -986,7 +1002,8 @@ function briefHTML(b){
   const mine=Array.isArray(b.brief)&&b.brief.length?b.brief.map(s=>`<h4>${esc(s.h)}</h4>${ul(s.items||[])}`).join(""):"";
   const nts=(NOTES[k]||[]).slice().sort((a,b2)=>(b2.at||"").localeCompare(a.at||"")).slice(0,8);
   const raw=(c.memo||c.family?`<h4>고객 메모</h4>${ul([c.family,...lines(c.memo)].filter(Boolean))}`:"")+(nts.length?`<h4>최근 이력</h4>${ul(nts.map(n=>`${(n.at||"").slice(2,10).replace(/-/g,".")}${n.who?" "+n.who:""} · ${n.text}`))}`:"")+past.map(x=>`<h4>${x.date.slice(2).replace(/-/g,".")} ${esc(calText(x))}</h4>${ul([...lines(x.hugi),...lines(x.memo)])||`<div class="bnone">기록 없음</div>`}`).join("");
-  const body=(mine?`<div class="bsum">${mine}</div>`:"")+(raw?(mine?`<details class="braw"><summary>기록 원문</summary>${raw}</details>`:raw):"");
+  const ag=agesNow(b),agh=ag?`<h4>올해 나이</h4><ul class="bpts"><li><b>${esc(ag.list.join(" · "))}</b> <span class="refs">${ag.from.date.slice(2,7).replace("-",".")} 기록</span></li></ul>`:"";
+  const body=agh+(mine?`<div class="bsum">${mine}</div>`:"")+(raw?(mine?`<details class="braw"><summary>기록 원문</summary>${raw}</details>`:raw):"");
   return `<div class="brow"><span class="d tn">${b.time?`<b class="${ampm(b.time)}">${tm(b.time)}</b>`:"시간 미정"}</span><div class="b"><button class="lnk bnm${b.rn?" rnn":""}" data-a="open" data-id="${esc(b.id)}">${esc(b.name)}</button>${b.rn?`<span class="rnb">리뷰노트</span>`:""}${atHTML(k)}${b.customer_no?` <span class="cno">#${b.customer_no}</span>`:""} <span class="${kindCls(b)}">${esc(calText(b))}</span> <span class="sc ${chipC(b,st)}">${esc(st.k)}</span>${ul(pts)}${!isId&&body?`<details class="bbox"><summary>촬영 전 숙지${mine?"":" (기록)"}</summary><div class="bbody">${body}</div></details>`:""}</div></div>`}
 function hitSnip(t,q){t=String(t).replace(/\s+/g," ");const terms=q.split(/\s+/).filter(Boolean),lo=t.toLowerCase(),i=Math.max(0,lo.indexOf(terms[0].toLowerCase()));const a=Math.max(0,i-14),cut=(a>0?"…":"")+t.slice(a,a+46)+(a+46<t.length?"…":"");
   let h=esc(cut);terms.forEach(w=>{const e=esc(w).replace(/[.*+?^${}()|[\]\\]/g,"\\$&");h=h.replace(new RegExp(e,"gi"),m=>`<mark>${m}</mark>`)});return h}
