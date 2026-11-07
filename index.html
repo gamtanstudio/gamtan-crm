@@ -267,10 +267,10 @@ html.lock,html.lock body{overflow:hidden}
 /* 고객 화면 한 줄 배치 (SM처럼): 히스토리 → 이력 → 메모 */
 #cp{display:flex!important;flex-direction:column;align-items:stretch!important}.cpside{display:contents}#cp>*,#cp .cpside>*{width:auto;max-width:none;grid-column:auto;grid-row:auto}
 #cp-bar{order:1}#cp-head{order:2}#cp-stats{order:3}.cphist{order:4}#cp-notesec{order:5;margin-top:14px}#cp-memosec{order:6}#cp-refsec{order:7}#cp-logsec{order:8}#cp-msgsec{order:9}
-#cp-notes .nrow{display:grid;grid-template-columns:132px 58px minmax(0,1fr);gap:8px;padding:5px 2px;border-top:1px solid var(--line)}
-#cp-notes .nd{color:var(--muted);font-size:13.5px;line-height:1.55}#cp-notes .nw{font-size:13.5px;font-weight:600;color:#7c7cf0;line-height:1.55}
-#cp-notes .ntext{font-size:14.5px;margin-top:0}
-#cp-memo{min-height:420px;font-size:15px;line-height:1.7}
+#cp-notes .nrow{display:grid;grid-template-columns:112px 48px minmax(0,1fr);gap:6px;padding:2px 2px;border-top:1px solid var(--line)}
+#cp-notes .nd{color:var(--muted);font-size:12.5px;line-height:1.5}#cp-notes .nw{font-size:12.5px;font-weight:500;color:#7c7cf0;line-height:1.5}
+#cp-notes .ntext{font-size:13px;line-height:1.5;margin-top:0}
+#cp-memo{min-height:420px;font-size:13px;line-height:1.6}
 @media (max-width:700px){#cp-notes .nrow{display:block}#cp-notes .nw{margin-left:6px}#cp-notes .ntext{margin-top:2px}#cp-memo{min-height:240px}}
 .sec-t{font-size:13px;font-weight:800;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .sec-t span{font-weight:500;color:var(--muted);font-size:12px}
