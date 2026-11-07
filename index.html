@@ -715,13 +715,16 @@ function shipRows(b){
   PRICE_META.forEach(m=>{if(m.noship)return;const q=(b.ex||{})[m.k]||0;const kind=m.k==="origadd"?"원본 추가":m.label;if(q&&!items.some(i=>i.exk===m.k||i.kind===kind))v.push({id:"v-ex-"+m.k,kind,size:q>1?`×${q}`:"",exk:m.k,virtual:1})});
   return [...items,...v];
 }
-function hasOrig(b){if(b.needOrig||(b.items||[]).some(i=>i.kind==="원본"))return true;const p=P(b);return !!(p&&p.orig)}
+function hasOrig(b){if(b.noOrig&&!(b.items||[]).some(i=>i.kind==="원본"))return false;if(b.needOrig||(b.items||[]).some(i=>i.kind==="원본"))return true;const p=P(b);return !!(p&&p.orig)}
 const origSent=b=>!!(b.steps||{}).orig||(b.items||[]).some(i=>i.kind==="원본"&&i.shipped);
 const isBig=b=>(b.items||[]).some(i=>i.kind==="액자"&&/11x14|11알|16|20|24|28|캔버스/.test(i.size||""))||PRICE_META.some(m=>m.big&&(b.ex||{})[m.k]);
 
 /* ===== 상태: 기록에서 자동 (설계안 상태 흐름표, 위에서부터 처음 맞는 것) ===== */
 function isPast(b){return b.date&&b.date<addDays(TODAY,-90)}
 function gsBase(b){const d=pays(b).find(p=>p.kind==="예약금"&&p.date);if(d)return d.date;const pv=b.prevId&&B[b.prevId];return pv&&pv.date||(b.steps||{}).deposit||""}
+/* 같은 계약에 붙은 앞으로의 보충(재촬영) 일정 — 있으면 "재촬영 예정"으로 보여 작업중에서 뺌 */
+let RTC=null,RTT=0;
+function retakeOf(bid){if(!bid)return null;if(!RTC||Date.now()-RTT>1500){RTC=new Map();RTT=Date.now();for(const x of Object.values(B)){if(!x._hist||!x._sid||(x.date||"")<TODAY||(x.steps||{}).canceled)continue;const sn=typeof SNAPS!=="undefined"&&SNAPS[x._sid];if(sn&&sn.booking_id&&sn.kind==="supplement")RTC.set(sn.booking_id,x)}}return RTC.get(bid)||null}
 function status(b){
   const s=b.steps||{},p=P(b);
   if(s.canceled)return{k:"취소",c:"c-mute"};
@@ -737,6 +740,7 @@ function status(b){
   if(p&&p.idlike){const t=totalOf(b);return t&&paidOf(b)>=t&&!pays(b).some(x=>x.amount&&!x.method)?{k:"완료",c:"c-ok"}:{k:"결제 확인",c:"c-crit",crit:"미결제"}}
   const rows=shipRows(b);
   if(rows.length&&rows.every(r=>r.shipped))return{k:"완료",c:"c-ok"};
+  if(!s.done&&!s.notified&&!s.delivered&&retakeOf(b._bid))return{k:"재촬영 예정",c:"c-acc"};
   if(s.delivered){const left=rows.filter(r=>!r.shipped).map(r=>r.kind||"출고");if(!left.length)return{k:"완료",c:"c-ok"};return{k:`${left[0]}${left.length>1?" 외":""} 출고 전`,c:"c-warn",crit:"출고 남음",rest:1}}
   if(s.notified)return{k:"수령 대기",c:"c-acc"};
   const nonOrig=rows.filter(r=>r.kind!=="원본"&&r.kind!=="보정본");
