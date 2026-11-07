@@ -263,7 +263,8 @@ html.lock,html.lock body{overflow:hidden}
 .nrow{padding:7px 0;border-top:1px solid var(--line)}.nrow:first-child{border-top:0}
 .nmeta{font-size:11.5px;color:var(--muted)}.nmeta b{font-weight:600;color:#6a6af0}
 .ntext{white-space:pre-wrap;font-size:13.5px;line-height:1.55;margin-top:2px}
-.nnone{font-size:12.5px;color:var(--muted)}.ncnt{font-size:11.5px;font-weight:500;color:var(--muted)}.nmore{margin-top:6px;width:100%}
+.nnone{font-size:12.5px;color:var(--muted)}.rfam{margin-left:8px;font-size:13px;color:var(--sub);font-weight:500}
+.ncnt{font-size:11.5px;font-weight:500;color:var(--muted)}.nmore{margin-top:6px;width:100%}
 /* 고객 화면 한 줄 배치 (SM처럼): 히스토리 → 이력 → 메모 */
 #cp{display:flex!important;flex-direction:column;align-items:stretch!important;max-width:960px}.cpside{display:contents}#cp>*,#cp .cpside>*{width:auto;max-width:none;grid-column:auto;grid-row:auto}
 #cp-bar{order:1}#cp-head{order:2}#cp-stats{order:3}.cphist{order:4}#cp-notesec{order:5;margin-top:14px}#cp-memosec{order:6}#cp-refsec{order:7}#cp-logsec{order:8}#cp-msgsec{order:9}
@@ -1032,7 +1033,7 @@ function drawList(){
   const lastD=k=>groups[k].reduce((m,b)=>b.date&&b.date>m?b.date:m,"");
   keys.sort((a,b)=>lastD(b).localeCompare(lastD(a))||groups[a][0].name.localeCompare(groups[b][0].name,"ko")); /* 최근 촬영한 고객이 위로 */
   put("clist",`<div class="grp"><h3>${q?`'${esc(q)}' 찾은 고객`:"최근 고객"}<span>${q&&window.SRCHBUSY?"찾는 중… ":""}${keys.length}명${!q&&window.CUSTTOTAL?` · 전체 ${money(window.CUSTTOTAL)}명`:""}</span></h3>${keys.map(k=>{const bs=groups[k].sort(byDate),last=bs[bs.length-1],st=status(last);
-    return `<button class="row" data-a="open" data-src="q" data-id="${esc(last.id)}"><span class="b"><b>${esc(last.name)}</b>${atHTML(k)}${last.customer_no?` <span class="cno">#${last.customer_no}</span>`:""}<span style="display:block;font-size:12.5px;color:var(--muted)">촬영 ${bs.length}건 · 최근 ${md(last.date)} ${esc(calText(last))}</span>${(CUST[k]||{}).wnote?`<span class="wnb" style="display:block;margin:3px 0 0">${esc(CUST[k].wnote)}</span>`:""}${HIT[k]?`<span class="mhit">${hitSnip(HIT[k],q)}</span>`:""}</span><span class="sc ${chipC(last,st)}">${esc(st.k)}</span></button>`}).join("")||`<div class="empty">찾는 고객이 없어요</div>`}</div>`);
+    return `<button class="row" data-a="open" data-src="q" data-id="${esc(last.id)}"><span class="b"><b>${esc(last.name)}</b>${atHTML(k)}${last.customer_no?` <span class="cno">#${last.customer_no}</span>`:""}${(CUST[k]||{}).family?`<span class="rfam">${esc(String(CUST[k].family).replace(/\s+/g," ").slice(0,40))}</span>`:""}<span style="display:block;font-size:12.5px;color:var(--muted)">촬영 ${bs.length}건 · 최근 ${md(last.date)} ${esc(calText(last))}${(CUST[k]||{}).phone?` · <span class="tn">${esc(fmtPhone(CUST[k].phone))}</span>`:""}</span>${(CUST[k]||{}).wnote?`<span class="wnb" style="display:block;margin:3px 0 0">${esc(CUST[k].wnote)}</span>`:""}${HIT[k]?`<span class="mhit">${hitSnip(HIT[k],q)}</span>`:""}</span><span class="sc ${chipC(last,st)}">${esc(st.k)}</span></button>`}).join("")||`<div class="empty">찾는 고객이 없어요</div>`}</div>`);
 }
 
 /* ===== 고객 화면 ===== */
