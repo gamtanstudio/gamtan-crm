@@ -914,6 +914,8 @@ function drawToday(){
     if(st.k==="미등록"){const g=gsBase(b);if(g&&g<=addDays(TODAY,-365))add(b,"가성 미등록 1년 — 연락")}});
   /* 맨 위: 오늘 찍을 손님 브리핑 (진행판 방식) — Claude가 쓴 요약(b.pts/b.brief)이 있으면 먼저, 없어도 기록 원문은 항상 자동으로 */
   const tl=all.filter(b=>b.date===TODAY&&!(b.steps||{}).canceled).sort(byDate);
+  if(typeof ensureCust==="function"&&typeof LOADED_C!=="undefined"){const nos=[...new Set(tl.map(b=>b.customer_no).filter(Boolean))];nos.filter(n=>!LOADED_C.has(n)).forEach(n=>ensureCust(n));
+    if(typeof loadNotes==="function"){const NQ=window.__NQ||(window.__NQ=new Set());const nn=nos.filter(n=>!NOTE_LOADED.has(n)&&!NQ.has(n));nn.forEach(n=>NQ.add(n));if(nn.length)loadNotes(nn).then(refresh)}}
   put("tg-0",inboxHTML()+`<div class="grp"><h3>오늘 손님 · ${md(TODAY)} ${dow(TODAY)}<span>${tl.length}건</span></h3>${tl.map(briefHTML).join("")||`<div class="empty">오늘 예약 없음</div>`}</div>`);
   put("tg-1",grp("놓친 것",crit,true,([b,n])=>`<div class="rowa">${rowHTML(b,n+(n==="공방 2주 지남"?` · ${md((b.steps||{}).workshop)} 보냄`:""))}<button class="ackb" data-a="ack" data-id="${esc(b.id)}" data-v="${esc(n)}" title="확인함 — 목록에서 빼기">확인</button></div>`));
   ["tg-2","tg-3","tg-4","tg-5","tg-6"].forEach(i=>put(i,""));
