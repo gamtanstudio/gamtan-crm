@@ -1533,8 +1533,8 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-a^=ph-]");
 
 /* 브라우저 뒤로·앞으로 — SM처럼 화면(캘린더 달·날짜·탭·연 고객)을 하나씩 되돌림 */
 let NAVPOP=false,NAVSKIP=0;
-function navState(){return{v:view,y:calY,m:calM,d:selDay,c:openKey?LASTOPEN:null}}
-function navSame(a,b){return a&&b&&a.v===b.v&&a.y===b.y&&a.m===b.m&&a.d===b.d&&a.c===b.c}
+function navState(){return{v:view,y:calY,m:calM,d:selDay,c:openKey?LASTOPEN:null,f:calFilter||null}}
+function navSame(a,b){return a&&b&&a.v===b.v&&a.y===b.y&&a.m===b.m&&a.d===b.d&&a.c===b.c&&(a.f||null)===(b.f||null)}
 function navSync(){if(NAVPOP||Date.now()<NAVSKIP)return;const s=navState(),h=history.state;if(navSame(s,h))return;
   s.cd=s.c?(h&&h.c?(h.cd||1)+1:1):0;
   if(!h)history.replaceState(s,"");else history.pushState(s,"")}
@@ -1542,7 +1542,7 @@ function navSync(){if(NAVPOP||Date.now()<NAVSKIP)return;const s=navState(),h=his
 function closeNav(){animOut($("cp"),"leave",()=>{const h=history.state,n=h&&h.c&&h.c===LASTOPEN&&h.cd>0?h.cd:0;closeCust();if(n){NAVSKIP=Date.now()+1500;history.go(-n)}})}
 addEventListener("popstate",e=>{NAVSKIP=0;const s=e.state;if(!s)return;NAVPOP=true;
   try{view=s.v;document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===view));["cal","today","cust"].forEach(n=>$("v-"+n).hidden=n!==view);
-    calY=s.y;calM=s.m;selDay=s.d;if(view!=="cust")clearQ();
+    calY=s.y;calM=s.m;selDay=s.d;calFilter=s.f||null;if(view!=="cust")clearQ();
     if(!$("modal").hidden)closeModal();
     if(s.c&&B[s.c]){CEDIT=false;openCust(s.c)}else if(openKey)closeCust();
     draw()}finally{setTimeout(()=>{NAVPOP=false},400)}});
@@ -1656,7 +1656,7 @@ document.addEventListener("change",e=>{if(e.target.dataset&&e.target.dataset.f==
   if(f==="date"||f==="time"){const patch={[f]:t.value};if(f==="date"&&t.value&&b.kind==="consult"){patch.kind="shoot";if(!b.customer_no)setTimeout(()=>assignNumber(ckey(B[id])),0)}if(f==="date"&&t.value&&(b.steps||{}).postponed)patch.steps={postponed:null};save(id,patch,`${f==="date"?"날짜":"시간"} → ${t.value}`);return}
   if(f==="cal"){clearTimeout(t._ct);const v=calVal(b,t.value);if((b.cal||"")!==v)save(id,{cal:v});if(!v){t.value=calText({...b,cal:""});t.classList.add("auto")}return}
 });
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("mpick").hidden){closePick();return}if((e.key==="Enter"||e.key===" ")&&e.target.matches('.hh[role=button]')){e.preventDefault();e.target.click();return}if(e.key==="Enter"&&e.target.matches("input.inp,input.dmemo,input.hcal")&&!e.isComposing)e.target.blur();if(e.key==="Escape"&&openKey&&!/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement||{}).tagName)){if(!$("modal").hidden)closeModal();else closeNav()}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("mpick").hidden){closePick();return}if(e.key==="Escape"&&calFilter&&view==="cal"&&!openKey&&$("modal").hidden&&!/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement||{}).tagName)){calFilter=null;draw();setTimeout(navSync,0);return}if((e.key==="Enter"||e.key===" ")&&e.target.matches('.hh[role=button]')){e.preventDefault();e.target.click();return}if(e.key==="Enter"&&e.target.matches("input.inp,input.dmemo,input.hcal")&&!e.isComposing)e.target.blur();if(e.key==="Escape"&&openKey&&!/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement||{}).tagName)){if(!$("modal").hidden)closeModal();else closeNav()}});
 document.addEventListener("input",e=>{const t=e.target,f=t.dataset&&t.dataset.f;
   if(["m-amt","m-total","pi-amt"].includes(f)){const v=t.value,c=t.selectionStart??v.length,nd=v.slice(0,c).replace(/\D/g,"").length,d=v.replace(/\D/g,"");
     const out=d?(+d).toLocaleString("ko-KR"):"";if(out===v)return;t.value=out;let k=0,pos=0;while(pos<out.length&&k<nd){if(/\d/.test(out[pos]))k++;pos++}try{t.setSelectionRange(pos,pos)}catch(_){}}
