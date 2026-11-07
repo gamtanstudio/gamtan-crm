@@ -264,6 +264,14 @@ html.lock,html.lock body{overflow:hidden}
 .nmeta{font-size:11.5px;color:var(--muted)}.nmeta b{font-weight:600;color:#6a6af0}
 .ntext{white-space:pre-wrap;font-size:13.5px;line-height:1.55;margin-top:2px}
 .nnone{font-size:12.5px;color:var(--muted)}.ncnt{font-size:11.5px;font-weight:500;color:var(--muted)}.nmore{margin-top:6px;width:100%}
+/* 고객 화면 한 줄 배치 (SM처럼): 히스토리 → 이력 → 메모 */
+#cp{display:flex!important;flex-direction:column}.cpside{display:contents}
+#cp-bar{order:1}#cp-head{order:2}#cp-stats{order:3}.cphist{order:4}#cp-notesec{order:5;margin-top:14px}#cp-memosec{order:6}#cp-refsec{order:7}#cp-logsec{order:8}#cp-msgsec{order:9}
+#cp-notes .nrow{display:grid;grid-template-columns:132px 58px minmax(0,1fr);gap:8px;padding:5px 2px;border-top:1px solid var(--line)}
+#cp-notes .nd{color:var(--muted);font-size:13.5px;line-height:1.55}#cp-notes .nw{font-size:13.5px;font-weight:600;color:#7c7cf0;line-height:1.55}
+#cp-notes .ntext{font-size:14.5px;margin-top:0}
+#cp-memo{min-height:420px;font-size:15px;line-height:1.7}
+@media (max-width:700px){#cp-notes .nrow{display:block}#cp-notes .nw{margin-left:6px}#cp-notes .ntext{margin-top:2px}#cp-memo{min-height:240px}}
 .sec-t{font-size:13px;font-weight:800;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .sec-t span{font-weight:500;color:var(--muted);font-size:12px}
 .pinta{display:block;width:100%;margin-bottom:6px;resize:none;overflow:hidden;line-height:1.5;min-height:36px;color:var(--crit);font-weight:700}
@@ -566,9 +574,9 @@ details.more summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(-
       <div class="cp-head" id="cp-head"></div>
       <div class="stats" id="cp-stats"></div>
       <div class="cpside">
-      <section class="sec">
-        <div class="sec-t">상담 메모</div>
-        <textarea class="cmemo" id="cp-memo" data-cf="memo" aria-label="상담 메모"></textarea>
+      <section class="sec" id="cp-memosec">
+        <div class="sec-t">메모</div>
+        <textarea class="cmemo" id="cp-memo" data-cf="memo" aria-label="메모"></textarea>
       </section>
       <section class="sec" id="cp-notesec">
         <div class="sec-t">이력<span class="ncnt" id="cp-ncnt"></span></div>
@@ -1033,9 +1041,9 @@ let NOTES={},NOTEALL=null;
 function notesHTML(key){const nob=Object.values(B).find(x=>ckey(x)===key),pno=nob&&nob.customer_no;
   const pev=(PHOTOS[pno]||[]).filter(p=>!isFace(p)).map(p=>({at:p.at||"",who:p.who||"",text:(p.kind==="final"?"보정본 사진":"선택 사진")+(p.label?" "+p.label:""),pid:p.id,url:p.url}));
   const ns=[...(NOTES[key]||[]),...pev].slice().sort((a,b)=>(b.at||"").localeCompare(a.at||""));if(!ns.length)return`<div class="nnone">이력 없음</div>`;
-  const all=NOTEALL===key,show=all?ns:ns.slice(0,6);
-  return show.map(n=>`<div class="nrow"><div class="nmeta">${esc((n.at||"").slice(2,16).replace("T"," ").replace(/-/g,"."))}${n.who?` · <b>${esc(n.who)}</b>`:""}</div><div class="ntext"${n.color&&!/^#?(161616|000000|000)$/i.test(n.color)?` style="color:${esc(n.color)}"`:""}>${esc(n.text)}${n.pid?`<button class="ph sq nph" data-a="ph-view" data-id="${esc(n.pid)}" aria-label="크게 보기">${n.url?`<img src="${esc(n.url)}" alt="">`:""}</button>`:""}</div></div>`).join("")
-   +(ns.length>6?`<button class="mini nmore" type="button" onclick="NOTEALL=NOTEALL?null:openKey;refresh()">${all?"접기":`이력 ${ns.length-6}개 더 보기`}</button>`:"");}
+  const show=ns;
+  return show.map(n=>`<div class="nrow"><span class="nd tn">${esc((n.at||"").slice(0,16).replace("T"," "))}</span><b class="nw">${esc(n.who||"")}</b><div class="ntext"${n.color&&!/^#?(161616|000000|000)$/i.test(n.color)?` style="color:${esc(n.color)}"`:""}>${esc(n.text)}${n.pid?`<button class="ph sq nph" data-a="ph-view" data-id="${esc(n.pid)}" aria-label="크게 보기">${n.url?`<img src="${esc(n.url)}" alt="">`:""}</button>`:""}</div></div>`).join("")
+   ;}
 document.addEventListener("submit",async e=>{if(e.target.id!=="cp-nform")return;e.preventDefault();const t=$("cp-nin"),v=t.value.trim();if(!v||!openKey)return;
   const n={at:new Date(Date.now()+9*3600e3).toISOString().slice(0,19),who:who(),text:v};(NOTES[openKey]=NOTES[openKey]||[]).push(n);t.value="";refresh();
   try{if(window.saveNote)await window.saveNote(openKey,n);else toast("시험판에서는 이력이 저장되지 않아요")}catch(err){NOTES[openKey]=NOTES[openKey].filter(x=>x!==n);t.value=v;refresh();toast("이력을 저장하지 못했어요")}});
@@ -1226,7 +1234,7 @@ function editHTML(b){const s=b.steps||{};
 
 /* ===== 문자: 감탄 콘솔 문구 그대로 (gamtan-sms) + GTman님 규칙(원본 문구 형식, 픽셀 표기 빼기, 보정본에 수정 여부 안 묻기, 주말 인사) ===== */
 const ACC="[635-057095-01-019 기업은행 / 김시현(감탄사진관)]";
-let MSGON=null;const MSGSEL={};const wide=()=>matchMedia("(min-width:980px)").matches;
+let MSGON=null;const MSGSEL={};const wide=()=>false;
 const dKo=d=>{if(!d)return"○○";const x=new Date(d+"T12:00");return `${x.getFullYear()}년 ${x.getMonth()+1}월 ${x.getDate()}일 ${"일월화수목금토"[x.getDay()]}요일`};
 const tKo=t=>{if(!t)return"○○";const h=+t.slice(0,2),m=+t.slice(3,5);const ap=h<12?"오전":"오후";const hh=h>12?h-12:h;return `${ap} ${hh}시${m?` ${m}분`:""}`};
 const isWeekend=()=>[0,6].includes(new Date().getDay());
