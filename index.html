@@ -737,6 +737,7 @@ function shipRows(b){
 }
 function hasOrig(b){if(b.noOrig&&!(b.items||[]).some(i=>i.kind==="원본"))return false;if(b.needOrig||(b.items||[]).some(i=>i.kind==="원본"))return true;const p=P(b);return !!(p&&p.orig)}
 const origSent=b=>!!(b.steps||{}).orig||(b.items||[]).some(i=>i.kind==="원본"&&i.shipped);
+const isWs=b=>isBig(b)||(b.items||[]).some(i=>i.kind==="액자"&&/3구/.test(i.size||"")); /* 공방에서 오는 액자 */
 const isBig=b=>(b.items||[]).some(i=>i.kind==="액자"&&/11x14|11알|16|20|24|28|캔버스/.test(i.size||""))||PRICE_META.some(m=>m.big&&(b.ex||{})[m.k]);
 
 /* ===== 상태: 기록에서 자동 (설계안 상태 흐름표, 위에서부터 처음 맞는 것) ===== */
@@ -784,7 +785,7 @@ function stepsFor(b){
   if(hasOrig(b))L.push(["orig","원본"]);
   if(!(p&&p.nopick))L.push(["picked","선택"],["handoff","작업"]);
   if(isBig(b)||(b.steps||{}).rnotify||(b.steps||{}).rcheck)L.push(["rnotify","보정본 연락"],["rcheck","보정본 확인"]); /* 큰 액자: 보정본 보러 오기 */
-  if(isBig(b)||(b.steps||{}).workshop)L.push(["workshop","공방"]);
+  if(isWs(b)||(b.steps||{}).workshop)L.push(["workshop","공방"]);
   L.push(["done","완료"],["notified","연락"],["delivered",b.ship==="택배"?"택배 발송":"수령"]);
   return L;
 }
@@ -805,6 +806,7 @@ function nextAction(b){if(b.kind==="consult"&&!(b.steps||{}).shot)return null;
   if(s.picked&&!s.handoff&&st==="작업중")return["handoff","작업"];
   if(st.startsWith("보정본 확인"))return["rcheck","보정본 확인"];
   if(st==="작업중"&&s.handoff&&isBig(b)&&!s.rnotify&&!s.rcheck&&!s.workshop)return["rnotify","보정본 연락"];
+  if(st==="작업중"&&s.handoff&&isWs(b)&&!s.workshop)return["workshop","공방"];
   if(st==="작업중"||st==="공방")return["done","완료"];
   if(st==="출고 연락 전")return["notified","연락"];
   if(status(b).rest){const left=shipRows(b).filter(r=>!r.shipped);return["rest",left.length===1?left[0].kind:"출고"]}
@@ -1134,7 +1136,7 @@ function drawCard(b){
   setVal($("hm-"+id),b.memo||"");
   const L=stepsFor(b),na=nextAction(b);const first=L.findIndex(([k])=>!stepOn(b,k));
   put("hf-"+id,(s.canceled||st.past?"":L.map(([k,l],i)=>{const on=stepOn(b,k);return `<button class="st${on?" on":i===first?" now":""}" data-a="step" data-id="${esc(id)}" data-v="${k}" title="${on?"눌러서 되돌리기":"눌러서 체크"}">${on?"✓ ":""}${l}<small>${esc(on?stepDate(b,k):"")}</small></button>`}).join(""))
-    +(L.some(x=>x[0]==="rnotify")&&!s.rcheck&&!s.canceled&&!st.past?(RVF===id?`<span class="rvf"><input type="date" class="inp" id="rvd-${esc(id)}" value="${TODAY}" aria-label="보정본 확인 날짜"><input type="time" class="inp" id="rvt-${esc(id)}" step="600" aria-label="보정본 확인 시간"><button class="mini pri" data-a="rv-save" data-id="${esc(id)}">저장</button><button class="mini" data-a="rv-x" data-id="${esc(id)}">취소</button></span>`:`<button class="mini" data-a="rv-open" data-id="${esc(id)}">+ 보정본 일정</button>`):"")
+    +((L.some(x=>x[0]==="rnotify")||(s.handoff&&!stepOn(b,"done")&&(b.items||[]).some(i=>i.kind==="액자")))&&!s.rcheck&&!s.canceled&&!st.past?(RVF===id?`<span class="rvf"><input type="date" class="inp" id="rvd-${esc(id)}" value="${TODAY}" aria-label="보정본 확인 날짜"><input type="time" class="inp" id="rvt-${esc(id)}" step="600" aria-label="보정본 확인 시간"><button class="mini pri" data-a="rv-save" data-id="${esc(id)}">저장</button><button class="mini" data-a="rv-x" data-id="${esc(id)}">취소</button></span>`:`<button class="mini" data-a="rv-open" data-id="${esc(id)}">+ 보정본 일정</button>`):"")
     +(st.past?`<span class="sc c-mute">지난 기록</span>`:"")
     +`<button class="mini msgbtn${MSGON===id?" pri":""}" data-a="msg" data-id="${esc(id)}">문자</button>`
     +(na&&!s.canceled?`<button class="nextbtn" data-a="step" data-id="${esc(id)}" data-v="${na[0]}">${na[1]}</button>`:""));
