@@ -1114,7 +1114,7 @@ function drawCust(){
   let prev=null;
   sorted.forEach(b=>{let el=$("hc-"+b.id);
     if(!el){el=document.createElement("section");el.id="hc-"+b.id;el.className="hc";
-      el.innerHTML=`<div class="hrw" id="hrw-${b.id}"></div><div id="hh-${b.id}"></div><div class="hm"><textarea id="hm-${b.id}" data-f="memo" data-id="${esc(b.id)}" rows="1" aria-label="메모"></textarea></div><div class="hf" id="hf-${b.id}"></div><div class="hsw" id="hs-${b.id}"></div><div id="hq-${b.id}"></div><div class="hd" id="hd-${b.id}" hidden><div id="hg-${b.id}"></div><div id="hp-${b.id}"></div><div id="hy-${b.id}"></div><div id="hx-${b.id}"></div><div id="he-${b.id}"></div></div>`;
+      el.innerHTML=`<div class="hrw" id="hrw-${b.id}"></div><div id="hh-${b.id}"></div><div class="hm"><textarea id="hm-${b.id}" data-f="memo" data-id="${esc(b.id)}" rows="1" aria-label="메모"></textarea></div><div class="hf" id="hf-${b.id}"></div><div class="hsw" id="hs-${b.id}"></div><div id="hq-${b.id}"></div><div class="hd" id="hd-${b.id}" hidden><div id="hg-${b.id}"></div><div id="hp-${b.id}"></div><div id="hy-${b.id}"></div><div id="he-${b.id}"></div></div>`;
       if(!SEEN.has(b.id)){SEEN.add(b.id)}}
     const ref=prev?prev.nextSibling:host.firstChild;if(el!==ref)host.insertBefore(el,ref);prev=el;
     put("hrw-"+b.id,rowHTML2(b));drawCard(b)});
@@ -1141,7 +1141,7 @@ function drawCard(b){
   put("hq-"+id,MSGON===id&&!wide()?msgHTML(b):"");
   const hd=$("hd-"+id);if(hd.hidden===open)hd.hidden=!open;
   if(!open)return;
-  put("hg-"+id,growthHTML(b));put("hp-"+id,priceHTML(b));put("hy-"+id,payHTML(b));put("hs-"+id,shipHTML(b));put("hx-"+id,extraHTML(b));put("he-"+id,editHTML(b));
+  put("hg-"+id,growthHTML(b));put("hp-"+id,priceHTML(b));put("hy-"+id,payHTML(b));put("hs-"+id,shipHTML(b));put("he-"+id,editHTML(b));
 }
 /* 히스토리 진행 색: 주황=우리 차례, 파랑=손님 기다림, 초록=아직 안 찍음, 끝난 건 흐리게 */
 function stg(b,st){const k=st.k;if((b.steps||{}).canceled)return"cx";if(k==="완료"||k==="상담 끝")return"fin";if(b.kind==="visit")return k==="방문 예정"?"wait":"fin";
@@ -1226,7 +1226,7 @@ function shipHTML(b){
     ${open?`
     <div class="tbl-wrap"><table class="ship"><thead><tr><th>항목</th><th>사진</th><th class="c">준비</th><th class="c">출고</th><th></th></tr></thead><tbody>${rows.map(tr).join("")||""}</tbody></table></div>`:""}
 </div>
-    ${workPhotoHTML(b)}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+    ${(x=>x?`<div style="margin-bottom:8px">${x}</div>`:"")(extraHTML(b))}${workPhotoHTML(b)}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
       <button class="tg${b.review?" on":""}" data-a="flag" data-id="${esc(b.id)}" data-v="review">${b.review?"✓ ":""}리뷰·포켓</button>
       <button class="tg red${b.sns?" on":""}" data-a="flag" data-id="${esc(b.id)}" data-v="sns">${b.sns?"✓ ":""}SNS 동의</button>
       <button class="tg rnt${b.rn?" on":""}" data-a="flag" data-id="${esc(b.id)}" data-v="rn" title="리뷰노트 체험단 — 촬영비 0원">${b.rn?"✓ ":""}리뷰노트 (0원)</button>
