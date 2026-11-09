@@ -1213,16 +1213,16 @@ function shipHTML(b){
     <td class="c">${r.virtual?"":`<button class="xb" data-a="item-del" data-id="${esc(b.id)}" data-r="${esc(r.id)}" aria-label="항목 지우기">×</button>`}</td></tr>`};
   const F=FORM&&FORM.id===b.id?FORM.type:null;
   const open=SHIPOPEN.has(b.id),left=rows.filter(r=>!r.shipped).length;
-  return `${workPhotoHTML(b)}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+  return `<div class="box" style="margin-bottom:8px"><button class="bx-h shiph" data-a="shiptog" data-id="${esc(b.id)}" aria-expanded="${open}">출고 <span class="${left?"due":"okt"}" style="font-weight:700;font-size:12px">${rows.length?(left?`남음 ${left}`:"모두 출고됨"):""}</span><span style="margin-left:auto;color:var(--muted)">${open?"▴":"▾"}</span></button>
+    ${open?`
+    <div class="tbl-wrap"><table class="ship"><thead><tr><th>항목</th><th>사진</th><th class="c">준비</th><th class="c">출고</th><th></th></tr></thead><tbody>${rows.map(tr).join("")||""}</tbody></table></div>`:""}
+</div>
+    ${workPhotoHTML(b)}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
       <button class="tg${b.review?" on":""}" data-a="flag" data-id="${esc(b.id)}" data-v="review">${b.review?"✓ ":""}리뷰·포켓</button>
       <button class="tg red${b.sns?" on":""}" data-a="flag" data-id="${esc(b.id)}" data-v="sns">${b.sns?"✓ ":""}SNS 동의</button>
       <button class="tg rnt${b.rn?" on":""}" data-a="flag" data-id="${esc(b.id)}" data-v="rn" title="리뷰노트 체험단 — 촬영비 0원">${b.rn?"✓ ":""}리뷰노트 (0원)</button>
       <span class="shipm"><button class="tg${b.ship!=="택배"?" on":""}" data-a="shipm" data-id="${esc(b.id)}" data-v="">방문 수령</button><button class="tg${b.ship==="택배"?" on":""}" data-a="shipm" data-id="${esc(b.id)}" data-v="택배">택배</button></span>
-      ${b.ship==="택배"?`<input class="inp trk" data-f="track" data-id="${esc(b.id)}" value="${esc(b.track||"")}" placeholder="송장번호" inputmode="numeric" aria-label="송장번호">`:""}</div>
-    <div class="box"><button class="bx-h shiph" data-a="shiptog" data-id="${esc(b.id)}" aria-expanded="${open}">출고 <span class="${left?"due":"okt"}" style="font-weight:700;font-size:12px">${rows.length?(left?`남음 ${left}`:"모두 출고됨"):""}</span><span style="margin-left:auto;color:var(--muted)">${open?"▴":"▾"}</span></button>
-    ${open?`
-    <div class="tbl-wrap"><table class="ship"><thead><tr><th>항목</th><th>사진</th><th class="c">준비</th><th class="c">출고</th><th></th></tr></thead><tbody>${rows.map(tr).join("")||""}</tbody></table></div>`:""}
-</div>`;
+      ${b.ship==="택배"?`<input class="inp trk" data-f="track" data-id="${esc(b.id)}" value="${esc(b.track||"")}" placeholder="송장번호" inputmode="numeric" aria-label="송장번호">`:""}</div>`;
 }
 function extraHTML(b){
   const p=P(b);if(p&&p.idlike)return"";
