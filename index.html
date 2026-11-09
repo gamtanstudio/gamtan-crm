@@ -368,6 +368,7 @@ button.refc:hover{background:var(--acc-bg)}
 .st.on{color:var(--ok);background:var(--ok-bg);border-color:var(--ok-line);font-weight:700}
 .st.now{color:var(--acc-fg);background:var(--acc-bg);border-color:var(--acc);font-weight:800}
 .nextbtn{margin-left:auto;background:var(--acc);color:#fff;border:0;border-radius:8px;padding:7px 14px;font-weight:800;min-height:38px}
+.rvf{display:inline-flex;gap:5px;align-items:center}.rvf .inp{width:auto;padding:4px 6px}
 .hsw{padding:0 12px 4px}.hsw:empty{display:none}
 .hd{padding:4px 12px 12px;display:flex;flex-direction:column;gap:10px}
 
@@ -743,6 +744,9 @@ function isPast(b){return b.date&&b.date<addDays(TODAY,-90)}
 function gsBase(b){const d=pays(b).find(p=>p.kind==="예약금"&&p.date);if(d)return d.date;const pv=b.prevId&&B[b.prevId];return pv&&pv.date||(b.steps||{}).deposit||""}
 /* 같은 계약에 붙은 앞으로의 보충(재촬영) 일정 — 있으면 "재촬영 예정"으로 보여 작업중에서 뺌 */
 let RTC=null,RTT=0;
+/* 같은 계약에 붙은 앞으로의 보정본 확인(모니터) 방문 — 가장 가까운 것 */
+let RVC=null,RVT=0;
+function rvisitOf(bid){if(!bid)return null;if(!RVC||Date.now()-RVT>1500){RVC=new Map();RVT=Date.now();for(const x of Object.values(B)){if(!x._hist||!x._sid||(x.date||"")<TODAY||(x.steps||{}).canceled)continue;const sn=typeof SNAPS!=="undefined"&&SNAPS[x._sid];if(sn&&sn.booking_id&&sn.kind==="monitor"){const o=RVC.get(sn.booking_id);if(!o||(x.date+(x.time||""))<(o.date+(o.time||"")))RVC.set(sn.booking_id,x)}}}return RVC.get(bid)||null}
 function retakeOf(bid){if(!bid)return null;if(!RTC||Date.now()-RTT>1500){RTC=new Map();RTT=Date.now();for(const x of Object.values(B)){if(!x._hist||!x._sid||(x.date||"")<TODAY||(x.steps||{}).canceled)continue;const sn=typeof SNAPS!=="undefined"&&SNAPS[x._sid];if(sn&&sn.booking_id&&sn.kind==="supplement")RTC.set(sn.booking_id,x)}}return RTC.get(bid)||null}
 function status(b){
   const s=b.steps||{},p=P(b);
@@ -765,6 +769,7 @@ function status(b){
   if(s.notified)return{k:"수령 대기",c:"c-acc"};
   const nonOrig=rows.filter(r=>r.kind!=="원본"&&r.kind!=="보정본");
   if(s.done||(nonOrig.length&&nonOrig.every(r=>r.ready||r.shipped)))return{k:"출고 연락 전",c:"c-warn"};
+  if(!s.workshop&&s.rnotify&&!s.rcheck){const rv=rvisitOf(b._bid);return rv?{k:"보정본 확인 "+md(rv.date),c:"c-acc"}:{k:"보정본 확인 대기",c:"c-acc"}}
   if(s.workshop)return{k:"공방",c:"c-warn"};
   if(s.picked||(p&&p.nopick))return(s.handoff||(p&&p.nopick))?{k:"작업중",c:"c-warn"}:{k:"작업중",c:"c-warn",crit:"실장 전"};
   if(hasOrig(b)&&!origSent(b))return{k:"원본 발송 전",c:"c-crit",crit:"원본 발송 전"};
@@ -778,6 +783,7 @@ function stepsFor(b){
   if(b.rn){const R2=[...L.slice(1),["orig","원본"]];if(shipRows(b).some(r=>r.kind!=="원본"))R2.push(["done","완료"],["notified","연락"],["delivered",b.ship==="택배"?"택배 발송":"수령"]);return R2} /* 리뷰노트: 촬영 → 원본으로 끝 (추가 주문 있으면 출고까지) */
   if(hasOrig(b))L.push(["orig","원본"]);
   if(!(p&&p.nopick))L.push(["picked","선택"],["handoff","작업"]);
+  if(isBig(b)||(b.steps||{}).rnotify||(b.steps||{}).rcheck)L.push(["rnotify","보정본 연락"],["rcheck","보정본 확인"]); /* 큰 액자: 보정본 보러 오기 */
   if(isBig(b)||(b.steps||{}).workshop)L.push(["workshop","공방"]);
   L.push(["done","완료"],["notified","연락"],["delivered",b.ship==="택배"?"택배 발송":"수령"]);
   return L;
@@ -797,6 +803,8 @@ function nextAction(b){if(b.kind==="consult"&&!(b.steps||{}).shot)return null;
   if(st==="원본 발송 전")return["orig","원본"];
   if(st==="사진 선택 대기")return["picked","선택"];
   if(s.picked&&!s.handoff&&st==="작업중")return["handoff","작업"];
+  if(st.startsWith("보정본 확인"))return["rcheck","보정본 확인"];
+  if(st==="작업중"&&s.handoff&&isBig(b)&&!s.rnotify&&!s.rcheck&&!s.workshop)return["rnotify","보정본 연락"];
   if(st==="작업중"||st==="공방")return["done","완료"];
   if(st==="출고 연락 전")return["notified","연락"];
   if(status(b).rest){const left=shipRows(b).filter(r=>!r.shipped);return["rest",left.length===1?left[0].kind:"출고"]}
@@ -881,8 +889,8 @@ function withAnchor(fn){
 }
 
 /* ===== 캘린더 ===== */
-const FILTERS=[["상담","상담"],["미입금","미입금"],["원본 발송 전","원본 발송 전"],["사진 선택 대기","사진 선택 대기"],["작업중","작업중"],["출고 연락 전","출고 연락 전"],["수령 대기","수령 대기"],["rest","남은 출고"]];
-const fkey=b=>{const st=status(b);return st.rest?"rest":st.k};
+const FILTERS=[["상담","상담"],["미입금","미입금"],["원본 발송 전","원본 발송 전"],["사진 선택 대기","사진 선택 대기"],["작업중","작업중"],["보정본 확인","보정본 확인"],["출고 연락 전","출고 연락 전"],["수령 대기","수령 대기"],["rest","남은 출고"]];
+const fkey=b=>{const st=status(b);return st.rest?"rest":st.k.startsWith("보정본 확인")?"보정본 확인":st.k};
 let calBuilt="";
 function buildCal(){
   const key=`${calY}-${calM}`;if(calBuilt===key)return;calBuilt=key;
@@ -1126,6 +1134,7 @@ function drawCard(b){
   setVal($("hm-"+id),b.memo||"");
   const L=stepsFor(b),na=nextAction(b);const first=L.findIndex(([k])=>!stepOn(b,k));
   put("hf-"+id,(s.canceled||st.past?"":L.map(([k,l],i)=>{const on=stepOn(b,k);return `<button class="st${on?" on":i===first?" now":""}" data-a="step" data-id="${esc(id)}" data-v="${k}" title="${on?"눌러서 되돌리기":"눌러서 체크"}">${on?"✓ ":""}${l}<small>${esc(on?stepDate(b,k):"")}</small></button>`}).join(""))
+    +(L.some(x=>x[0]==="rnotify")&&!s.rcheck&&!s.canceled&&!st.past?(RVF===id?`<span class="rvf"><input type="date" class="inp" id="rvd-${esc(id)}" value="${TODAY}" aria-label="보정본 확인 날짜"><input type="time" class="inp" id="rvt-${esc(id)}" step="600" aria-label="보정본 확인 시간"><button class="mini pri" data-a="rv-save" data-id="${esc(id)}">저장</button><button class="mini" data-a="rv-x" data-id="${esc(id)}">취소</button></span>`:`<button class="mini" data-a="rv-open" data-id="${esc(id)}">+ 보정본 일정</button>`):"")
     +(st.past?`<span class="sc c-mute">지난 기록</span>`:"")
     +`<button class="mini msgbtn${MSGON===id?" pri":""}" data-a="msg" data-id="${esc(id)}">문자</button>`
     +(na&&!s.canceled?`<button class="nextbtn" data-a="step" data-id="${esc(id)}" data-v="${na[0]}">${na[1]}</button>`:""));
@@ -1136,7 +1145,7 @@ function drawCard(b){
 }
 /* 히스토리 진행 색: 주황=우리 차례, 파랑=손님 기다림, 초록=아직 안 찍음, 끝난 건 흐리게 */
 function stg(b,st){const k=st.k;if((b.steps||{}).canceled)return"cx";if(k==="완료"||k==="상담 끝")return"fin";if(b.kind==="visit")return k==="방문 예정"?"wait":"fin";
-  if(["예약확정","미입금","날짜 미정","미등록","상담","중단"].includes(k))return"pre";if(["사진 선택 대기","수령 대기","재촬영 예정","연기"].includes(k))return"wait";return"ours"}
+  if(["예약확정","미입금","날짜 미정","미등록","상담","중단"].includes(k))return"pre";if(["사진 선택 대기","수령 대기","재촬영 예정","연기"].includes(k)||k.startsWith("보정본 확인"))return"wait";return"ours"}
 function hrMoney(b){const tot=totalOf(b),bal=tot-paidOf(b),s=b.steps||{};
   const rows=shipRows(b).filter(r=>!r.virtual||r.kind!=="원본"),left=s.shot&&rows.length?rows.filter(r=>!r.shipped).length:0;
   return `<span class="hr-n tn">${tot?money(tot):""}</span><span class="hr-b tn">${!tot?"":bal>0?`<b>잔 ${money(bal)}</b>`:`<i>완납</i>`}</span><span class="hr-s">${b.ship==="택배"?"택배 ":""}${left?`출고 ${left}`:""}</span>`}
@@ -1248,7 +1257,7 @@ function editHTML(b){const s=b.steps||{};
 
 /* ===== 문자: 감탄 콘솔 문구 그대로 (gamtan-sms) + GTman님 규칙(원본 문구 형식, 픽셀 표기 빼기, 보정본에 수정 여부 안 묻기, 주말 인사) ===== */
 const ACC="[635-057095-01-019 기업은행 / 김시현(감탄사진관)]";
-let MSGON=null;const MSGSEL={};const wide=()=>false;
+let MSGON=null,RVF=null;const MSGSEL={};const wide=()=>false;
 const dKo=d=>{if(!d)return"○○";const x=new Date(d+"T12:00");return `${x.getFullYear()}년 ${x.getMonth()+1}월 ${x.getDate()}일 ${"일월화수목금토"[x.getDay()]}요일`};
 const tKo=t=>{if(!t)return"○○";const h=+t.slice(0,2),m=+t.slice(3,5);const ap=h<12?"오전":"오후";const hh=h>12?h-12:h;return `${ap} ${hh}시${m?` ${m}분`:""}`};
 const isWeekend=()=>[0,6].includes(new Date().getDay());
@@ -1623,6 +1632,9 @@ document.addEventListener("click",e=>{
   if(a==="logf"){LOGF=v;refresh();return}
   if(a==="logall"){LOGALL=!LOGALL;if(LOGALL)loadCustLogs(openKey,custBookings().map(x=>x.id));refresh();return}
   if(a==="msgx"){MSGON=null;refresh();return}
+  if(a==="rv-open"){RVF=id;refresh();return}
+  if(a==="rv-x"){RVF=null;refresh();return}
+  if(a==="rv-save"){const d=($("rvd-"+id)||{}).value,tt=($("rvt-"+id)||{}).value||"";if(!d){toast("날짜를 골라 주세요");return}RVF=null;window.addRetouchVisit(b,d,tt).then(()=>toast(`보정본 확인 ${md(d)}${tt?" "+tm(tt):""} 일정 넣었어요`)).catch(()=>{toast("일정을 넣지 못했어요");refresh()});return}
   if(a==="refgo"){const no=+v;if(!no)return;const go=()=>{const b=Object.values(B).filter(x=>ckey(x)==="n"+no).sort(byDate).pop();if(b){CEDIT=false;openCust(b.id)}else toast(`#${no} 고객 예약 기록이 없어요`)};if(LOADED_C.has(no)&&Object.values(B).some(x=>ckey(x)==="n"+no))go();else ensureCust(no).then(go);return}
   if(a==="ib-copy"){const tx=t.dataset.v||"";const done=()=>toast("복사됐어요");if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(tx).then(done,()=>toast("복사하지 못했어요"));else toast("복사하지 못했어요");return}
   if(a==="ib-skip"){const ids=String(id||"").split(",").filter(Boolean);if(window.ibUpdate)window.ibUpdate(ids,{state:"skip"}).catch(()=>toast("저장하지 못했어요"));return}
@@ -1857,7 +1869,7 @@ const kst=a=>new Date(new Date(a).getTime()+9*3600e3).toISOString();
 /* ---------- 서버 → 화면 ---------- */
 const ITEMK=(k,sm)=>{const t=(k||"")+" "+(sm||"");if(/포켓/.test(t))return"리뷰포켓";if(/액자|캔버스/.test(t))return"액자";if(/보정본/.test(t))return"보정본";if(/원본/.test(t))return"원본";if(/앨범/.test(t))return"앨범";return k||"기타"};
 const isCons=s=>s.kind==="shoot"&&(!s.state||s.state==="완료");
-const STEPCOL={shot:"shot_at",canceled:"canceled_at",postponed:"postponed_at",orig:"original_sent_at",picked:"picked_at",handoff:"handoff_at",workshop:"workshop_at",done:"done_at",notified:"notified_at",delivered:"delivered_at",slot_off:"slot_off_at"};
+const STEPCOL={shot:"shot_at",canceled:"canceled_at",postponed:"postponed_at",orig:"original_sent_at",picked:"picked_at",handoff:"handoff_at",workshop:"workshop_at",done:"done_at",notified:"notified_at",delivered:"delivered_at",slot_off:"slot_off_at",rnotify:"retouch_notified_at",rcheck:"retouch_checked_at"};
 const SNAP={},SNAPI={},SNAPP={},SNAPS={},BID2KEY={},CUSTROW={};
 /* 얼굴 사진: Storage 'faces' 비공개 보관함 + photos 표 */
 const PH_LOADED=new Set();
@@ -2041,6 +2053,10 @@ async function writePays(b){
   const gone=Object.keys(old).filter(id=>!keep.has(id));
   if(gone.length){mine(b._bid);const {error}=await sb.from("payments").delete().in("id",gone);if(error)throw error;gone.forEach(id=>delete SNAPP[b._bid][id])}
 }
+/* 보정본 확인 방문 일정 넣기 (그 계약에 붙는 모니터 일정) */
+window.addRetouchVisit=async(b,date,time)=>{const id=newId();const row={id,customer_no:b.customer_no,booking_id:b._bid,kind:"monitor",date,start_time:time?time.slice(0,5)+":00":null,title:"보정본 확인",memo:"보정본 확인"};
+  mine(b._bid);mine(id);const {error}=await sb.from("schedules").insert(row);if(error)throw error;const x=sToB(row,CUSTROW[b.customer_no]);B[x.id]=x;RVC=null;
+  if(!(b.steps||{}).rnotify)save(b.id,{steps:{rnotify:TODAY}},"보정본 연락");log(b.id,`보정본 확인 일정 ${date}${time?" "+time:""}`);refresh()};
 async function writeShootSlot(b){ // 촬영 날짜·시간 = 촬영 일정 1줄
   const st=b.time?b.time.slice(0,5)+":00":null;
   if(b.date){
