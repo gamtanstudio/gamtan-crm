@@ -713,15 +713,15 @@ const needPay=b=>pays(b).some(p=>p.amount&&(!p.method||(needReceipt(p.method)&&!
 
 /* ===== 출고 항목: 저장된 것 + 상품에 따라 나가야 할 것(아직 안 만든 것은 회색 줄) ===== */
 function shipRows(b){
-  const items=(b.items||[]).map(i=>({...i})),p=P(b),k=pk(b);
+  const items=(b.items||[]).filter(i=>!b.rn||i.exk||!["액자","보정본","보정 파일"].includes(i.kind)).map(i=>({...i})),p=P(b),k=pk(b);
   const has=kind=>items.some(i=>i.kind===kind);
   const v=[];
-  if(p&&!p.idlike){
+  if(p&&!p.idlike&&!b.rn){ /* 리뷰노트는 원본만 (액자·보정본 없음) */
     if(p.frame&&!has("액자"))v.push({id:"v-frame",kind:"액자",size:p.frame,virtual:1});
     if(p.frame&&!has("보정본"))v.push({id:"v-ret",kind:"보정본",size:"",virtual:1});
     if(!p.frame&&!has("보정 파일"))v.push({id:"v-file",kind:"보정 파일",size:"",virtual:1});
   }
-  if(hasOrig(b)&&!has("원본"))v.push({id:"v-orig",kind:"원본",size:"",virtual:1});
+  if((hasOrig(b)||b.rn)&&!has("원본"))v.push({id:"v-orig",kind:"원본",size:"",virtual:1});
   if(b.review&&!has("리뷰포켓"))v.push({id:"v-pocket",kind:"리뷰포켓",size:"",virtual:1});
   PRICE_META.forEach(m=>{if(m.noship)return;const q=(b.ex||{})[m.k]||0;const kind=m.k==="origadd"?"원본 추가":m.label;if(q&&!items.some(i=>i.exk===m.k||i.kind===kind))v.push({id:"v-ex-"+m.k,kind,size:q>1?`×${q}`:"",exk:m.k,virtual:1})});
   return [...items,...v];
@@ -749,6 +749,7 @@ function status(b){
     return{k:"촬영 기록 없음",c:"c-crit",crit:"촬영 기록 없음"};
   }
   if(p&&p.idlike){const t=totalOf(b);return t&&paidOf(b)>=t&&!pays(b).some(x=>x.amount&&!x.method)?{k:"완료",c:"c-ok"}:{k:"결제 확인",c:"c-crit",crit:"미결제"}}
+  if(b.rn){if(!origSent(b))return{k:"원본 발송 전",c:"c-crit",crit:"원본 발송 전"};if(!shipRows(b).some(r=>r.kind!=="원본"&&!r.shipped))return{k:"완료",c:"c-ok"}}
   const rows=shipRows(b);
   if(rows.length&&rows.every(r=>r.shipped))return{k:"완료",c:"c-ok"};
   if(!s.done&&!s.notified&&!s.delivered&&retakeOf(b._bid))return{k:"재촬영 예정",c:"c-acc"};
@@ -766,6 +767,7 @@ function stepsFor(b){
   if(b.kind==="consult"&&!(b.steps||{}).shot)return[["closed","상담 끝"]];
   const p=P(b),L=[["deposit","예약금"],["slot_off",p&&p.idlike?"가족끔":"증명끔"],["shot","촬영"]];
   if(p&&p.idlike)return L.slice(1);
+  if(b.rn){const R2=[...L.slice(1),["orig","원본"]];if(shipRows(b).some(r=>r.kind!=="원본"))R2.push(["done","완료"],["notified","연락"],["delivered",b.ship==="택배"?"택배 발송":"수령"]);return R2} /* 리뷰노트: 촬영 → 원본으로 끝 (추가 주문 있으면 출고까지) */
   if(hasOrig(b))L.push(["orig","원본"]);
   if(!(p&&p.nopick))L.push(["picked","선택"],["handoff","작업"]);
   if(isBig(b)||(b.steps||{}).workshop)L.push(["workshop","공방"]);
@@ -1173,7 +1175,7 @@ function calcBar(b){
   if(p.adultAdd!==undefined||p.growth)h+=num("kids",p.growth?Math.max(1,+b.kids||1):(+b.kids||0),"아이");
   if(p.perHead)h+=num("adults",+b.adults||1,"인원");if(p.extraRetouch!==undefined)h+=num("retouch",+b.retouch||0,"추가 보정");
   if(p.petAdd)h+=chk("pet","반려동물");if(p.up11)h+=chk("up11","11알");
-  const fz=((b.items||[]).find(i=>i.kind==="액자")||{}).size||p.frame;const incl=[p.frame?`${fz} 액자`:"",p.orig?"원본":""].filter(Boolean).join(" · ");
+  const fz=((b.items||[]).find(i=>i.kind==="액자")||{}).size||p.frame;const incl=b.rn?"원본":[p.frame?`${fz} 액자`:"",p.orig?"원본":""].filter(Boolean).join(" · ");
   if(k==="bigfam")h+=`<button class="mini warnb" data-a="toorig" data-id="${id}">→ 원본형</button>`;
   PRICE_META.forEach(m=>{const q=(b.ex||{})[m.k]||0;if(q&&m.p){const amt=m.big?Math.round(m.p*q/2):m.p*q;h+=`<span class="sc c-acc">+ ${m.label} ${q}개 ${money(amt)}</span>`}});
   return h||incl?`<div class="nums" style="margin:6px 0 0">${h}${incl?`<span class="incl" style="margin:0 0 0 auto">${incl}</span>`:""}${Array.isArray(b.priceItems)?`<button class="mini" data-a="recalc" data-id="${id}">자동 계산으로</button>`:""}</div>`:"";
