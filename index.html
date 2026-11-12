@@ -317,7 +317,8 @@ button.refc:hover{background:var(--acc-bg)}
 .hr:hover{background:var(--line2)}
 .hr.on{background:color-mix(in srgb,var(--pc) 10%,var(--card));box-shadow:inset 4px 0 0 var(--pc)}
 .hr.cx{opacity:.42;text-decoration:line-through}
-.sg-ours{--sg:#e8710a}.sg-wait{--sg:#2563eb}.sg-pre{--sg:#16a34a}
+.sg-ours{--sg:#e8710a}.sg-wait{--sg:#2563eb}.sg-pre{--sg:#16a34a}.sg-made{--sg:var(--smr-fg)}
+#hlist .hr.sg-made{box-shadow:inset 4px 0 0 var(--sg)}#hlist .hc.sg-made{border-color:var(--sg)}#hlist .hc.sg-made .sc:not(.c-crit){color:var(--sg);background:var(--smr-bg)}
 #hlist .hr.sg-ours,#hlist .hr.sg-wait,#hlist .hr.sg-pre{box-shadow:inset 4px 0 0 var(--sg)}
 #hlist .hc.sg-ours,#hlist .hc.sg-wait,#hlist .hc.sg-pre{border-color:var(--sg)}
 #hlist .hc.sg-fin{border-color:var(--line)}
@@ -1151,7 +1152,7 @@ function drawCard(b){
   put("hg-"+id,growthHTML(b));put("hp-"+id,priceHTML(b));put("hy-"+id,payHTML(b));put("hs-"+id,shipHTML(b));put("he-"+id,editHTML(b));
 }
 /* 히스토리 진행 색: 주황=우리 차례, 파랑=손님 기다림, 초록=아직 안 찍음, 끝난 건 흐리게 */
-function stg(b,st){const k=st.k;if((b.steps||{}).canceled)return"cx";if(st.past)return k==="완료"?"fin":"wait";if(k==="완료"||k==="상담 끝")return"fin";if(b.kind==="visit")return k==="방문 예정"?"wait":"fin";
+function stg(b,st){const k=st.k;if((b.steps||{}).canceled)return"cx";const made=()=>shipRows(b).some(r=>r.ready&&!r.shipped&&r.kind!=="원본");if(st.past)return k==="완료"?"fin":made()?"made":"wait";if(k==="출고 연락 전"||k==="수령 대기"||(st.rest&&made()))return"made"; /* SM 완성색(보라) */if(k==="완료"||k==="상담 끝")return"fin";if(b.kind==="visit")return k==="방문 예정"?"wait":"fin";
   if(["예약확정","미입금","날짜 미정","미등록","상담","중단"].includes(k))return"pre";if(["사진 선택 대기","수령 대기","재촬영 예정","연기"].includes(k)||k.startsWith("보정본 확인"))return"wait";return"ours"}
 function hrMoney(b){const tot=totalOf(b),bal=tot-paidOf(b),s=b.steps||{};
   const rows=shipRows(b).filter(r=>!r.virtual||r.kind!=="원본"),left=s.shot&&rows.length?rows.filter(r=>!r.shipped).length:0;
