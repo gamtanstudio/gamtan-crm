@@ -1046,7 +1046,7 @@ function drawList(){
   if(q){const qd=q.replace(/\D/g,""),terms=q.toLowerCase().split(/\s+/).filter(Boolean),qn=q.toLowerCase().replace(/\s+/g,"");
     const has=t=>{t=t.toLowerCase();return terms.every(w=>t.includes(w))||t.replace(/\s+/g,"").includes(qn)};
     keys=keys.filter(k=>{const c=CUST[k]||{},bs=groups[k];
-      if(bs.some(b=>has([b.name,b.customer_no,b.product,calText(b)].join(" ")))||(qd.length>=3&&qd.length===q.replace(/[\s-]/g,"").length&&String(c.phone||"").replace(/\D/g,"").includes(qd)))return true;
+      if(bs.some(b=>has([b.name,b.customer_no,b.product,calText(b)].join(" ")))||(qd.length>=3&&qd.length===q.replace(/[\s-]/g,"").length&&[c.phone,c.phone2,c.phone3].join(" ").replace(/\D/g,"").includes(qd)))return true;
       const memos=[c.memo,c.family,c.visit,...bs.slice().sort(byDate).reverse().map(b=>[b.memo,b.track].filter(Boolean).join(" "))].filter(Boolean);
       const all=memos.join("\n");if(!has(all))return false;
       const m=memos.find(t=>t.toLowerCase().includes(terms[0]))||memos.find(has)||"";HIT[k]=m;return true})}
@@ -1077,7 +1077,7 @@ function openCust(id,fromSearch){ /* 캘린더 등에서 누르면 그 예약을
   const wasHidden=$("cp").hidden,newCust=wasHidden||$("cp").dataset.k!==k;$("cp").dataset.k=k;
   $("cp").hidden=false;$("cp-empty").hidden=true;if(newCust)anim($("cp"),"enter");$("right").classList.add("open");document.documentElement.classList.add("lock");
   drawCust();
-  requestAnimationFrame(()=>{const sc=$("right"),t=(!fromSearch&&$("hc-"+id))||$("hlist").previousElementSibling||$("hlist");sc.scrollTop+=t.getBoundingClientRect().top-sc.getBoundingClientRect().top-$("cp-bar").offsetHeight-8});
+  requestAnimationFrame(()=>{const sc=$("right");if(fromSearch){sc.scrollTop=0;return}const t=$("hc-"+id)||$("hlist").previousElementSibling||$("hlist");sc.scrollTop+=t.getBoundingClientRect().top-sc.getBoundingClientRect().top-$("cp-bar").offsetHeight-8});
   setTimeout(navSync,0);
 }
 let LASTOPEN=null,QOPEN=false;
@@ -1091,7 +1091,7 @@ function drawCust(){
   put("cp-bar",`<button class="back" data-a="back">‹ 닫기</button><b>${esc(last.name)}님</b>${atHTML(openKey)}${last.customer_no?`<span class="cno">#${last.customer_no}</span>`:""}${c.wnote?`<span class="wnb">${esc(c.wnote)}</span>`:""}<span style="flex:1"></span>${canLog()?`<button class="mini${LOGSHOW?" pri":""}" data-a="logshow">기록</button>`:""}<button class="mini pri" data-a="newbk-here">+ 예약 추가</button>`);
   {const sh=LOGSHOW&&canLog();if($("cp-logsec").hidden===sh)$("cp-logsec").hidden=!sh}
   put("cp-head",`<div class="cp-name"><h2>${esc(last.name)}님</h2><span class="warnctl" title="주의 손님 표시"><button class="sb" data-a="warn" data-v="-1" aria-label="@ 빼기">−</button><b class="atm">${"@".repeat(warnN(openKey))||"<i>@</i>"}</b><button class="sb" data-a="warn" data-v="1" aria-label="@ 더하기">+</button></span><input class="wnote${c.wnote?" has":""}" data-cf="wnote" value="${esc(c.wnote||"")}" maxlength="80" autocomplete="off" aria-label="주의 메모">${last.customer_no?`<span class="cno">#${last.customer_no}</span>`:`<span class="cno" style="background:var(--warn-bg);color:var(--warn)">고객번호 없음</span>`}${list.some(b=>pk(b)==="growth")?`<span class="gsb">가족성장</span>`:""}${(n=>n?`<span class="rnb" title="리뷰노트(무료 체험)로 온 횟수">리뷰노트 ${n}회${list.some(b=>!b.rn&&totalOf(b)>0)?" · 유료 방문 있음":""}</span>`:"")(list.filter(b=>b.rn).length)}</div>
-    <div class="cinfos">${c.phone?`<span class="phone" style="margin:0">${esc(c.phone)}</span>`:""}${c.email?`<button type="button" class="cinfo" data-a="ib-copy" data-v="${esc(c.email)}" style="border:0;cursor:pointer;font-family:inherit">✉ ${esc(c.email)}</button>`:""}${(()=>{const r=refOf(c),no=r?+String(r.k).replace(/^n/,""):0,go=t=>`<button type="button" class="cinfo" data-a="refgo" data-v="${no}" style="border:0;cursor:pointer;font-family:inherit;text-decoration:underline;text-underline-offset:2px">${esc(t)}</button>`;let h="";if(c.visit)h+=no&&new RegExp("#"+no+"(?!\\d)").test(c.visit)?go(c.visit):`<span class="cinfo">${esc(c.visit)}</span>`;if(no&&!(c.visit&&new RegExp("#"+no+"(?!\\d)").test(c.visit)))h+=go(`추천 ${r.n||""} #${no}`);return h})()}${c.bday?`<span class="cinfo">생일 ${esc(c.bday)}</span>`:""}${c.anniv?`<span class="cinfo">기념일 ${esc(c.anniv)}</span>`:""}${c.family?`<span class="cinfo">${esc(c.family)}</span>`:""}<button class="mini" data-a="ce-open" style="margin-left:auto">수정</button></div>
+    <div class="cinfos">${[c.phone,c.phone2,c.phone3].filter(Boolean).map(p=>`<span class="phone" style="margin:0">${esc(p)}</span>`).join("")}${c.email?`<button type="button" class="cinfo" data-a="ib-copy" data-v="${esc(c.email)}" style="border:0;cursor:pointer;font-family:inherit">✉ ${esc(c.email)}</button>`:""}${(()=>{const r=refOf(c),no=r?+String(r.k).replace(/^n/,""):0,go=t=>`<button type="button" class="cinfo" data-a="refgo" data-v="${no}" style="border:0;cursor:pointer;font-family:inherit;text-decoration:underline;text-underline-offset:2px">${esc(t)}</button>`;let h="";if(c.visit)h+=no&&new RegExp("#"+no+"(?!\\d)").test(c.visit)?go(c.visit):`<span class="cinfo">${esc(c.visit)}</span>`;if(no&&!(c.visit&&new RegExp("#"+no+"(?!\\d)").test(c.visit)))h+=go(`추천 ${r.n||""} #${no}`);return h})()}${c.bday?`<span class="cinfo">생일 ${esc(c.bday)}</span>`:""}${c.anniv?`<span class="cinfo">기념일 ${esc(c.anniv)}</span>`:""}${c.family?`<span class="cinfo">${esc(c.family)}</span>`:""}<button class="mini" data-a="ce-open" style="margin-left:auto">수정</button></div>
     ${photoHTML(last.customer_no,list)}
     ${CEDIT?custEditHTML():""}`);
   put("cp-stats",`<div class="stat"><small>방문 횟수</small><b class="tn">${visits}회</b></div><div class="stat"><small>계약 총액</small><b class="tn">${money(tot)}</b></div><div class="stat"><small>입금액</small><b class="tn" style="color:var(--ok)">${money(pd)}</b></div><div class="stat"><small>잔금</small><b class="tn" style="color:${tot-pd>0?"var(--crit)":"var(--muted)"}">${money(Math.max(0,tot-pd))}</b></div>`);
@@ -1445,6 +1445,8 @@ function custEditHTML(){
   return `<form class="cedit" id="cedit">
     <label>이름<input class="inp" id="ce-name" value="${esc(last.name)}"></label>
     <label>전화<input class="inp" id="ce-phone" inputmode="tel" value="${esc(fmtPhone(c.phone||""))}"></label>
+    <label>전화2<input class="inp" id="ce-phone2" inputmode="tel" value="${esc(fmtPhone(c.phone2||""))}"></label>
+    <label>전화3<input class="inp" id="ce-phone3" inputmode="tel" value="${esc(fmtPhone(c.phone3||""))}"></label>
     <label>이메일<input class="inp" id="ce-email" type="email" inputmode="email" autocomplete="off" value="${esc(c.email||"")}"></label>
     <label>고객번호<input class="inp num" id="ce-no" inputmode="numeric" value="${esc(last.customer_no||"")}"></label>
     <label>방문동기<select class="inp" id="ce-visit"><option value=""></option>${c.visit&&!VISIT.includes(c.visit)?`<option selected>${esc(c.visit)}</option>`:""}${VISIT.map(v=>`<option${c.visit===v?" selected":""}>${v}</option>`).join("")}</select></label>
@@ -1474,7 +1476,7 @@ function referredBy(){const out=Object.entries(CUST).filter(([k,c])=>c.refKey===
 async function saveCustEdit(){
   const list=custBookings(),last=list.slice().sort(byDate).pop(),oldKey=openKey,c={...(CUST[oldKey]||{})};
   const name=$("ce-name").value.trim()||last.name,no=digits($("ce-no").value)||null,ref=$("ce-ref").value.trim();
-  c.phone=$("ce-phone").value.trim();c.email=$("ce-email").value.trim();c.visit=$("ce-visit").value;c.bday=$("ce-bday").value.trim();c.anniv=$("ce-anniv").value.trim();c.family=$("ce-family").value.trim();
+  c.phone=$("ce-phone").value.trim();c.phone2=$("ce-phone2").value.trim();c.phone3=$("ce-phone3").value.trim();c.email=$("ce-email").value.trim();c.visit=$("ce-visit").value;c.bday=$("ce-bday").value.trim();c.anniv=$("ce-anniv").value.trim();c.family=$("ce-family").value.trim();
   if(ref){const m=/#(\d+)\s*$/.exec(ref);const rk=m?"n"+m[1]:(Object.values(B).find(x=>x.name===ref)?ckey(Object.values(B).find(x=>x.name===ref)):"");c.refName=ref.replace(/\s*#\d+\s*$/,"");c.refKey=rk}else{c.refName="";c.refKey=""}
   if(no&&no!==last.customer_no&&Object.values(B).some(x=>x.customer_no===no&&ckey(x)!==oldKey)){toast(`#${no}은 다른 고객 번호예요`);return}
   CEDIT=false;
@@ -1722,7 +1724,7 @@ document.addEventListener("input",e=>{const t=e.target,f=t.dataset&&t.dataset.f;
 });
 function fmtPhone(v){const d=String(v).replace(/\D/g,"").slice(0,11);if(d.startsWith("02")){if(d.length<3)return d;if(d.length<6)return d.slice(0,2)+"-"+d.slice(2);if(d.length<10)return d.slice(0,2)+"-"+d.slice(2,5)+"-"+d.slice(5);return d.slice(0,2)+"-"+d.slice(2,6)+"-"+d.slice(6,10)}
   if(d.length<4)return d;if(d.length<8)return d.slice(0,3)+"-"+d.slice(3);if(d.length<11)return d.slice(0,3)+"-"+d.slice(3,6)+"-"+d.slice(6);return d.slice(0,3)+"-"+d.slice(3,7)+"-"+d.slice(7)}
-document.addEventListener("input",e=>{const t=e.target;if(t.id!=="n-phone"&&t.id!=="ce-phone")return;const v=t.value,c=t.selectionStart??v.length,nd=v.slice(0,c).replace(/\D/g,"").length,out=fmtPhone(v);if(out===v)return;t.value=out;let k=0,pos=0;while(pos<out.length&&k<nd){if(/\d/.test(out[pos]))k++;pos++}try{t.setSelectionRange(pos,pos)}catch(_){}});
+document.addEventListener("input",e=>{const t=e.target;if(!["n-phone","ce-phone","ce-phone2","ce-phone3"].includes(t.id))return;const v=t.value,c=t.selectionStart??v.length,nd=v.slice(0,c).replace(/\D/g,"").length,out=fmtPhone(v);if(out===v)return;t.value=out;let k=0,pos=0;while(pos<out.length&&k<nd){if(/\d/.test(out[pos]))k++;pos++}try{t.setSelectionRange(pos,pos)}catch(_){}});
 $("q").addEventListener("input",()=>{if(view!=="cust"){view="cust";document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v==="cust"));["cal","today","cust"].forEach(n=>$("v-"+n).hidden=n!=="cust");setTimeout(navSync,0)}drawList()});
 
 /* ===== 새 예약 ===== */
@@ -1973,7 +1975,7 @@ async function serverSearch(q){
   try{
   const d=q.replace(/\D/g,""),no=/^#?\d+$/.test(q)?+q.replace("#",""):null,qe=q.replace(/[,()]/g," ");
   const ors=[`name.ilike.%${qe}%`,`sm_name.ilike.%${qe}%`,`family.ilike.%${qe}%`];
-  if(d.length>=4)ors.push(`phone.ilike.%${d.slice(-4)}%`,`phone2.ilike.%${d.slice(-4)}%`);
+  if(d.length>=4)ors.push(`phone.ilike.%${d.slice(-4)}%`,`phone2.ilike.%${d.slice(-4)}%`,`ui->>phone3.ilike.%${d.slice(-4)}%`);
   if(no)ors.push(`customer_no.eq.${no}`);
   /* 이름·전화·번호 찾기와 메모 찾기(예약 메모·일정 메모·고객 메모)를 한꺼번에 — 낱말이 여럿이면 한 메모 안에 모두 들어 있는 것만 */
   const tws=qe.split(/\s+/).filter(w=>w&&!/^#?\d+$/.test(w));
