@@ -939,7 +939,7 @@ function drawCal(){
 /* ===== 목록 ===== */
 const chipC=(b,st)=>st.k==="미입금"?"c-crit":"kc "+kindCls(b);
 /* 사진 선택 4주: 큰 액자는 보정본 보기, 나머지는 4주 표시 (연락 전까지) */
-function w4(b){const s=b.steps||{};if(!s.picked||s.notified||s.delivered||s.canceled||isPast(b)||addDays(String(s.picked).slice(0,10),28)>TODAY)return"";return isBig(b)&&!s.rnotify&&!s.rcheck?`<span class="r4w">보정본 보기</span>`:`<span class="r4w">4주</span>`}
+function w4(b){const s=b.steps||{};if(!s.picked||s.notified||s.delivered||s.canceled||isPast(b)||addDays(String(s.picked).slice(0,10),28)>TODAY)return"";if(isBig(b))return !s.rnotify&&!s.rcheck?`<span class="r4w">보정본 보기</span>`:"";return`<span class="r4w">4주</span>`}
 function rowHTML(b,note){const st=status(b),sc=chipC(b,st);
   return `<button class="row" data-a="open" data-id="${esc(b.id)}"><span class="d tn">${md(b.date)}${b.date?" "+dow(b.date):""}${b.time?`<br><b class="${ampm(b.time)}">${tm(b.time)}</b>`:""}</span>
   <span class="b"><span class="${kindCls(b)}"><b${b.rn?' class="rnn"':""}>${esc(b.name)}</b>${atHTML(ckey(b))}-${esc(calText(b))}</span>${(b.steps||{}).picked?`<span class="rsel">선택 ${md((b.steps||{}).picked)}</span>`:""}${w4(b)}${note?`<span class="note">${esc(note)}</span>`:""}</span><span class="sc ${sc}">${esc(st.k)}</span></button>`}
