@@ -266,7 +266,7 @@ html.lock,html.lock body{overflow:hidden}
 .nrow{padding:7px 0;border-top:1px solid var(--line)}.nrow:first-child{border-top:0}
 .nmeta{font-size:11.5px;color:var(--muted)}.nmeta b{font-weight:600;color:#6a6af0}
 .ntext{white-space:pre-wrap;font-size:13.5px;line-height:1.55;margin-top:2px}
-.nnone{font-size:12.5px;color:var(--muted)}.rsel{margin-left:8px;font-size:12.5px;color:var(--muted);white-space:nowrap}
+.nnone{font-size:12.5px;color:var(--muted)}.rsel{margin-left:8px;font-size:12.5px;color:var(--muted);white-space:nowrap}.r4w{margin-left:6px;font-size:11.5px;font-weight:700;color:var(--crit);background:var(--crit-bg);border-radius:4px;padding:1px 6px;white-space:nowrap}
 .rfam{margin-left:8px;font-size:13px;color:var(--sub);font-weight:500}
 .ncnt{font-size:11.5px;font-weight:500;color:var(--muted)}.nmore{margin-top:6px;width:100%}
 /* 고객 화면 한 줄 배치 (SM처럼): 히스토리 → 이력 → 메모 */
@@ -938,9 +938,11 @@ function drawCal(){
 
 /* ===== 목록 ===== */
 const chipC=(b,st)=>st.k==="미입금"?"c-crit":"kc "+kindCls(b);
+/* 사진 선택 4주: 큰 액자는 보정본 보기, 나머지는 4주 표시 (연락 전까지) */
+function w4(b){const s=b.steps||{};if(!s.picked||s.notified||s.delivered||s.canceled||isPast(b)||addDays(String(s.picked).slice(0,10),28)>TODAY)return"";return isBig(b)&&!s.rnotify&&!s.rcheck?`<span class="r4w">보정본 보기</span>`:`<span class="r4w">4주</span>`}
 function rowHTML(b,note){const st=status(b),sc=chipC(b,st);
   return `<button class="row" data-a="open" data-id="${esc(b.id)}"><span class="d tn">${md(b.date)}${b.date?" "+dow(b.date):""}${b.time?`<br><b class="${ampm(b.time)}">${tm(b.time)}</b>`:""}</span>
-  <span class="b"><span class="${kindCls(b)}"><b${b.rn?' class="rnn"':""}>${esc(b.name)}</b>${atHTML(ckey(b))}-${esc(calText(b))}</span>${(b.steps||{}).picked?`<span class="rsel">선택 ${md((b.steps||{}).picked)}</span>`:""}${note?`<span class="note">${esc(note)}</span>`:""}</span><span class="sc ${sc}">${esc(st.k)}</span></button>`}
+  <span class="b"><span class="${kindCls(b)}"><b${b.rn?' class="rnn"':""}>${esc(b.name)}</b>${atHTML(ckey(b))}-${esc(calText(b))}</span>${(b.steps||{}).picked?`<span class="rsel">선택 ${md((b.steps||{}).picked)}</span>`:""}${w4(b)}${note?`<span class="note">${esc(note)}</span>`:""}</span><span class="sc ${sc}">${esc(st.k)}</span></button>`}
 function grp(title,list,crit,fn){return `<div class="grp${crit?" crit":""}"><h3>${title}<span>${list.length}건</span></h3>${list.map(fn||(b=>rowHTML(b))).join("")||`<div class="empty">없음</div>`}</div>`}
 function drawToday(){
   const all=Object.values(B).sort(byDate);const crit=[];const add=(b,n)=>{if(!(b.ack||{})[n])crit.push([b,n])};
