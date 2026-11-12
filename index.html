@@ -753,7 +753,7 @@ function status(b){
   const s=b.steps||{},p=P(b);
   if(s.canceled)return{k:"취소",c:"c-mute"};
   if(s.postponed)return{k:"연기",c:"c-warn"};
-  if(isPast(b))return{k:"완료",c:"c-ok",past:1};
+  if(isPast(b)){if(s.shot){const left=shipRows(b).filter(r=>!r.shipped);if(left.length)return{k:`${left[0].kind}${left.length>1?" 외":""} 출고 전`,c:"c-warn",past:1}}return{k:"완료",c:"c-ok",past:1}}
   if(b.kind==="consult"&&!s.shot)return consOpen(b)?{k:"상담",c:"c-con"}:{k:"상담 끝",c:"c-mute"};
   if(b.kind==="visit")return (b.date||"")<TODAY?{k:"완료",c:"c-ok"}:{k:"방문 예정",c:"c-acc"};
   if(!b.date&&!s.shot){if(b.growth||pk(b)==="growth"){const g=gsBase(b);return g&&g<=addDays(TODAY,-365*3)?{k:"중단",c:"c-mute"}:{k:"미등록",c:"c-tbd"}}return{k:"날짜 미정",c:"c-tbd"}}
@@ -1146,7 +1146,7 @@ function drawCard(b){
   put("hg-"+id,growthHTML(b));put("hp-"+id,priceHTML(b));put("hy-"+id,payHTML(b));put("hs-"+id,shipHTML(b));put("he-"+id,editHTML(b));
 }
 /* 히스토리 진행 색: 주황=우리 차례, 파랑=손님 기다림, 초록=아직 안 찍음, 끝난 건 흐리게 */
-function stg(b,st){const k=st.k;if((b.steps||{}).canceled)return"cx";if(k==="완료"||k==="상담 끝")return"fin";if(b.kind==="visit")return k==="방문 예정"?"wait":"fin";
+function stg(b,st){const k=st.k;if((b.steps||{}).canceled)return"cx";if(st.past)return k==="완료"?"fin":"wait";if(k==="완료"||k==="상담 끝")return"fin";if(b.kind==="visit")return k==="방문 예정"?"wait":"fin";
   if(["예약확정","미입금","날짜 미정","미등록","상담","중단"].includes(k))return"pre";if(["사진 선택 대기","수령 대기","재촬영 예정","연기"].includes(k)||k.startsWith("보정본 확인"))return"wait";return"ours"}
 function hrMoney(b){const tot=totalOf(b),bal=tot-paidOf(b),s=b.steps||{};
   const rows=shipRows(b).filter(r=>!r.virtual||r.kind!=="원본"),left=s.shot&&rows.length?rows.filter(r=>!r.shipped).length:0;
@@ -1861,7 +1861,7 @@ const sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefr
 let ME=null,sessUid=null;
 const CUTOFF="2026-09-01"; // 이 날짜 전 촬영은 기록이 들쭉날쭉해서 진행 확인(미입금·출고 등)에서 빼고 '완료'로 봄
 isPast=b=>!!b.legacy||(!!b.date&&b.date<CUTOFF);
-{const _sr=shipRows;shipRows=b=>{const r=_sr(b);return isPast(b)?r.map(x=>({...x,ready:x.ready||"기존",shipped:x.shipped||"기존"})):r}} // 9월 전 촬영은 출고된 것으로
+{const _sr=shipRows;shipRows=b=>{const r=_sr(b);return isPast(b)?r.map(x=>x.virtual||b.smAll||!b.legacy?{...x,ready:x.ready||"기존",shipped:x.shipped||"기존"}:x):r}} // 9월 전 촬영: SM에서 출고 안 된 항목만 그대로 (나머지는 출고된 것으로)
 
 const isU=s=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s||"");
 const newId=()=>crypto.randomUUID?crypto.randomUUID():"10000000-1000-4000-8000-100000000000".replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));
@@ -1897,7 +1897,7 @@ function toB(r,cust){
   const steps={};for(const [k,c] of Object.entries(STEPCOL))if(r[c])steps[k]=r[c];
   if(r.sm_all_shipped&&!steps.delivered)steps.delivered=(sh&&sh.date)||r.contract_date||"기존";
   const items=(r.items||[]).filter(i=>!/^증명사진$/.test(i.kind||"")).map(i=>({id:i.id,kind:ITEMK(i.kind,i.sm_item),size:i.size||"",photo:i.photo_no||"",sm:i.sm_item||"",frame:i.frame||"",
-    ready:i.ready_at||(r.sm_all_shipped||r.legacy?"기존":null),shipped:i.shipped_at||(r.sm_all_shipped||r.legacy?"기존":null),memo:i.memo||"",...(i.request?{request:i.request}:{})}));
+    ready:i.ready_at||(r.sm_all_shipped?"기존":null),shipped:i.shipped_at||(r.sm_all_shipped?"기존":null),memo:i.memo||"",...(i.request?{request:i.request}:{})}));
   const payments=(r.payments||[]).slice().sort((a,b)=>(a.paid_at||"").localeCompare(b.paid_at||"")).map(p=>({id:p.id,kind:p.kind,amount:p.amount,method:p.method||"",receipt:p.receipt||"",date:p.paid_at}));
   const po=r.price_override||{},ui=r.ui||{};
   SNAP[r.id]={...r};delete SNAP[r.id].schedules;delete SNAP[r.id].items;delete SNAP[r.id].payments;
@@ -1909,7 +1909,7 @@ function toB(r,cust){
     memo:r.shoot_memo||r.memo||"",growth:r.product==="growth",gs:r.gs_round?`${r.gs_round}-${r.gs_year}`:"",
     review:!!r.review,sns:!!r.sns,ship:r.ship_method||"",track:r.track_no||"",ack:r.ack||{},pet:!!r.pets,
     adults:r.adults??"",kids:r.kids??"",steps,items,payments,
-    priceOverride:("priceOverride" in po)?po.priceOverride:(r.base_price||0),legacy:r.legacy,booked:r.contract_date||"",rn:r.channel==="리뷰노트"};
+    priceOverride:("priceOverride" in po)?po.priceOverride:(r.base_price||0),legacy:r.legacy,smAll:!!r.sm_all_shipped,booked:r.contract_date||"",rn:r.channel==="리뷰노트"};
   ["priceItems","ex","idq","up11","retouch","needOrig"].forEach(k=>{if(po[k]!=null)o[k]=po[k]});
   if(r.prev_id)o.prevId=BID2KEY[r.prev_id]||r.prev_id;
   delete o._bkey;return o;
