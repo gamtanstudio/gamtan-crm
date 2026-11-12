@@ -1087,7 +1087,7 @@ function openCust(id,fromSearch){ /* 캘린더 등에서 누르면 그 예약을
   const wasHidden=$("cp").hidden,newCust=wasHidden||$("cp").dataset.k!==k;$("cp").dataset.k=k;
   $("cp").hidden=false;$("cp-empty").hidden=true;if(newCust)anim($("cp"),"enter");$("right").classList.add("open");document.documentElement.classList.add("lock");
   drawCust();
-  requestAnimationFrame(()=>{const sc=$("right");if(fromSearch){sc.scrollTop=0;return}const t=$("hc-"+id)||$("hlist").previousElementSibling||$("hlist");sc.scrollTop+=t.getBoundingClientRect().top-sc.getBoundingClientRect().top-$("cp-bar").offsetHeight-8});
+  requestAnimationFrame(()=>{$("right").scrollTop=0}); /* 어디서 열든 맨 위(이름)부터 — 캘린더에서 누른 날은 펼쳐 둠 */
   setTimeout(navSync,0);
 }
 let LASTOPEN=null,QOPEN=false;
