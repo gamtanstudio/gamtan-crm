@@ -1049,11 +1049,15 @@ function briefHTML(b){
   return `<div class="brow"><span class="d tn">${b.time?`<b class="${ampm(b.time)}">${tm(b.time)}</b>`:"시간 미정"}</span><div class="b"><button class="lnk bnm${b.rn?" rnn":""}" data-a="open" data-id="${esc(b.id)}">${esc(b.name)}</button>${b.rn?`<span class="rnb">리뷰노트</span>`:""}${atHTML(k)}${b.customer_no?` <span class="cno">#${b.customer_no}</span>`:""} <span class="${kindCls(b)}">${esc(calText(b))}</span> <span class="sc ${chipC(b,st)}">${esc(st.k)}</span>${ul(pts)}${!isId&&body?`<details class="bbox"><summary>촬영 전 숙지${mine?"":" (기록)"}</summary><div class="bbody">${body}</div></details>`:""}</div></div>`}
 function hitSnip(t,q){t=String(t).replace(/\s+/g," ");const terms=q.split(/\s+/).filter(Boolean),lo=t.toLowerCase(),i=Math.max(0,lo.indexOf(terms[0].toLowerCase()));const a=Math.max(0,i-14),cut=(a>0?"…":"")+t.slice(a,a+46)+(a+46<t.length?"…":"");
   let h=esc(cut);terms.forEach(w=>{const e=esc(w).replace(/[.*+?^${}()|[\]\\]/g,"\\$&");h=h.replace(new RegExp(e,"gi"),m=>`<mark>${m}</mark>`)});return h}
+/* 검색어가 날짜(11/10, 11.10, 26.11.10, 2026-11-10)면 그날 예약 접수(계약일)한 고객 */
+function qDate(q){const m=/^(?:(\d{2}|\d{4})[.\/-])?(\d{1,2})[.\/-](\d{1,2})$/.exec(String(q).trim());if(!m)return"";const y=m[1]?(m[1].length===2?"20"+m[1]:m[1]):TODAY.slice(0,4),mo=+m[2],d=+m[3];if(mo<1||mo>12||d<1||d>31)return"";let s=`${y}-${p2(mo)}-${p2(d)}`;if(!m[1]&&s>TODAY)s=`${+y-1}-${p2(mo)}-${p2(d)}`;return s}
 function drawList(){
   const q=($("q").value||"").trim();const groups={};Object.values(B).forEach(b=>{(groups[ckey(b)]=groups[ckey(b)]||[]).push(b)});
   let keys=Object.keys(groups);
   const HIT={};
-  if(q){const qd=q.replace(/\D/g,""),terms=q.toLowerCase().split(/\s+/).filter(Boolean),qn=q.toLowerCase().replace(/\s+/g,"");
+  const qd8=q?qDate(q):"";
+  if(qd8){keys=keys.filter(k=>{const b=groups[k].filter(x=>x.booked===qd8&&!x._hist).sort(byDate)[0];if(!b)return false;HIT[k]=`예약 접수 ${md(qd8)} → 촬영 ${b.date?md(b.date):"미정"} ${calText(b)}`;return true})}
+  else if(q){const qd=q.replace(/\D/g,""),terms=q.toLowerCase().split(/\s+/).filter(Boolean),qn=q.toLowerCase().replace(/\s+/g,"");
     const has=t=>{t=t.toLowerCase();return terms.every(w=>t.includes(w))||t.replace(/\s+/g,"").includes(qn)};
     keys=keys.filter(k=>{const c=CUST[k]||{},bs=groups[k];
       if(bs.some(b=>has([b.name,b.customer_no,b.product,calText(b)].join(" ")))||(qd.length>=3&&qd.length===q.replace(/[\s-]/g,"").length&&[c.phone,c.phone2,c.phone3].join(" ").replace(/\D/g,"").includes(qd)))return true;
@@ -1981,6 +1985,7 @@ async function serverSearch(q){
   q=q.trim();if(q.length<1||q===srchQ)return;srchQ=q;
   const busy=v=>{if(srchQ!==q)return;window.SRCHBUSY=v;if(view==="cust")drawList()};busy(true);
   try{
+  const qd8=qDate(q);if(qd8){const {data}=await sb.from("bookings").select("customer_no").eq("contract_date",qd8).limit(300);if(q!==srchQ)return;const nos=[...new Set((data||[]).map(x=>x.customer_no).filter(Boolean))].filter(n=>!LOADED_C.has(n));if(nos.length){await fetchCustomers(nos);await fetchBookings(x=>x.in("customer_no",nos));nos.forEach(n=>LOADED_C.add(n))}return}
   const d=q.replace(/\D/g,""),no=/^#?\d+$/.test(q)?+q.replace("#",""):null,qe=q.replace(/[,()]/g," ");
   const ors=[`name.ilike.%${qe}%`,`sm_name.ilike.%${qe}%`,`family.ilike.%${qe}%`];
   if(d.length>=4)ors.push(`phone.ilike.%${d.slice(-4)}%`,`phone2.ilike.%${d.slice(-4)}%`,`ui->>phone3.ilike.%${d.slice(-4)}%`);
