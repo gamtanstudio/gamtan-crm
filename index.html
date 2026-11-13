@@ -817,7 +817,7 @@ function nextAction(b){if(b.kind==="consult"&&!(b.steps||{}).shot)return null;
   if(s.picked&&!s.handoff&&st==="작업중")return["handoff","작업"];
   if(st.startsWith("보정본 확인"))return["rcheck","보정본 확인"];
   if(st==="작업중"&&s.handoff&&isBig(b)&&!s.rnotify&&!s.rcheck&&!s.workshop)return["rnotify","보정본 연락"];
-  if(st==="작업중"&&s.handoff&&isWs(b)&&!s.workshop)return["workshop","공방"];
+  if(st==="작업중"&&s.handoff&&isWs(b)&&pk(b)!=="jangsu"&&!s.workshop)return["workshop","공방"]; /* 장수는 공방 갈 때도, 직접 인화할 때도 있어서 안 밀어줌 */
   if(st==="작업중"||st==="공방")return["done","완료"];
   if(st==="출고 연락 전")return["notified","연락"];
   if(status(b).rest){const left=shipRows(b).filter(r=>!r.shipped);return["rest",left.length===1?left[0].kind:"출고"]}
