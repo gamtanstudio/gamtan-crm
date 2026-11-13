@@ -756,14 +756,14 @@ let RTC=null,RTT=0;
 /* 같은 계약에 붙은 앞으로의 보정본 확인(모니터) 방문 — 가장 가까운 것 */
 let RVC=null,RVT=0;
 function rvisitOf(bid){if(!bid)return null;if(!RVC||Date.now()-RVT>1500){RVC=new Map();RVT=Date.now();for(const x of Object.values(B)){if(!x._hist||!x._sid||(x.date||"")<TODAY||(x.steps||{}).canceled)continue;const sn=typeof SNAPS!=="undefined"&&SNAPS[x._sid];if(sn&&sn.booking_id&&sn.kind==="monitor"){const o=RVC.get(sn.booking_id);if(!o||(x.date+(x.time||""))<(o.date+(o.time||"")))RVC.set(sn.booking_id,x)}}}return RVC.get(bid)||null}
-function retakeOf(bid){if(!bid)return null;if(!RTC||Date.now()-RTT>1500){RTC=new Map();RTT=Date.now();for(const x of Object.values(B)){if(!x._hist||!x._sid||(x.date||"")<TODAY||(x.steps||{}).canceled)continue;const sn=typeof SNAPS!=="undefined"&&SNAPS[x._sid];if(sn&&sn.booking_id&&sn.kind==="supplement")RTC.set(sn.booking_id,x)}}return RTC.get(bid)||null}
+function retakeOf(bid){if(!bid)return null;if(!RTC||Date.now()-RTT>1500){RTC=new Map();RTT=Date.now();for(const x of Object.values(B)){if(!x._hist||!x._sid||(x.date||"")<TODAY||(x.steps||{}).canceled||(x.steps||{}).shot)continue; /* 재촬영 찍었으면 원래 계약으로 진행 */const sn=typeof SNAPS!=="undefined"&&SNAPS[x._sid];if(sn&&sn.booking_id&&sn.kind==="supplement")RTC.set(sn.booking_id,x)}}return RTC.get(bid)||null}
 function status(b){
   const s=b.steps||{},p=P(b);
   if(s.canceled)return{k:"취소",c:"c-mute"};
   if(s.postponed)return{k:"연기",c:"c-warn"};
   if(isPast(b)){if(s.shot){const left=shipRows(b).filter(r=>!r.shipped);if(left.length)return{k:`${left[0].kind}${left.length>1?" 외":""} 출고 전`,c:"c-warn",past:1}}return{k:"완료",c:"c-ok",past:1}}
   if(b.kind==="consult"&&!s.shot)return consOpen(b)?{k:"상담",c:"c-con"}:{k:"상담 끝",c:"c-mute"};
-  if(b.kind==="visit")return (b.date||"")<TODAY?{k:"완료",c:"c-ok"}:{k:"방문 예정",c:"c-acc"};
+  if(b.kind==="visit")return (b.date||"")<TODAY||s.shot?{k:"완료",c:"c-ok"}:{k:"방문 예정",c:"c-acc"};
   if(!b.date&&!s.shot){if(b.growth||pk(b)==="growth"){const g=gsBase(b);return g&&g<=addDays(TODAY,-365*3)?{k:"중단",c:"c-mute"}:{k:"미등록",c:"c-tbd"}}return{k:"날짜 미정",c:"c-tbd"}}
   if(!s.shot){
     if((b.date||"")>=TODAY)return(hasDep(b)||(p&&p.idlike)||b.rn||(Array.isArray(b.priceItems)&&totalOf(b)===0))?{k:"예약확정",c:"c-ok"}:{k:"미입금",c:"c-crit",crit:"미입금"};
