@@ -746,6 +746,8 @@ function shipRows(b){
 function hasOrig(b){if(b.noOrig&&!(b.items||[]).some(i=>i.kind==="원본"))return false;if(b.needOrig||(b.items||[]).some(i=>i.kind==="원본"))return true;const p=P(b);return !!(p&&p.orig)}
 const origSent=b=>!!(b.steps||{}).orig||(b.items||[]).some(i=>i.kind==="원본"&&i.shipped);
 const isWs=b=>isBig(b)||(b.items||[]).some(i=>i.kind==="액자"&&/3구/.test(i.size||"")); /* 공방에서 오는 액자 */
+/* 늘 하는 단계만 기본으로 — 장수는 보정본 연락·공방이 가끔이라 필요할 때 버튼으로 추가 */
+const bigFlow=b=>isBig(b)&&pk(b)!=="jangsu",wsFlow=b=>isWs(b)&&pk(b)!=="jangsu";
 const isBig=b=>(b.items||[]).some(i=>i.kind==="액자"&&/11x14|11알|16|20|24|28|캔버스/.test(i.size||""))||PRICE_META.some(m=>m.big&&(b.ex||{})[m.k]);
 
 /* ===== 상태: 기록에서 자동 (설계안 상태 흐름표, 위에서부터 처음 맞는 것) ===== */
@@ -795,8 +797,8 @@ function stepsFor(b){
   if(b.rn){const R2=[...L.slice(1),["orig","원본"]];if(shipRows(b).some(r=>r.kind!=="원본"))R2.push(["done","완료"],["notified","연락"],["delivered",b.ship==="택배"?"택배 발송":"수령"]);return R2} /* 리뷰노트: 촬영 → 원본으로 끝 (추가 주문 있으면 출고까지) */
   if(hasOrig(b))L.push(["orig","원본"]);
   if(!(p&&p.nopick))L.push(["picked","선택"],["handoff","작업"]);
-  if(isBig(b)||(b.steps||{}).rnotify||(b.steps||{}).rcheck)L.push(["rnotify","보정본 연락"],["rcheck","보정본 확인"]); /* 큰 액자: 보정본 보러 오기 */
-  if(isWs(b)||(b.steps||{}).workshop)L.push(["workshop","공방"]);
+  if(bigFlow(b)||(b.steps||{}).rnotify||(b.steps||{}).rcheck)L.push(["rnotify","보정본 연락"],["rcheck","보정본 확인"]); /* 큰 액자: 보정본 보러 오기 */
+  if(wsFlow(b)||(b.steps||{}).workshop)L.push(["workshop","공방"]);
   L.push(["done","완료"],["notified","연락"],["delivered",b.ship==="택배"?"택배 발송":"수령"]);
   return L;
 }
@@ -816,8 +818,8 @@ function nextAction(b){if(b.kind==="consult"&&!(b.steps||{}).shot)return null;
   if(st==="사진 선택 대기")return["picked","선택"];
   if(s.picked&&!s.handoff&&st==="작업중")return["handoff","작업"];
   if(st.startsWith("보정본 확인"))return["rcheck","보정본 확인"];
-  if(st==="작업중"&&s.handoff&&isBig(b)&&!s.rnotify&&!s.rcheck&&!s.workshop)return["rnotify","보정본 연락"];
-  if(st==="작업중"&&s.handoff&&isWs(b)&&pk(b)!=="jangsu"&&!s.workshop)return["workshop","공방"]; /* 장수는 공방 갈 때도, 직접 인화할 때도 있어서 안 밀어줌 */
+  if(st==="작업중"&&s.handoff&&bigFlow(b)&&!s.rnotify&&!s.rcheck&&!s.workshop)return["rnotify","보정본 연락"];
+  if(st==="작업중"&&s.handoff&&wsFlow(b)&&!s.workshop)return["workshop","공방"];
   if(st==="작업중"||st==="공방")return["done","완료"];
   if(st==="출고 연락 전")return["notified","연락"];
   if(status(b).rest){const left=shipRows(b).filter(r=>!r.shipped);return["rest",left.length===1?left[0].kind:"출고"]}
@@ -942,7 +944,7 @@ function drawCal(){
 /* ===== 목록 ===== */
 const chipC=(b,st)=>st.k==="미입금"?"c-crit":"kc "+kindCls(b);
 /* 사진 선택 4주: 큰 액자는 보정본 보기, 나머지는 4주 표시 (연락 전까지) */
-function w4(b){const s=b.steps||{};if(!s.picked||s.notified||s.delivered||s.canceled||isPast(b)||addDays(String(s.picked).slice(0,10),28)>TODAY)return"";if(isBig(b))return !s.rnotify&&!s.rcheck?`<span class="r4w">보정본 보기</span>`:"";return`<span class="r4w">4주</span>`}
+function w4(b){const s=b.steps||{};if(!s.picked||s.notified||s.delivered||s.canceled||isPast(b)||addDays(String(s.picked).slice(0,10),28)>TODAY)return"";if(bigFlow(b))return !s.rnotify&&!s.rcheck?`<span class="r4w">보정본 보기</span>`:"";return`<span class="r4w">4주</span>`}
 function rowHTML(b,note){const st=status(b),sc=chipC(b,st);
   return `<button class="row" data-a="open" data-id="${esc(b.id)}"><span class="d tn">${md(b.date)}${b.date?" "+dow(b.date):""}${b.time?`<br><b class="${ampm(b.time)}">${tm(b.time)}</b>`:""}</span>
   <span class="b"><span class="${kindCls(b)}"><b${b.rn?' class="rnn"':""}>${esc(b.name)}</b>${atHTML(ckey(b))}-${esc(calText(b))}</span>${(b.steps||{}).picked?`<span class="rsel">선택 ${md((b.steps||{}).picked)}</span>`:""}${w4(b)}${note?`<span class="note">${esc(note)}</span>`:""}</span><span class="sc ${sc}">${esc(st.k)}</span></button>`}
@@ -1153,7 +1155,8 @@ function drawCard(b){
   setVal($("hm-"+id),b.memo||"");
   const SB=retakePar(b)||b,L=stepsFor(SB),na=nextAction(SB);const first=L.findIndex(([k])=>!stepOn(SB,k)); /* 재촬영 카드는 원래 계약 단계를 그대로 */
   put("hf-"+id,(s.canceled||st.past?"":L.map(([k,l],i)=>{const on=stepOn(SB,k);return `<button class="st${on?" on":i===first?" now":""}" data-a="step" data-id="${esc(SB.id)}" data-v="${k}" title="${on?"눌러서 되돌리기":"눌러서 체크"}">${on?"✓ ":""}${l}<small>${esc(on?stepDate(SB,k):"")}</small></button>`}).join(""))
-    +((L.some(x=>x[0]==="rnotify")||(s.handoff&&!stepOn(b,"done")&&(b.items||[]).some(i=>i.kind==="액자")))&&!s.rcheck&&!s.canceled&&!st.past?(RVF===id?`<span class="rvf"><input type="date" class="inp" id="rvd-${esc(id)}" value="${TODAY}" aria-label="보정본 확인 날짜"><input type="time" class="inp" id="rvt-${esc(id)}" step="600" aria-label="보정본 확인 시간"><button class="mini pri" data-a="rv-save" data-id="${esc(id)}">저장</button><button class="mini" data-a="rv-x" data-id="${esc(id)}">취소</button></span>`:`<button class="mini" data-a="rv-open" data-id="${esc(id)}">+ 보정본 일정</button>`):"")
+    +(((SB.steps||{}).shot&&!stepOn(SB,"done")&&!L.some(x=>x[0]==="workshop")&&(SB.items||[]).some(i=>i.kind==="액자")&&!s.canceled&&!st.past)?`<button class="mini" data-a="step" data-id="${esc(SB.id)}" data-v="workshop">+ 공방</button>`:"")
+    +((L.some(x=>x[0]==="rnotify")||((SB.steps||{}).shot&&!stepOn(SB,"done")&&(SB.items||[]).some(i=>i.kind==="액자")))&&!(SB.steps||{}).rcheck&&!s.canceled&&!st.past?(RVF===id?`<span class="rvf"><input type="date" class="inp" id="rvd-${esc(id)}" value="${TODAY}" aria-label="보정본 확인 날짜"><input type="time" class="inp" id="rvt-${esc(id)}" step="600" aria-label="보정본 확인 시간"><button class="mini pri" data-a="rv-save" data-id="${esc(id)}">저장</button><button class="mini" data-a="rv-x" data-id="${esc(id)}">취소</button></span>`:`<button class="mini" data-a="rv-open" data-id="${esc(id)}">+ 보정본 일정</button>`):"")
     +(st.past?`<span class="sc c-mute">지난 기록</span>`:"")
     +`<button class="mini msgbtn${MSGON===id?" pri":""}" data-a="msg" data-id="${esc(id)}">문자</button>`
     +(na&&!s.canceled?`<button class="nextbtn" data-a="step" data-id="${esc(SB.id)}" data-v="${na[0]}">${na[1]}</button>`:""));
