@@ -669,14 +669,15 @@ const who=()=>$("who").value;
 const PRODUCTS={
   story:{name:"감탄스토리",c:"#4f46e5",base:250000,adultAdd:100000,kidAdd:50000,petAdd:50000,frame:"8x10",orig:true},
   simpfam:{name:"감탄 심플패밀리",c:"#059669",base:100000,adultAdd:50000,kidAdd:30000,petAdd:30000,frame:"5x7",orig:true},
-  bigfam:{name:"감탄 대가족",c:"#d97706",base:150000,flat:1,petAdd:50000,up11:200000,frame:"8x10",orig:false},
+  bigfam:{name:"대가족 STORY",c:"#d97706",base:450000,baseN:4,perAdd:50000,petAdd:50000,frameTier:1,frame:"8x10",orig:true}, /* 2026-11-13 개편: 4인 45만 + 1인 5만, 원본 포함, 금액별 액자 */
+  bigfam_old:{name:"대가족(이전)",c:"#d97706",base:150000,flat:1,petAdd:50000,up11:200000,frame:"8x10",orig:false},
   bigfam_orig:{name:"대가족 원본형",c:"#c2410c",base:650000,flat:1,petAdd:50000,up11:150000,frame:"8x10",orig:true},
   growth:{name:"가족성장 프로젝트",c:"#db2777",base:150000,kidStep:20000,growth:1,frame:"8x10",orig:true},
   kids:{name:"베이비&키즈 프로필",c:"#7c3aed",base:150000,frame:"5x7",orig:true},
-  profile:{name:"프로필",c:"#0891b2",base:100000,frame:null,orig:false},
-  perform:{name:"연주 프로필",c:"#0e7490",base:170000,extraRetouch:30000,frame:null,orig:false},
-  audition:{name:"오디션 프로필",c:"#0e7490",base:170000,extraRetouch:30000,frame:null,orig:false},
-  friend:{name:"우정 촬영",c:"#0d9488",base:100000,perHead:50000,frame:"5x7",orig:true},
+  profile:{name:"감탄 프로필",c:"#0891b2",base:200000,frame:null,orig:false},
+  perform:{name:"연주 프로필",c:"#0e7490",base:200000,extraRetouch:30000,frame:null,orig:false},
+  audition:{name:"오디션 프로필",c:"#0e7490",base:200000,extraRetouch:30000,frame:null,orig:false},
+  friend:{name:"우정 촬영",c:"#0d9488",base:100000,perHead:60000,frame:"5x7",orig:true},
   jangsu:{name:"부모님 장수 프로필",c:"#78716c",base:200000,frame:"11x14",nopick:1}, /* 장수는 원본 없음 */
   halfid:{name:"반명함",c:"#64748b",base:30000,frame:null,orig:false,idlike:1},
   id:{name:"증명사진",c:"#64748b",base:30000,perPerson:1,frame:null,orig:false,idlike:1},
@@ -685,19 +686,26 @@ const PRODUCTS={
 const ID_TYPES=[{k:"passport",label:"여권",p:30000},{k:"jumin",label:"주민증",p:30000},{k:"half",label:"반명함",p:30000},{k:"visa",label:"비자",p:35000},{k:"job",label:"취업·프로필",p:50000},{k:"addPass",label:"여권 추가",p:10000,add:1},{k:"addJumin",label:"주민증 추가",p:10000,add:1},{k:"web",label:"웹파일",p:5000,add:1}];
 const idqSum=b=>ID_TYPES.filter(t=>!t.add&&(b.idq||{})[t.k]).map(t=>t.label+(+b.idq[t.k]>1?b.idq[t.k]:"")).join(", ");
 const PRICE_META=[{k:"f5x7",label:"5×7 액자",p:30000},{k:"f8x10",label:"8×10 액자",p:50000},{k:"f11al",label:"11알 액자",p:500000,big:1},{k:"f16al",label:"16알 액자",p:700000,big:1},
-  {k:"f20al",label:"20알 액자",p:800000,big:1},{k:"f20slim",label:"20알 슬림",p:800000,big:1},{k:"canvas",label:"100×70 캔버스",p:1200000,big:1},{k:"album",label:"8×11 앨범",p:3000000},{k:"origadd",label:"원본 추가",p:0},{k:"idadd",label:"증명 추가",p:30000}];
+  {k:"f20al",label:"20알 액자",p:800000,big:1},{k:"f20slim",label:"20알 슬림",p:800000,big:1},{k:"canvas",label:"100×70 캔버스",p:1200000,big:1},{k:"album",label:"8×11 앨범",p:3000000},{k:"origadd",label:"원본 추가",p:0},{k:"dol",label:"백일·돌 촬영",p:100000,noship:1,growthOnly:1},{k:"idadd",label:"증명 추가",p:30000}];
 function guessKey(b){const t=[b.product,b.cal].join(" ");
   if(b.growth||/가성|가족성장/.test(t))return"growth";if(/원본형/.test(t))return"bigfam_orig";if(/대가족/.test(t))return"bigfam";
   if(/스토리/.test(t))return"story";if(/장수|복원/.test(t))return"jangsu";if(/우정/.test(t))return"friend";
   if(/연주/.test(t))return"perform";if(/오디션/.test(t))return"audition";if(/키즈|베이비|돌|백일/.test(t))return"kids";if(/프로필/.test(t))return"profile";
   if(/반명함/.test(t))return"halfid";if(/증명|여권|주민|비자/.test(t)&&!/가족/.test(t))return"id";return""}
-const pk=b=>b.pkey||guessKey(b);
+/* 2026-11-15 예약(계약)부터 새 가격 — 그 전 예약은 예전 가격 */
+const NEWP="2026-11-15",isNewP=b=>(b.booked===undefined?TODAY:(b.booked||"0"))>=NEWP;
+const OLDP={friend:{perHead:50000},profile:{base:100000},perform:{base:170000},audition:{base:170000}};
+const pdef=(K,b)=>{const p=PRODUCTS[K];return p&&OLDP[K]&&!isNewP(b)?{...p,...OLDP[K]}:p};
+const pk=b=>{const k=b.pkey||guessKey(b);return k==="bigfam"&&!isNewP(b)?"bigfam_old":k}; /* 개편 전 대가족은 예전 상품으로 */
+/* 대가족 STORY 액자: 촬영금액 구간별 */
+function bigFrame(b){const p=PRODUCTS.bigfam,n=((+b.adults||0)+(+b.kids||0))||p.baseN,amt=p.base+Math.max(0,n-p.baseN)*p.perAdd+(b.pet?p.petAdd:0);return amt>=1200000?"캔버스":amt>=1000000?"20x24":amt>=800000?"16x20":amt>=600000?"11x14":"8x10"}
 const P=b=>PRODUCTS[pk(b)]||null;
 function calcRows(b){
-  const p=PRODUCTS[b.pkey];if(!p)return null;const rows=[];let shoot=0;const ad=+b.adults||2,kd=+b.kids||0;
+  if(!b.pkey)return null;const K=pk(b),p=pdef(K,b);if(!p)return null;const rows=[];let shoot=0;const ad=+b.adults||2,kd=+b.kids||0;
   if(p.growth){const k=Math.max(1,kd);shoot=p.base+(k-1)*p.kidStep;rows.push([`가족성장 ${2+k}인 (자녀 ${k}명) · 1년분`,shoot])}
-  else if(p.flat){shoot=p.base;rows.push([p.name+(b.pkey==="bigfam_orig"?" (7인 기준)":" (15인 이하)"),p.base]);if(b.pet){shoot+=p.petAdd;rows.push(["반려동물 추가",p.petAdd])}
-    if(b.up11){shoot+=p.up11;rows.push([b.pkey==="bigfam"?"8x10 → 11x14(11알) 변경 (총 35만)":"원본형 11x14(11알) 변경 (총 80만)",p.up11])}}
+  else if(p.baseN){const n=(ad+kd)||p.baseN;shoot=p.base;rows.push([`${p.name} ${p.baseN}인 기본`,p.base]);if(n>p.baseN){shoot+=(n-p.baseN)*p.perAdd;rows.push([`${n-p.baseN}인 추가`,(n-p.baseN)*p.perAdd])}if(b.pet){shoot+=p.petAdd;rows.push(["반려동물 추가",p.petAdd])}}
+  else if(p.flat){shoot=p.base;rows.push([p.name+(K==="bigfam_orig"?" (7인 기준)":" (15인 이하)"),p.base]);if(b.pet){shoot+=p.petAdd;rows.push(["반려동물 추가",p.petAdd])}
+    if(b.up11){shoot+=p.up11;rows.push([K==="bigfam_old"?"8x10 → 11x14(11알) 변경 (총 35만)":"원본형 11x14(11알) 변경 (총 80만)",p.up11])}}
   else if(p.perHead){const n=Math.max(1,+b.adults||1);shoot=p.base+n*p.perHead;rows.push(["촬영비",p.base],[`${n}인 × ${money(p.perHead)} (개인별 5x7 액자 · 전체 원본)`,n*p.perHead])}
   else if(p.extraRetouch!==undefined){shoot=p.base;rows.push([p.name+" (보정 1장)",p.base]);const r=+b.retouch||0;if(r){shoot+=r*p.extraRetouch;rows.push([`추가 보정 ${r}장`,r*p.extraRetouch])}}
   else if(p.perPerson&&ID_TYPES.some(t=>(b.idq||{})[t.k])){ID_TYPES.forEach(t=>{const q=+(b.idq||{})[t.k]||0;if(q){shoot+=q*t.p;rows.push([t.add?(q>1?`${t.label} ${q}`:t.label):`${t.label} ${q}인`,q*t.p])}})}
@@ -734,7 +742,7 @@ function shipRows(b){
   const has=kind=>items.some(i=>i.kind===kind);
   const v=[];
   if(p&&!p.idlike&&!b.rn){ /* 리뷰노트는 원본만 (액자·보정본 없음) */
-    if(p.frame&&!has("액자"))v.push({id:"v-frame",kind:"액자",size:p.frame,virtual:1});
+    if(p.frame&&!has("액자"))v.push({id:"v-frame",kind:"액자",size:p.frameTier?bigFrame(b):p.frame,virtual:1});
     if(p.frame&&!has("보정본"))v.push({id:"v-ret",kind:"보정본",size:"",virtual:1});
     if(!p.frame&&!has("보정 파일"))v.push({id:"v-file",kind:"보정 파일",size:"",virtual:1});
   }
@@ -748,7 +756,7 @@ const origSent=b=>!!(b.steps||{}).orig||(b.items||[]).some(i=>i.kind==="원본"&
 const isWs=b=>isBig(b)||(b.items||[]).some(i=>i.kind==="액자"&&/3구/.test(i.size||"")); /* 공방에서 오는 액자 */
 /* 늘 하는 단계만 기본으로 — 장수는 보정본 연락·공방이 가끔이라 필요할 때 버튼으로 추가 */
 const bigFlow=b=>isBig(b)&&pk(b)!=="jangsu",wsFlow=b=>isWs(b)&&pk(b)!=="jangsu";
-const isBig=b=>(b.items||[]).some(i=>i.kind==="액자"&&/11x14|11알|16|20|24|28|캔버스/.test(i.size||""))||PRICE_META.some(m=>m.big&&(b.ex||{})[m.k]);
+const isBig=b=>(b.items||[]).some(i=>i.kind==="액자"&&/11x14|11알|16|20|24|28|캔버스/.test(i.size||""))||PRICE_META.some(m=>m.big&&(b.ex||{})[m.k])||(!(b.items||[]).some(i=>i.kind==="액자")&&!!(P(b)||{}).frameTier&&bigFrame(b)!=="8x10");
 
 /* ===== 상태: 기록에서 자동 (설계안 상태 흐름표, 위에서부터 처음 맞는 것) ===== */
 function isPast(b){return b.date&&b.date<addDays(TODAY,-90)}
@@ -862,8 +870,8 @@ function calText(b){if(b.cal)return clean(b.cal);const pr=clean(b.product);if(pr
   if(FAMK.includes(k)){const g=k==="growth"?"가성"+(b.gs||""):sh;return clean(`${n?n+"인가족 ":""}${kd?"아이"+kd+" ":""}${g}`)}
   return clean(`${n>1?n+"인 ":""}${sh}`)}
 function calVal(b,raw){const v=String(raw||"").replace(/\s+/g," ").trim();return v===calText({...b,cal:""})?"":v}
-const SHORT={story:"스토리",simpfam:"심플",bigfam:"대가족",bigfam_orig:"대가족 원본형",growth:"가성",kids:"키즈",profile:"프로필",perform:"연주",audition:"오디션",friend:"우정",jangsu:"장수",halfid:"반명함",id:"증명",etc:""};
-const FAMK=["story","simpfam","bigfam","bigfam_orig","growth"];
+const SHORT={story:"스토리",simpfam:"심플",bigfam:"대가족",bigfam_old:"대가족",bigfam_orig:"대가족 원본형",growth:"가성",kids:"키즈",profile:"프로필",perform:"연주",audition:"오디션",friend:"우정",jangsu:"장수",halfid:"반명함",id:"증명",etc:""};
+const FAMK=["story","simpfam","bigfam","bigfam_old","bigfam_orig","growth"];
 const byDate=(a,b)=>((a.date||"9")+(a.time||"")).localeCompare((b.date||"9")+(b.time||""));
 /* SM처럼 옛날 건이 위, 최신 건이 아래 — 날짜 미정(다음 회차 등)은 맨 아래 */
 const histOrder=(a,b)=>{if(!a.date&&b.date)return 1;if(a.date&&!b.date)return -1;return ((a.date||"")+(a.time||"")).localeCompare((b.date||"")+(b.time||""))};
@@ -1190,7 +1198,7 @@ const needReceipt=m=>!!m&&!["카드","네이버페이"].includes(m);
 /* SM처럼 한 줄: 상품 ▼ [내역] · 총액 · 선금 · 중도금 [추가] · 잔금 — 금액 칸 아래에 수단·증빙 */
 function priceHTML(b){
   const tot=totalOf(b),pd=paidOf(b),bal=tot-pd,k=b.pkey,ps=pays(b),id=esc(b.id);
-  const opt=(k?"":`<option value="">상품 선택</option>`)+Object.entries(PRODUCTS).filter(([key])=>key!=="halfid"||k===key).map(([key,pp])=>`<option value="${key}"${k===key?" selected":""}>${pp.name}</option>`).join("");
+  const opt=(k?"":`<option value="">상품 선택</option>`)+Object.entries(PRODUCTS).filter(([key])=>!["halfid","bigfam_old","bigfam_orig"].includes(key)||k===key).map(([key,pp])=>`<option value="${key}"${k===key?" selected":""}>${pp.name}</option>`).join("");
   const dep=ps.findIndex(p=>p.kind==="예약금");
   const cols=[];
   if((P(b)||{}).idlike){const live=ps.map((p,i)=>i).filter(i=>ps[i].amount||ps[i].method);if(!live.length)cols.push({l:"결제",i:-1,kind:"잔금"});else live.forEach((i,n)=>cols.push({l:ps[i].kind==="환불"?"환불":(n?"결제"+(n+1):"결제"),i,kind:ps[i].kind,extra:n>0}))}
@@ -1208,17 +1216,18 @@ function priceHTML(b){
   </div>${calcBar(b)}${b.booked_pkey&&k&&b.booked_pkey!==k?`<div class="incl" style="margin-top:6px">${esc((PRODUCTS[b.booked_pkey]||{}).name||"")} → ${esc(PRODUCTS[k].name)}</div>`:""}`;
 }
 function calcBar(b){
-  const k=b.pkey,p=PRODUCTS[k],id=esc(b.id);if(!p)return"";
+  const k=b.pkey?pk(b):b.pkey,p=PRODUCTS[k],id=esc(b.id);if(!p)return"";
   const num=(f,v,l)=>`<span class="stp">${l}<button class="sb" data-a="num" data-id="${id}" data-v="${f}" data-d="-1" aria-label="${l} 빼기">−</button><b class="tn">${v}</b><button class="sb" data-a="num" data-id="${id}" data-v="${f}" data-d="1" aria-label="${l} 더하기">+</button></span>`;
   const chk=(f,l)=>`<label><input type="checkbox" data-f="${f}" data-id="${id}" ${b[f]?"checked":""}> ${l}</label>`;
   let h="";
   if(k==="id"){const q=b.idq||{};return `<div class="nums idg" style="margin:6px 0 0">${ID_TYPES.map(t=>{const v=+q[t.k]||0;return `<span class="stp${v?" on":""}${t.add?" add":""}">${t.label}<button class="sb" data-a="idq" data-id="${id}" data-v="${t.k}" data-d="-1" aria-label="${t.label} 빼기">−</button><b class="tn">${v}</b><button class="sb" data-a="idq" data-id="${id}" data-v="${t.k}" data-d="1" aria-label="${t.label} 더하기">+</button></span>`}).join("")}${Array.isArray(b.priceItems)?`<button class="mini" data-a="recalc" data-id="${id}">자동 계산으로</button>`:""}</div>`}
+  if(p.baseN)h+=num("adults",+b.adults||0,"성인")+num("kids",+b.kids||0,"아이");
   if(p.adultAdd!==undefined||p.growth||p.perPerson)h+=num("adults",+b.adults||(p.perPerson?1:2),p.perPerson?"인원":"성인");
   if(p.adultAdd!==undefined||p.growth)h+=num("kids",p.growth?Math.max(1,+b.kids||1):(+b.kids||0),"아이");
   if(p.perHead)h+=num("adults",+b.adults||1,"인원");if(p.extraRetouch!==undefined)h+=num("retouch",+b.retouch||0,"추가 보정");
   if(p.petAdd)h+=chk("pet","반려동물");if(p.up11)h+=chk("up11","11알");
-  const fz=((b.items||[]).find(i=>i.kind==="액자")||{}).size||p.frame;const incl=b.rn?"원본":[p.frame?`${fz} 액자`:"",p.orig?"원본":""].filter(Boolean).join(" · ");
-  if(k==="bigfam")h+=`<button class="mini warnb" data-a="toorig" data-id="${id}">→ 원본형</button>`;
+  const fz=((b.items||[]).find(i=>i.kind==="액자")||{}).size||(p.frameTier?bigFrame(b):p.frame);const incl=b.rn?"원본":[p.frame?`${fz} 액자`:"",p.orig?"원본":""].filter(Boolean).join(" · ");
+  if(k==="bigfam_old")h+=`<button class="mini warnb" data-a="toorig" data-id="${id}">→ 원본형</button>`;
   PRICE_META.forEach(m=>{const q=(b.ex||{})[m.k]||0;if(q&&m.p){const amt=m.big?Math.round(m.p*q/2):m.p*q;h+=`<span class="sc c-acc">+ ${m.label} ${q}개 ${money(amt)}</span>`}});
   return h||incl?`<div class="nums" style="margin:6px 0 0">${h}${incl?`<span class="incl" style="margin:0 0 0 auto">${incl}</span>`:""}${Array.isArray(b.priceItems)?`<button class="mini" data-a="recalc" data-id="${id}">자동 계산으로</button>`:""}</div>`:"";
 }
@@ -1258,7 +1267,7 @@ function shipHTML(b){
 function extraHTML(b){
   const p=P(b);if(p&&p.idlike)return"";
   const n=PRICE_META.reduce((a,m)=>a+((b.ex||{})[m.k]||0),0);
-  return `<details class="exbox"${n?" open":""}><summary class="bx-h" style="cursor:pointer;margin:0">추가 주문${n?` <b class="tn" style="color:var(--acc-fg)">${n}</b>`:""}</summary><div class="exg">${PRICE_META.map(m=>{const q=(b.ex||{})[m.k]||0;return `<div class="exr${q?" on":""}"><span>${m.label}</span><span class="stp"><button class="sb" data-a="ex" data-id="${esc(b.id)}" data-v="${m.k}" data-d="-1" aria-label="${m.label} 빼기">−</button><b class="tn">${q}</b><button class="sb" data-a="ex" data-id="${esc(b.id)}" data-v="${m.k}" data-d="1" aria-label="${m.label} 더하기">+</button></span></div>`}).join("")}</div></details>`;
+  return `<details class="exbox"${n?" open":""}><summary class="bx-h" style="cursor:pointer;margin:0">추가 주문${n?` <b class="tn" style="color:var(--acc-fg)">${n}</b>`:""}</summary><div class="exg">${PRICE_META.filter(m=>!m.growthOnly||(P(b)||{}).growth).map(m=>{const q=(b.ex||{})[m.k]||0;return `<div class="exr${q?" on":""}"><span>${m.label}</span><span class="stp"><button class="sb" data-a="ex" data-id="${esc(b.id)}" data-v="${m.k}" data-d="-1" aria-label="${m.label} 빼기">−</button><b class="tn">${q}</b><button class="sb" data-a="ex" data-id="${esc(b.id)}" data-v="${m.k}" data-d="1" aria-label="${m.label} 더하기">+</button></span></div>`}).join("")}</div></details>`;
 }
 const EDOPEN=new Set();
 document.addEventListener("toggle",e=>{const d=e.target;if(d.dataset&&d.dataset.ed){d.open?EDOPEN.add(d.dataset.ed):EDOPEN.delete(d.dataset.ed)}},true);
@@ -1289,18 +1298,13 @@ const nm=b=>b.name||"고객님";
 const ppl=b=>{const a=+b.adults||0,k=+b.kids||0;return{a,k,t:a+k||(+b.people||0)}};
 function priceBlockTxt(b){const r=priceRows(b);if(!r.length)return"    ○○: ○○원";
   return r.map((x,i)=>i===0?`    ${x.label}: ${money(x.amt)}원`:(x.amt<0?`  - ${x.label}: -${money(-x.amt)}원`:`  + ${x.label}: +${money(x.amt)}원`)).join("\n")+`\n  ───────────────────\n  합계: ${money(totalOf(b))}원`}
-const DEPOSIT_BLOCK=`+ NOSHOW
-노쇼 방지를 위해 촬영 전 예약금을 받고 있는 점 양해 바랍니다.
-
-+ 예약금 10만원 입금
-  ${ACC}
-
-+ 예약자명과 입금자명은 동일하게 부탁드립니다.
-+ 1시간 이내 예약금 미입금 시 예약은 자동 취소됩니다.
+const DEPOSIT_BLOCK=`+ 예약 확정
+네이버 예약에서 예약금 10만원을 결제하시면 예약이 확정됩니다.
 
 *예약변경 & 환불규정*
 - 예약변경은 촬영일 10일 전까지 1회 가능
-- 예약취소는 예약 확정 후 3일까지 전액환불, 이후 예약금 환불 불가
+- 촬영일 전 취소 시 위약금 없이 전액 환불
+- 촬영 당일 취소 시 예약금의 50% 위약금 발생
 
 *기타 문의는 카카오채널로 부탁드립니다.
 http://pf.kakao.com/_xiNxoGs`;
@@ -1350,10 +1354,8 @@ ${2+kk}인 가족촬영 + 아이 기념촬영 (매년 ${money(fee)}원)
 8x10인치 액자, 전체 원본 제공
 
 촬영 스케줄은 네이버 예약으로 해주시면 됩니다.
-예약 상품은 '감탄스토리'로 선택해주시고,
-메모란에 '가족성장 고객'이라고 적어주시면 됩니다.
+예약 상품은 '가족성장 프로젝트 회차 예약'으로 선택해주시면 됩니다.
 (예약자명이 다를 경우 꼭 예약자 성함도 남겨주세요.)
-상품 가격과 내용은 무시하셔도 됩니다.
 
 + 예약금 10만원 입금으로 가족성장 신청이 확정됩니다.
   ${ACC}
@@ -1363,18 +1365,18 @@ ${2+kk}인 가족촬영 + 아이 기념촬영 (매년 ${money(fee)}원)
 입금 확인 후 예약확인사항을 보내드립니다.
 더 궁금하신 점이 있으면 편히 문의주세요.
 감사합니다. 좋은 하루 보내세요!`}
-  const names={story:"감탄스토리",simpfam:"감탄 심플패밀리",bigfam:"감탄 대가족",bigfam_orig:"감탄 대가족 원본형",kids:"베이비 & 키즈 프로필",profile:"감탄 프로필",jangsu:"부모님 장수 프로필",friend:"우정 촬영",perform:"연주 프로필",audition:"오디션 프로필"};
-  const fam=["story","simpfam","bigfam","bigfam_orig","friend"].includes(k);
+  const names={story:"감탄스토리",simpfam:"감탄 심플패밀리",bigfam:"대가족 STORY",bigfam_old:"감탄 대가족",bigfam_orig:"감탄 대가족 원본형",kids:"베이비 & 키즈 프로필",profile:"감탄 프로필",jangsu:"부모님 장수 프로필",friend:"우정 촬영",perform:"연주 프로필",audition:"오디션 프로필"};
+  const fam=["story","simpfam","bigfam","bigfam_old","bigfam_orig","friend"].includes(k);
   const line=fam?`${names[k]} ${t}인 가족촬영${kd?` (성인 ${a}명 / 자녀 ${kd}명)`:""}`:(names[k]||(PRODUCTS[k]||{}).name||"○○");
   return `안녕하세요. 감탄사진관입니다~^^
 
 선택하신 상품은
 ${line}입니다.${b.pet?"\n(반려동물 포함 / 배변패드·간식을 챙겨주시면 좋습니다)":""}
 
-${priceBlockTxt(b)}${k==="bigfam"?"\n\n"+bigfamOrigBlock(b):""}
+${priceBlockTxt(b)}${k==="bigfam_old"?"\n\n"+bigfamOrigBlock(b):""}
 
 ${DEPOSIT_BLOCK}`}
-const msgPaid=()=>`예약금 입금 확인했습니다. 감사합니다 ^^
+const msgPaid=()=>`예약금 확인했습니다. 감사합니다 ^^
 앞으로 가족사진은 감탄삼촌이 책임지겠습니다!!
 
 이어서 예약 확인사항 보내드릴게요.
@@ -1390,11 +1392,12 @@ function msgConfirm(b){const k=pk(b),{a,k:kd,t}=ppl(b),growth=k==="growth",kk=Ma
   const info={
     story:`*\n${t}인 감탄스토리 가족촬영\n의상 1벌 (직접 준비해주시면 됩니다.)\n8x10인치 액자 1개\n(액자컷 수정 파일 추후 제공)\n원본 100컷 이상`,
     simpfam:`*\n${t}인 감탄 심플패밀리 가족촬영\n의상 1벌 (직접 준비해주시면 됩니다.)\n5x7인치 액자 1개\n(액자컷 수정 파일 추후 제공)\n원본 30컷 이상`,
-    bigfam:`*\n${t}인 대가족 촬영\n의상 1벌 (직접 준비해주시면 됩니다. 2벌 준비 시 함께 상의해드립니다.)\n8x10인치 액자 1개\n(액자컷 보정 파일 추후 제공)\n원본 파일은 제공되지 않습니다.`,
+    bigfam:`*\n${t}인 대가족 STORY 촬영\n의상 1벌 (직접 준비해주시면 됩니다. 2벌 준비 시 함께 상의해드립니다.)\n${bigFrame(b)==="캔버스"?"대형 캔버스 액자 1개":bigFrame(b)+"인치 액자 1개"}\n(액자컷 보정 파일 추후 제공)\n전체 원본 제공`,
+    bigfam_old:`*\n${t}인 대가족 촬영\n의상 1벌 (직접 준비해주시면 됩니다. 2벌 준비 시 함께 상의해드립니다.)\n8x10인치 액자 1개\n(액자컷 보정 파일 추후 제공)\n원본 파일은 제공되지 않습니다.`,
     bigfam_orig:`*\n${t}인 대가족 촬영\n의상 1벌 (직접 준비해주시면 됩니다. 2벌 준비 시 함께 상의해드립니다.)\n8x10인치 액자 1개\n(액자컷 보정 파일 추후 제공)\n전체 원본 제공`,
     growth:`★★★ 해당 촬영은 직계 소가족 촬영으로만 진행됩니다. ★★★\n\n*\n${2+kk}인 가족촬영 + ${kk>=2?"아이 기념촬영 / 형제 기념촬영":"아이 기념촬영"}\n의상 1벌 (직접 준비해주시면 됩니다.)\n매년 촬영 시 8x10인치 액자 1개 제공\n(액자컷 수정 파일도 카톡으로 추후 제공 / 원본보다 작은 파일)\n전체 원본 파일 기본 제공\n\n*\n매년 촬영 후 다음 해 촬영 예약금을 결제해주시면 됩니다.\n\n※ 불가피한 사정으로 프로젝트 중단 시,\n예약금은 마지막 촬영 회차의 아이 사진 촬영 금액으로 대체되어 환불되지 않습니다.`,
     kids:`*\n키즈 프로필촬영 (아이 ${t||1}인)\n의상 1벌 (직접 준비해주시면 됩니다.)\n5x7인치 액자 1개\n(액자컷 수정 파일 추후 제공)\n원본 50컷 이상`,
-    profile:`*\n프로필촬영 (성인 1인)\n의상 1벌 (직접 준비해주시면 됩니다.)\n수정컷 파일 제공\n\n++++++++++++++++++++++++++++++++\n촬영된 원본은 판매하지 않습니다.\n기본 액자 외 액자 또는 앨범 추가 시 추가 금액이 발생합니다.\n++++++++++++++++++++++++++++++++`,
+    profile:!isNewP(b)?`*\n프로필촬영 (성인 1인)\n의상 1벌 (직접 준비해주시면 됩니다.)\n수정컷 파일 제공\n\n++++++++++++++++++++++++++++++++\n촬영된 원본은 판매하지 않습니다.\n기본 액자 외 액자 또는 앨범 추가 시 추가 금액이 발생합니다.\n++++++++++++++++++++++++++++++++`:`*\n감탄 프로필촬영 (1인)\n의상 1벌 (직접 준비해주시면 됩니다.)\n촬영시간 30분 이내\n보정 파일 2컷 제공\n\n++++++++++++++++++++++++++++++++\n촬영된 원본은 판매하지 않습니다.\n액자는 포함되지 않습니다.\n++++++++++++++++++++++++++++++++`,
     jangsu:`*\n부모님 장수 프로필촬영 (성인 ${a||t||1}인)\n의상 1벌 (직접 준비해주시면 됩니다.)\n11x14인치 액자 1개\n(촬영 원본 파일 및 보정본 파일은 제공되지 않습니다.)`}[k]||`*\n${pname}`;
   const kidsY=kd>0||growth||k==="kids";
   const dressFam=`*\n촬영의상은 직접 준비해주시면 됩니다.\n가족촬영 의상은 전체적인 조화가 가장 중요합니다.\n패턴이 강렬한 의상이나 큰 로고가 들어간 옷은 인물보다 의상이 부각되어 추천드리지 않으며,\n단정하고 깔끔한 캐주얼 의상을 추천드립니다.\n\n컬러 톤을 섞어 준비하신다면\n체격이 있는 분은 진한 색, 마른 체형의 분은 밝은 색이 잘 어울립니다.\n${kidsY?"부모님은 심플하게, 아이는 포인트 있게 코디하셔도 좋습니다.":"사계절 내내 두고 보기 좋도록 한 계절에 치우친 의상은 피해주세요."}\n남성분들은 라운드 티셔츠·맨투맨보다 긴팔 셔츠가 사진에 더 예쁘게 나옵니다.\n흑백 촬영을 원하시는 경우 중간~진한 톤의 의상이 좋습니다.\n의상이 고민되시면 촬영 날 한두 벌 챙겨오신 뒤 함께 상의 후 결정하셔도 됩니다.\n여성분들은 헤어·메이크업을 평소 외출 시보다 신경 써주시길 바랍니다.\n남성분들도 선크림이나 비비크림을 살짝 발라주시면 더욱 좋습니다.\n\n${kidsY?"미취학 아이들은 스튜디오에서 옷을 갈아입는 걸 힘들어 하는 경우가 많으니\n아이 촬영 의상은 미리 착용하고 오시는 것을 추천드립니다.\n":""}신발은 신고 촬영할 수도 있고 맨발로 촬영할 수도 있습니다.\n(신발을 준비하시는 경우 깨끗한 상태여야 사용 가능합니다.)`;
@@ -1404,11 +1407,11 @@ function msgConfirm(b){const k=pk(b),{a,k:kd,t}=ppl(b),growth=k==="growth",kk=Ma
     kids:`*\n촬영의상은 직접 준비해주시면 됩니다.\n패턴이 강렬한 의상이나 큰 로고가 들어간 옷보다\n단정하고 깔끔한 의상을 추천드립니다.\n\n미취학 아이들은 스튜디오에서 옷을 갈아입는 걸 힘들어 하는 경우가 많으니\n아이 촬영 의상은 미리 착용하고 오시는 것을 추천드립니다.\n신발은 신고 촬영할 수도 있고 맨발로 촬영할 수도 있습니다.\n(신발을 준비하시는 경우 깨끗한 상태여야 사용 가능합니다.)`,
     profile:`*\n촬영의상은 직접 준비해주시면 됩니다.\n패턴이 강렬한 의상이나 큰 로고가 들어간 옷보다\n단정하고 깔끔한 의상을 추천드립니다.\n\n헤어·메이크업은 평소 외출 시보다 신경 써주시길 바랍니다.\n남성분들도 선크림이나 비비크림을 살짝 발라주시면 더욱 좋습니다.\n\n신발은 신고 촬영할 수도 있고 맨발로 촬영할 수도 있습니다.\n(신발을 준비하시는 경우 깨끗한 상태여야 사용 가능합니다.)`,
     jangsu:`*\n촬영의상은 직접 준비해주시면 됩니다.\n패턴이 강렬한 의상이나 큰 로고가 들어간 옷보다 단정하고 깔끔한 의상을 추천드립니다.\n진한 색상에 카라가 있는 옷을 추천드립니다.\n어머님께서 카라 없는 옷을 입으실 경우 목걸이나 스카프 등을 준비해주시면 좋습니다.\n\n헤어·메이크업은 평소 외출 시보다 신경 써주시길 바랍니다.\n남성분들도 선크림이나 비비크림을 살짝 발라주시면 더욱 좋습니다.\n\n신발은 신고 촬영할 수도 있고 맨발로 촬영할 수도 있습니다.\n(신발을 준비하시는 경우 깨끗한 상태여야 사용 가능합니다.)`};
-  dress.bigfam_orig=dress.bigfam;
+  dress.bigfam_orig=dress.bigfam;dress.bigfam_old=dress.bigfam;
   const loc=`*\n감탄사진관 위치는 보정동 주민센터 맞은편입니다.\n주소: 경기도 용인시 기흥구 죽전로 39 SJ타워 401호\n주차: 상가 지하 1·2층 (건물 뒤쪽 지하주차장 입구 / 우리은행 건물)`;
   const wait=`*\n★★★\n감탄사진관은 별도의 대기 공간이 없습니다.\n예약 시간보다 일찍 오셔도 입장이 어렵습니다.\n5분 전부터 입장 가능하며, 그보다 일찍 오시면 다른 팀과 마주칠 수 있으니\n촬영 시간에 맞춰 방문 부탁드립니다.\n촬영하시는 분들만 스튜디오 입장 가능합니다.`;
   const cancel=growth?`*\n★★★★★ 꼭 체크 부탁드립니다! ★★★★★\n예약취소는 예약금 입금일로부터 3일 이내 100% 환불 가능합니다.\n이후에는 날짜 변경만 가능합니다.\n\n촬영날짜 변경은 1회에 한해 가능합니다.\n날짜 변경 시 촬영 유효기간은 첫 예약일로부터 6개월입니다.\n기간 내 촬영이 이루어져야 하니 꼭 확인 부탁드립니다.\n\n- 평일 변경: 촬영일 5일 전까지 (예: 수요일 촬영 → 그 전 주 금요일까지)\n- 토요일·공휴일 변경: 촬영일 2주 전 토요일까지\n\n★★★ 촬영 당일 날짜 변경은 어떠한 경우라도 불가하며, 예약금은 환불되지 않습니다. ★★★`
-    :`*\n★★★★★ 꼭 체크 부탁드립니다! ★★★★★\n예약취소는 예약금 입금일로부터 3일 이내 100% 환불 가능합니다.\n\n촬영날짜 변경은 촬영일 10일 이전, 1회에 한해 (촬영날짜 기준 1개월 이내) 가능합니다.\n(예: 예약일이 8월 5일 → 7월 26일까지 무료 변경 / 8월 6일~9월 5일 중 선택)\n촬영일 10일 이내 날짜 변경 시 수수료 5만원 발생합니다.\n당일 스케줄 변경과 재촬영은 불가합니다.`;
+    :`*\n★★★★★ 꼭 체크 부탁드립니다! ★★★★★\n촬영일 전 취소 시 위약금 없이 전액 환불됩니다.\n촬영 당일 취소 시 예약금의 50%가 위약금으로 발생합니다.\n\n촬영날짜 변경은 촬영일 10일 이전, 1회에 한해 (촬영날짜 기준 1개월 이내) 가능합니다.\n(예: 예약일이 8월 5일 → 7월 26일까지 무료 변경 / 8월 6일~9월 5일 중 선택)\n촬영일 10일 이내 날짜 변경 시 수수료 5만원 발생합니다.\n당일 스케줄 변경과 재촬영은 불가합니다.`;
   const sns=`*\n촬영 사진의 일부는 감탄사진관 SNS (블로그·인스타그램 등)에 업로드될 수 있습니다.\n업로드를 원치 않으시면 촬영 날 말씀해 주시길 부탁드립니다.`;
   const end=`*\n궁금하신 점은 카톡 또는 전화로 문의주세요.\n촬영 중에는 카톡 답변이 늦을 수 있으며, 촬영 후 바로 연락드리겠습니다.\n감사합니다.`;
   return noPx([title,`[ ${nm(b)}님  |  ${who}  |  ${pname} ]\n${when}`,info+(b.pet?"\n(반려동물 포함 / 배변패드·간식을 챙겨주시면 좋습니다)":""),loc,dress[k]||"",wait,cancel,sns,end].filter(Boolean).join("\n\n"))}
@@ -1789,29 +1792,26 @@ const BIGFAM_INQUIRY = `안녕하세요^^
 문의주신 촬영 예약은 현재 가능합니다~
 (예약은 실시간으로 진행되어 변동이 있을 수 있습니다)
 
-문의주신 대가족 가족촬영 상품 안내해드릴게요^^
+문의주신 대가족 촬영 상품 안내해드릴게요^^
 
 +
-[ 첫 번째 ] 감탄 대가족 — 15만원
-· 8x10인치 액자 1개
-· 액자컷 웹용 수정본 1컷
-· 기본 액자 외 다른 사이즈의 액자·앨범 등은 별도 추가 가능합니다
-· 전체 원본 파일은 제공되지 않습니다
+[ 대가족 STORY ]
+4인 기준 450,000원 / 추가 1인당 +50,000원 (성인·미성년자 동일)
+· 대가족 전체사진과 가족 구성에 따른 다양한 촬영
+· 전체 촬영 원본파일 + 액자컷 보정파일 1컷
+· 촬영금액에 따라 액자 1점 제공
 
-[ 두 번째 ] 감탄스토리 가족촬영 — 80만원
-· 8x10인치 액자 1개
-· 액자컷 웹용 수정본 1컷
-· 원본 파일 100컷 이상 제공
-
-감탄스토리는 가족분들의 모습을 스냅 형식으로 자연스럽게 담아드려요~
-가족 전체 촬영과 더불어 부모님, 형제 촬영 등 다양하게 진행되며,
-저희 사진관에서 가장 많이 선택하시는 상품 중 하나입니다^^
+[ 촬영금액별 액자 ]
+· 60만원 미만: 8x10인치 액자
+· 60만원 이상: 11x14인치 액자
+· 80만원 이상: 16x20인치 액자
+· 100만원 이상: 20x24인치 액자
+· 120만원 이상: 대형 캔버스
+(예: 8명 65만원 → 11x14인치 액자 / 15명 100만원 → 20x24인치 액자)
 
 +
 의상은 한 벌 또는 두 벌, 직접 준비해주시면 됩니다.
-위 두 상품은 모두 똑같은 방식으로 촬영하고,
-최종 상품은 촬영 후 모니터로 사진을 보고 결정하셔도 됩니다~
-14인 가족이면 방문 후 평균 1시간 30분~2시간 정도 예상하시면 됩니다^^
+대가족은 방문 후 평균 1시간 30분~2시간 정도 예상하시면 됩니다^^
 
 +
 촬영은 예약 시간에 방문하시면 바로 시작하지 않고,
@@ -1819,13 +1819,16 @@ const BIGFAM_INQUIRY = `안녕하세요^^
 대화를 나눈 뒤 촬영을 시작하고, 가족분들의 성향에 따라 자연스럽고 다양하게 진행합니다.
 (예: 대가족, 소가족, 부모님, 부모님과 손주, 직계가족 촬영 등)
 
++
+예약은 네이버 예약에서 예약금 10만원 결제로 확정됩니다.
+
 다른 궁금한 점이 있으시면 언제든지 문의주세요!
 감사합니다^^`;
 
 /* 상담 대본은 10/31 뺀 (나중에 다시) — SCRIPT 내용은 코드에 남겨 둠 */
 function scriptHTML(){return `<details><summary><span class="sn">📋</span><span>대가족 문의 답변 <em>복사해서 전송</em></span></summary><pre id="n-bigfam">${esc(BIGFAM_INQUIRY)}</pre><div style="padding:0 10px 8px;text-align:right"><button type="button" class="mini pri" data-a="bigcopy">복사</button></div></details>`}
 $("n-script").innerHTML=scriptHTML();
-const CMPK=["simpfam","story","bigfam","bigfam_orig"];
+const CMPK=["simpfam","story","bigfam","bigfam_old","bigfam_orig"];
 function nBook(k){return{pkey:k||null,adults:+$("n-adults").value||0,kids:+$("n-kids").value||0,pet:$("n-pet").checked,up11:$("n-up11").checked&&!!(PRODUCTS[k]||{}).up11,product:"",cal:""}}
 function nPrice(){const k=$("n-pkey").value,p=PRODUCTS[k];$("n-up11w").hidden=!(p&&p.up11);
   const rows=k?calcRows(nBook(k))||[]:[];const tot=rows.reduce((a,r)=>a+(+r.amt||0),0);
@@ -1843,7 +1846,7 @@ function nHit(){const el=$("n-hit");if(modalForCust){el.hidden=true;return}const
 document.addEventListener("click",e=>{if(e.target.closest("[data-a=nxh]")){NXH=true;drawHours();return}const t=e.target.closest("[data-a=th],[data-a=tm]");if(!t)return;if(t.dataset.a==="th")TH=t.dataset.v;else{TM=t.dataset.v;if(!TH)TH="11"}paintTime()});
 let modalForCust=null;
 function openModal(here){MGEN++;$("modal").classList.remove("closing");
-  $("n-pkey").innerHTML=`<option value="">상품 고르기</option>`+Object.entries(PRODUCTS).filter(([k])=>k!=="halfid").map(([k,p])=>`<option value="${k}">${p.name}</option>`).join("");
+  $("n-pkey").innerHTML=`<option value="">상품 고르기</option>`+Object.entries(PRODUCTS).filter(([k])=>!["halfid","bigfam_old","bigfam_orig"].includes(k)).map(([k,p])=>`<option value="${k}">${p.name}</option>`).join("");
   modalForCust=here&&openKey?custBookings().sort(byDate).pop():null;
   $("mtitle").textContent=modalForCust?`${modalForCust.name}님 새 예약 · 상담`:"새 예약 · 상담";
   $("n-name").value=modalForCust?modalForCust.name:"";$("n-phone").value=modalForCust?((CUST[openKey]||{}).phone||""):"";
