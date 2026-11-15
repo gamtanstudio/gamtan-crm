@@ -1245,7 +1245,7 @@ const SHIPOPEN=new Set();
 function shipHTML(b){
   const p=P(b);if(p&&p.idlike)return"";
   const s=b.steps||{},rows=shipRows(b);
-  const tr=r=>{const st=r.shipped?"shp":r.ready?"rdy":"";return `<tr class="${st}${r.virtual?" vir":""}"><td><b>${esc(r.kind)}</b>${r.kind==="액자"?` <select class="inp ms" style="width:auto;display:inline-block" data-f="ship-size" data-id="${esc(b.id)}" data-r="${esc(r.id)}" aria-label="액자 크기">${(SIZES.includes(r.size)||!r.size?SIZES:[r.size,...SIZES]).map(z=>`<option${z===r.size?" selected":""}>${z}</option>`).join("")}</select>`:r.size?` <span style="color:var(--muted)">${esc(r.size)}</span>`:""}</td>
+  const tr=r=>{const st=r.shipped?"shp":r.ready?"rdy":"";return `<tr class="${st}${r.virtual?" vir":""}"><td><b>${esc(r.kind)}</b>${r.kind==="액자"?` <select class="inp ms" style="width:auto;display:inline-block" data-f="ship-size" data-id="${esc(b.id)}" data-r="${esc(r.id)}" aria-label="액자 크기">${(SIZES.includes(r.size)?SIZES:[r.size||"",...SIZES]).map(z=>`<option${z===r.size?" selected":""}>${z}</option>`).join("")}</select>`:r.size?` <span style="color:var(--muted)">${esc(r.size)}</span>`:""}</td>
     <td><input class="inp" style="width:100%" data-f="ship-photo" data-id="${esc(b.id)}" data-r="${esc(r.id)}" value="${esc(r.photo||"")}" placeholder="" aria-label="${esc(r.kind)} 사진 번호"></td>
     ${r.kind==="보정본"?`<td class="c"><span class="ckd">—</span></td><td class="c"><button class="ck${r.shipped?" s":""}" data-a="ship" data-id="${esc(b.id)}" data-r="${esc(r.id)}" data-v="shipped" aria-label="보정본 보냄">${r.shipped?"✓":""}</button><span class="ckd tn">${esc(stamp(r.shipped))}</span></td>`:`
     <td class="c">${r.kind==="원본"?"":`<button class="ck${r.ready?" r":""}" data-a="ship" data-id="${esc(b.id)}" data-r="${esc(r.id)}" data-v="ready" aria-label="${esc(r.kind)} 준비">${r.ready?"✓":""}</button><span class="ckd tn">${esc(stamp(r.ready))}</span>`}</td>
@@ -1940,7 +1940,9 @@ const SELF=new Map();const mine=id=>{SELF.set(id,Date.now())};const isMine=id=>(
 const kst=a=>new Date(new Date(a).getTime()+9*3600e3).toISOString();
 
 /* ---------- 서버 → 화면 ---------- */
-const ITEMK=(k,sm)=>{const t=(k||"")+" "+(sm||"");if(/포켓/.test(t))return"리뷰포켓";if(/액자|캔버스/.test(t))return"액자";if(/보정본/.test(t))return"보정본";if(/원본/.test(t))return"원본";if(/앨범/.test(t))return"앨범";return k||"기타"};
+const SMSIZE=sm=>{const m=(sm||"").match(/(\d+)\s*[xX×]\s*(\d+)/);return m?`${m[1]}x${m[2]}`:(sm||"")};
+const ITEMK=(k,sm)=>{const m=sm||"";if(/포켓/.test(m))return"리뷰포켓";if(/보정본/.test(m))return"보정본";if(/앨범/.test(m))return"앨범";if(/액자|캔버스|슬림|블럭|인화/.test(m))return"액자";if(/^원본/.test(m))return"원본"; /* SM 상품 이름이 먼저 (보정본 1컷이 액자로 잡히던 것) */
+  const t=(k||"")+" "+m;if(/포켓/.test(t))return"리뷰포켓";if(/액자|캔버스/.test(t))return"액자";if(/보정본/.test(t))return"보정본";if(/원본/.test(t))return"원본";if(/앨범/.test(t))return"앨범";return k||"기타"};
 const isCons=s=>s.kind==="shoot"&&(!s.state||s.state==="완료");
 const STEPCOL={shot:"shot_at",canceled:"canceled_at",postponed:"postponed_at",orig:"original_sent_at",picked:"picked_at",handoff:"handoff_at",workshop:"workshop_at",done:"done_at",notified:"notified_at",delivered:"delivered_at",slot_off:"slot_off_at",rnotify:"retouch_notified_at",rcheck:"retouch_checked_at"};
 const SNAP={},SNAPI={},SNAPP={},SNAPS={},BID2KEY={},CUSTROW={};
@@ -1965,7 +1967,7 @@ function toB(r,cust){
   const sh=ss.find(isCons)||null;
   const steps={};for(const [k,c] of Object.entries(STEPCOL))if(r[c])steps[k]=r[c];
   if(r.sm_all_shipped&&!steps.delivered)steps.delivered=(sh&&sh.date)||r.contract_date||"기존";
-  const items=(r.items||[]).filter(i=>!/^증명사진$/.test(i.kind||"")).map(i=>({id:i.id,kind:ITEMK(i.kind,i.sm_item),size:i.size||"",photo:i.photo_no||"",sm:i.sm_item||"",frame:i.frame||"",
+  const items=(r.items||[]).filter(i=>!/^증명사진$/.test(i.kind||"")).map(i=>({id:i.id,kind:ITEMK(i.kind,i.sm_item),size:i.size||(ITEMK(i.kind,i.sm_item)==="액자"?SMSIZE(i.sm_item):""),photo:i.photo_no||"",sm:i.sm_item||"",frame:i.frame||"",
     ready:i.ready_at||(r.sm_all_shipped?"기존":null),shipped:i.shipped_at||(r.sm_all_shipped?"기존":null),memo:i.memo||"",...(i.request?{request:i.request}:{})}));
   const payments=(r.payments||[]).slice().sort((a,b)=>(a.paid_at||"").localeCompare(b.paid_at||"")).map(p=>({id:p.id,kind:p.kind,amount:p.amount,method:p.method||"",receipt:p.receipt||"",date:p.paid_at}));
   const po=r.price_override||{},ui=r.ui||{};
