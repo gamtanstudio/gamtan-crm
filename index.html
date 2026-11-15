@@ -976,9 +976,9 @@ function rowHTML(b,note){const st=status(b),sc=chipC(b,st);
 function grp(title,list,crit,fn){return `<div class="grp${crit?" crit":""}"><h3>${title}<span>${list.length}건</span></h3>${list.map(fn||(b=>rowHTML(b))).join("")||`<div class="empty">없음</div>`}</div>`}
 function drawToday(){
   const all=Object.values(B).sort(byDate);const crit=[];const add=(b,n)=>{if(!(b.ack||{})[n])crit.push([b,n])};
-  all.forEach(b=>{const st=status(b),s=b.steps||{};if(st.crit)add(b,st.crit);
+  all.forEach(b=>{if(b.date&&b.date<"2026-09-01")return; /* 9월 전 옛날 건은 놓친 것에서 뺌 */const st=status(b),s=b.steps||{};if(st.crit)add(b,st.crit);
     if(st.k==="예약확정"&&!s.slot_off&&!(P(b)||{}).idlike)add(b,"증명끔 확인");
-    if(needPay(b))add(b,"결제 방법·영수증");
+    if(pays(b).some(p=>p.amount&&!p.method))add(b,"결제 방법"); /* 영수증 칸은 놓친 것으로 안 셈 */
     if(s.workshop&&!s.done&&s.workshop<=addDays(TODAY,-14))add(b,"공방 2주 지남");
     if(st.k==="미등록"){const g=gsBase(b);if(g&&g<=addDays(TODAY,-365))add(b,"가성 미등록 1년 — 연락")}});
   /* 맨 위: 오늘 찍을 손님 브리핑 (진행판 방식) — Claude가 쓴 요약(b.pts/b.brief)이 있으면 먼저, 없어도 기록 원문은 항상 자동으로 */
