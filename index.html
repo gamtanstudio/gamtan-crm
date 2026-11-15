@@ -238,6 +238,7 @@ html.lock,html.lock body{overflow:hidden}
 .bbox[open]>summary::before,.braw[open]>summary::before{content:"▾ "}
 .bbody{padding:0 12px 10px}
 .bbody h4{margin:9px 0 2px;font-size:13.5px;font-weight:700}
+.bbody h4.bh{display:inline-block;margin:12px 0 4px;padding:3px 10px;border-radius:6px;border-left:4px solid currentColor}.bh-age{background:var(--acc-bg);color:var(--acc-fg)}.bh-memo{background:var(--memo-bg);color:var(--memo-fg)}.bh-log{background:var(--ok-bg);color:var(--ok)}.bh-past{background:var(--tbd-bg);color:var(--tbd)}
 .braw{margin-top:8px;border-top:1px dashed var(--line)}
 .braw summary{padding-left:0;color:var(--muted)}
 .bnone{font-size:13px;color:var(--muted)}
@@ -1072,8 +1073,8 @@ function briefHTML(b){
   const ul=a=>a.length?`<ul class="bpts">${a.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:"";
   const mine=Array.isArray(b.brief)&&b.brief.length?b.brief.map(s=>`<h4>${esc(s.h)}</h4>${ul(s.items||[])}`).join(""):"";
   const nts=(NOTES[k]||[]).slice().sort((a,b2)=>(b2.at||"").localeCompare(a.at||"")).slice(0,8);
-  const raw=(c.memo||c.family?`<h4>고객 메모</h4>${ul([c.family,...lines(c.memo)].filter(Boolean))}`:"")+(nts.length?`<h4>최근 이력</h4>${ul(nts.map(n=>`${(n.at||"").slice(2,10).replace(/-/g,".")}${n.who?" "+n.who:""} · ${n.text}`))}`:"")+past.map(x=>`<h4>${x.date.slice(2).replace(/-/g,".")} ${esc(calText(x))}</h4>${ul([...lines(x.hugi),...lines(x.memo)])||`<div class="bnone">기록 없음</div>`}`).join("");
-  const ag=agesNow(b),agh=ag?`<h4>올해 나이</h4><ul class="bpts"><li><b>${esc(ag.list.join(" · "))}</b> <span class="refs">${ag.from.date.slice(2,7).replace("-",".")} 기록</span></li></ul>`:"";
+  const raw=(c.memo||c.family?`<h4 class="bh bh-memo">고객 메모</h4>${ul([c.family,...lines(c.memo)].filter(Boolean))}`:"")+(nts.length?`<h4 class="bh bh-log">최근 이력</h4>${ul(nts.map(n=>`${(n.at||"").slice(2,10).replace(/-/g,".")}${n.who?" "+n.who:""} · ${n.text}`))}`:"")+past.map(x=>`<h4 class="bh bh-past">${x.date.slice(2).replace(/-/g,".")} ${esc(calText(x))}</h4>${ul([...lines(x.hugi),...lines(x.memo)])||`<div class="bnone">기록 없음</div>`}`).join("");
+  const ag=agesNow(b),agh=ag?`<h4 class="bh bh-age">올해 나이</h4><ul class="bpts"><li><b>${esc(ag.list.join(" · "))}</b> <span class="refs">${ag.from.date.slice(2,7).replace("-",".")} 기록</span></li></ul>`:"";
   const body=agh+(mine?`<div class="bsum">${mine}</div>`:"")+(raw?(mine?`<details class="braw"><summary>기록 원문</summary>${raw}</details>`:raw):"");
   return `<div class="brow"><span class="d tn">${b.time?`<b class="${ampm(b.time)}">${tm(b.time)}</b>`:"시간 미정"}</span><div class="b"><button class="lnk bnm${b.rn?" rnn":""}" data-a="open" data-id="${esc(b.id)}">${esc(b.name)}</button>${b.rn?`<span class="rnb">리뷰노트</span>`:""}${atHTML(k)}${b.customer_no?` <span class="cno">#${b.customer_no}</span>`:""} <span class="${kindCls(b)}">${esc(calText(b))}</span> <span class="sc ${chipC(b,st)}">${esc(st.k)}</span>${ul(pts)}${!isId&&body?`<details class="bbox"><summary>촬영 전 숙지${mine?"":" (기록)"}</summary><div class="bbody">${body}</div></details>`:""}</div></div>`}
 function hitSnip(t,q){t=String(t).replace(/\s+/g," ");const terms=q.split(/\s+/).filter(Boolean),lo=t.toLowerCase(),i=Math.max(0,lo.indexOf(terms[0].toLowerCase()));const a=Math.max(0,i-14),cut=(a>0?"…":"")+t.slice(a,a+46)+(a+46<t.length?"…":"");
