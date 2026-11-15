@@ -744,7 +744,7 @@ function shipRows(b){
   if(p&&!p.idlike&&!b.rn){ /* 리뷰노트는 원본만 (액자·보정본 없음) */
     if(p.frame&&!has("액자"))v.push({id:"v-frame",kind:"액자",size:p.frameTier?bigFrame(b):p.frame,virtual:1});
     if(p.frame&&!has("보정본"))v.push({id:"v-ret",kind:"보정본",size:"",virtual:1});
-    if(!p.frame&&!has("보정 파일"))v.push({id:"v-file",kind:"보정 파일",size:"",virtual:1});
+    if(!p.frame&&!has("보정 파일")&&!has("보정본"))v.push({id:"v-file",kind:"보정 파일",size:"",virtual:1});
   }
   if((hasOrig(b)||b.rn)&&!has("원본"))v.push({id:"v-orig",kind:"원본",size:"",virtual:1});
   if(b.review&&!has("리뷰포켓"))v.push({id:"v-pocket",kind:"리뷰포켓",size:"",virtual:1});
