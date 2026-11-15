@@ -2251,7 +2251,7 @@ async function loadInbox(){const {data,error}=await sb.from("inbox").select("*")
 window.ibUpdate=async(ids,patch)=>{ids=[].concat(ids);const row={...patch,done_by:ME?ME.name:null,done_at:new Date().toISOString()};
   const {error}=await sb.from("inbox").update(row).in("id",ids);if(error)throw error;INBOX.forEach(r=>{if(ids.includes(r.id))Object.assign(r,row)});refresh()};
 window.ibPick=async(id,bid)=>{const {error}=await sb.rpc("inbox_pick",{iid:id,bid});if(error)throw error;await fetchBookings(q=>q.eq("id",bid));await loadInbox()};
-/* 전화 오면 손님 띄우기 — 지킴이가 받은 번호를 보내 줌 (폰 화면에서는 안 띄움) */
+/* 전화 오면 손님 띄우기 — 지킴이가 받은 번호를 보내 줌 (폰은 표시만, 화면 자동으로 안 바꿈) */
 let CALLT=0,CALLS=[];
 function callKey(d){const hits=Object.entries(CUST).filter(([k,c])=>[c.phone,c.phone2,c.phone3].some(p=>normP(p)===d)&&Object.values(B).some(x=>ckey(x)===k));return (hits.find(([k])=>k[0]==="n")||hits[0]||[null])[0]}
 async function loadCalls(){const {data}=await sb.from("calls").select("*").order("at",{ascending:false}).limit(300);CALLS=data||[];callBtn()}
@@ -2263,12 +2263,12 @@ function drawCalls(){const el=$("calllog");let day="",h=`<div class="cl-h"><span
     if(key){const bs=Object.values(B).filter(x=>ckey(x)===key).sort(byDate),last=bs[bs.length-1];who=`<b>${esc(custName(key))}님</b>${key[0]==="n"?` #${key.slice(1)}`:""}`;act=`data-a="open" data-id="${esc(last.id)}"`}
     h+=`<button class="cl-r" ${act}><span class="cl-t">${t.slice(11,16)}</span><span>${who}</span><span class="cl-n">${esc(fmtPh(num))}</span></button>`});
   if(!CALLS.length)h+=`<div class="cl-d">없음</div>`;el.innerHTML=h}
-function callPop(num){if(isPhone())return;const d=normP(num);if(d.length<9)return;
+function callPop(num){const d=normP(num);if(d.length<9)return;
   const key=callKey(d),el=$("callbar"),ph=fmtPh(d);
   if(key){const c=CUST[key]||{},who=["","2","3"].map(n=>normP(c["phone"+n])===d?c["phoneName"+n]:"").find(Boolean)||"";
     const bs=Object.values(B).filter(x=>ckey(x)===key).sort(byDate),last=bs[bs.length-1];
     el.innerHTML=`<span>📞 <b>${esc(custName(key)||c.name||"")}님</b>${who?` ${esc(who)}`:""}${key[0]==="n"?` #${key.slice(1)}`:""} · ${esc(ph)}</span><button class="mini" data-a="open" data-id="${esc(last.id)}">열기</button><button class="mini" data-a="callx">닫기</button>`;
-    if(!typing()&&$("modal").hidden)openCust(last.id,true)}
+    if(!isPhone()&&!typing()&&$("modal").hidden)openCust(last.id,true)}
   else el.innerHTML=`<span>📞 <b>${esc(ph)}</b> 새 번호</span><button class="mini" data-a="callnew" data-v="${esc(ph)}">새 예약·상담</button><button class="mini" data-a="callx">닫기</button>`;
   el.hidden=false;clearTimeout(CALLT);CALLT=setTimeout(()=>{el.hidden=true},90000)}
 function startRealtime(){
