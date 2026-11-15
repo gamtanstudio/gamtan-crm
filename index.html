@@ -1205,7 +1205,7 @@ function shipSummary(b){const rows=shipRows(b).filter(r=>!r.virtual||r.kind!=="�
 
 function growthHTML(b){
   if(pk(b)!=="growth")return"";
-  const m=/^(\d+)-(\d+)$/.exec(b.gs||""),nx=b.nextId&&B[b.nextId];
+  const m=/^(\d+)-(\d+)$/.exec(b.gs||""),nx=(b.nextId&&B[b.nextId])||autoNext(b);
   return `<div class="nums" style="margin:0"><b style="color:var(--tbd)">가족성장</b>
     <label>모집 회차 <input class="inp num" style="width:56px" inputmode="numeric" data-f="gs-c" data-id="${esc(b.id)}" value="${m?m[1]:""}"></label>
     <label>년차 <input class="inp num" style="width:56px" inputmode="numeric" data-f="gs-y" data-id="${esc(b.id)}" value="${m?m[2]:""}"></label>
@@ -1595,8 +1595,15 @@ async function save(id,patch,logText){
 function log(id,text){db.collection("logs").add({booking:id,text,who:who(),at:new Date(Date.now()+9*3600e3).toISOString()}).catch(()=>{})}
 const today=()=>TODAY;
 
+/* 연결(nextId)이 없어도 이미 있는 다음 회차 찾기 — SM에서 가져온 계약은 연결이 비어 있는 경우가 많음 */
+function autoNext(b){if(pk(b)!=="growth"||!(b.steps||{}).shot)return null;const k=ckey(b);
+  const gs=Object.values(B).filter(x=>ckey(x)===k&&pk(x)==="growth"&&!(x.steps||{}).canceled);
+  const linked=gs.find(x=>x.prevId===b.id);if(linked)return linked;
+  const shot=gs.filter(x=>(x.steps||{}).shot).sort((a,c)=>(a.date||"").localeCompare(c.date||""));if(shot[shot.length-1]!==b)return null;
+  return gs.filter(x=>!(x.steps||{}).shot&&!gs.some(y=>y.nextId===x.id&&y!==b)).sort((a,c)=>(a.booked||"").localeCompare(c.booked||""))[0]||null}
 async function makeNext(b){
   if(b.nextId&&B[b.nextId])return;
+  if(autoNext(b)){toast("다음 회차가 이미 있어요");return}
   const id=uid("n"),gs=nextGs(b.gs);
   const doc={name:b.name,customer_no:b.customer_no||null,date:"",time:"",product:"",pkey:"growth",growth:true,gs,adults:+b.adults||2,kids:+b.kids||1,
     cal:(b.cal||"").replace(/가성\s*\d+-\d+/,gs?"가성"+gs:"").trim(),kind:"shoot",memo:"",steps:{},items:[],
