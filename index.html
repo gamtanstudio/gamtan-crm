@@ -1618,7 +1618,6 @@ function toggleStep(b,k){
     else{ps=ps.filter(x=>!(x.auto&&x.kind==="잔금"&&!x.method));txt="촬영 되돌림"}
     save(b.id,{steps:{shot:on?null:TODAY},payments:ps},txt);return}
   save(b.id,{steps:{[k]:on?null:TODAY}},on?`${label} 되돌림`:label);
-  if(k==="shot"&&!on&&pk(b)==="growth"&&!b.nextId)setTimeout(()=>makeNext(B[b.id]),50);
 }
 
 /* ===== 누르기 ===== */
