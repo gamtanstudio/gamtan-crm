@@ -986,7 +986,9 @@ function drawToday(){
   if(typeof ensureCust==="function"&&typeof LOADED_C!=="undefined"){const nos=[...new Set(tl.map(b=>b.customer_no).filter(Boolean))];nos.filter(n=>!LOADED_C.has(n)).forEach(n=>ensureCust(n));
     if(typeof loadNotes==="function"){const NQ=window.__NQ||(window.__NQ=new Set());const nn=nos.filter(n=>!NOTE_LOADED.has(n)&&!NQ.has(n));nn.forEach(n=>NQ.add(n));if(nn.length)loadNotes(nn).then(refresh)}}
   put("tg-0",inboxHTML()+`<div class="grp"><h3>오늘 손님 · ${md(TODAY)} ${dow(TODAY)}<span>${tl.length}건</span></h3>${tl.map(briefHTML).join("")||`<div class="empty">오늘 예약 없음</div>`}</div>`);
-  put("tg-1",grp("놓친 것",crit,true,([b,n])=>`<div class="rowa">${rowHTML(b,n+(n==="공방 2주 지남"?` · ${md((b.steps||{}).workshop)} 보냄`:""))}<button class="ackb" data-a="ack" data-id="${esc(b.id)}" data-v="${esc(n)}" title="확인함 — 목록에서 빼기">확인</button></div>`));
+  const nv=nvMiss();
+  put("tg-1",grp("놓친 것",crit.concat(nv),true,([b,n])=>b.nv?nvHTML(b):([b,n])=>`<div class="rowa">${rowHTML(b,n+(n==="공방 2주 지남"?` · ${md((b.steps||{}).workshop)} 보냄`:""))}<button class="ackb" data-a="ack" data-id="${esc(b.id)}" data-v="${esc(n)}" title="확인함 — 목록에서 빼기">확인</button></div>`));
+
   ["tg-2","tg-3","tg-4","tg-5","tg-6"].forEach(i=>put(i,""));
 }
 
@@ -1725,6 +1727,7 @@ document.addEventListener("click",e=>{
   if(a==="back"){closeNav();return}
   if(a==="newbk"||a==="newbk-here"){openModal(a==="newbk-here");return}
   if(a==="callx"){$("callbar").hidden=true;return}
+  if(a==="nvack"){NVACK[v]=TODAY;try{localStorage.setItem("nvack",JSON.stringify(NVACK))}catch(e){}refresh();toast("목록에서 뺐어요");return}
   if(a==="calls"){const el=$("calllog");if(el.hidden){drawCalls();el.hidden=false}else el.hidden=true;return}
   if(a==="callnew"){$("callbar").hidden=true;openModal(false);$("n-phone").value=v;nHit();return}
   if(a==="mclose"){closeModal();return}
@@ -2259,6 +2262,25 @@ function rtFlush(){clearTimeout(rtT);rtT=setTimeout(async()=>{
   if(bs.length||cs.length){["cp-bar","cp-head","cp-stats"].forEach(i=>{const e=$(i);if(e)e._h=null});refresh()}},600)}
 
 let OUTT=0;function confirmOut(){const b=$("logout");if(Date.now()-OUTT<3000)return true;OUTT=Date.now();b.textContent="한 번 더 누르면 로그아웃";setTimeout(()=>{b.textContent="로그아웃"},3000);return false}
+/* 네이버 예약 — CRM에 안 넣은 예약 / 네이버에서 취소된 예약 */
+let RSV=[];
+const NVACK=(()=>{try{return JSON.parse(localStorage.getItem("nvack")||"{}")}catch(e){return{}}})();
+async function loadRsv(){const {data,error}=await sb.from("reservations").select("naver_booking_no,event_type,customer_name,product,option_menu,use_at,created_at").gte("use_at",addDays(TODAY,-7)).order("created_at");if(error)return;
+  const last={};(data||[]).forEach(x=>last[x.naver_booking_no]=x);RSV=Object.values(last);refresh()}
+const nvDT=x=>{const d=new Date(new Date(x.use_at).getTime()+9*3600e3).toISOString();return[d.slice(0,10),d.slice(11,16)]};
+const nvNm=(m,n)=>{m=(m||"").trim();n=(n||"").trim();return !!(m&&n&&m[0]===n[0]&&m.slice(-1)===n.slice(-1))};
+function nvMiss(){const from=addDays(TODAY,-7)>"2026-11-15"?addDays(TODAY,-7):"2026-11-15",bs=Object.values(B),out=[];
+  RSV.forEach(x=>{if(!x.use_at||/증명/.test(x.product||"")||NVACK[x.naver_booking_no])return;const[d,t]=nvDT(x);if(d<from)return;
+    const live=bs.filter(b=>!(b.steps||{}).canceled&&b.date===d);
+    if(x.event_type==="신규"){if(live.some(b=>(b.time||"").slice(0,5)===t||nvNm(x.customer_name,b.name)))return;
+      if(/가족성장/.test(x.product||"")&&bs.some(b=>!b.date&&!(b.steps||{}).canceled&&nvNm(x.customer_name,b.name)))return;
+      out.push([{nv:1,x,d,t},"네이버 예약 등록 안 됨"])}
+    else if(x.event_type==="취소"){const m=live.filter(b=>(b.time||"").slice(0,5)===t&&nvNm(x.customer_name,b.name));if(m.length)out.push([{nv:1,x,d,t,b:m[0]},"네이버 취소됨"])}});
+  return out}
+function nvHTML(o){const x=o.x,n=o.b?"네이버 취소됨":"네이버 예약 등록 안 됨",prod=(x.product||"").replace(/감탄삼촌 작가 전용 상품/,"").trim();
+  const body=`<span class="d tn">${md(o.d)} ${dow(o.d)}<br><b class="${ampm(o.t)}">${tm(o.t)}</b></span><span class="b"><span><b>${esc(o.b?o.b.name:x.customer_name)}</b>${prod?" · "+esc(prod):""}</span><span class="note">${n}</span></span><span class="sc c-crit">네이버</span>`;
+  return `<div class="rowa">${o.b?`<button class="row" data-a="open" data-id="${esc(o.b.id)}">${body}</button>`:`<div class="row">${body}</div>`}<button class="ackb" data-a="nvack" data-v="${esc(x.naver_booking_no)}" title="확인함 — 목록에서 빼기">확인</button></div>`}
+
 /* 오늘 들어온 일 (감탄 지킴이) */
 let INBOX=[];window.INBOX=()=>INBOX;
 async function loadInbox(){const {data,error}=await sb.from("inbox").select("*").gte("day",addDays(TODAY,-7)).order("created_at");if(error)return;INBOX=data||[];
@@ -2328,6 +2350,7 @@ function startRealtime(){
     LOGS=(lg||[]).map(l=>({booking:l.row_id,text:l.note,who:l.who,at:kst(l.at)}))}
   startRealtime();
   loadInbox();
+  loadRsv();setInterval(loadRsv,5*60*1000);
   loadCalls();
   loaded=true;
   $("status").textContent=`${me.name} · ${Math.round(performance.now()-t0)}ms`;
