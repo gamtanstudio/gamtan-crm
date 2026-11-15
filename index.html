@@ -989,7 +989,7 @@ function drawToday(){
     if(typeof loadNotes==="function"){const NQ=window.__NQ||(window.__NQ=new Set());const nn=nos.filter(n=>!NOTE_LOADED.has(n)&&!NQ.has(n));nn.forEach(n=>NQ.add(n));if(nn.length)loadNotes(nn).then(refresh)}}
   put("tg-0",inboxHTML()+`<div class="grp"><h3>오늘 손님 · ${md(TODAY)} ${dow(TODAY)}<span>${tl.length}건</span></h3>${tl.map(briefHTML).join("")||`<div class="empty">오늘 예약 없음</div>`}</div>`);
   const nv=nvMiss();
-  put("tg-1",grp("놓친 것",crit.concat(nv),true,([b,n])=>b.nv?nvHTML(b):([b,n])=>`<div class="rowa">${rowHTML(b,n+(n==="공방 2주 지남"?` · ${md((b.steps||{}).workshop)} 보냄`:""))}<button class="ackb" data-a="ack" data-id="${esc(b.id)}" data-v="${esc(n)}" title="확인함 — 목록에서 빼기">확인</button></div>`));
+  put("tg-1",grp("놓친 것",crit.concat(nv),true,([b,n])=>b.nv?nvHTML(b):`<div class="rowa">${rowHTML(b,n+(n==="공방 2주 지남"?` · ${md((b.steps||{}).workshop)} 보냄`:""))}<button class="ackb" data-a="ack" data-id="${esc(b.id)}" data-v="${esc(n)}" title="확인함 — 목록에서 빼기">확인</button></div>`));
 
   ["tg-2","tg-3","tg-4","tg-5","tg-6"].forEach(i=>put(i,""));
 }
