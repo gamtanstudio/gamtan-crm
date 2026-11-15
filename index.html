@@ -2270,7 +2270,9 @@ let RSV=[];const NVACK={};
 const NV_SINCE="2026-11-15T12:30:00Z";
 async function loadRsv(){const [r,a]=await Promise.all([sb.from("reservations").select("naver_booking_no,event_type,customer_name,product,option_menu,use_at,created_at").gte("use_at",addDays(TODAY,-7)).order("created_at"),sb.from("naver_ack").select("naver_booking_no")]);if(r.error)return;
   (a.data||[]).forEach(x=>NVACK[x.naver_booking_no]=1);
-  const last={};(r.data||[]).forEach(x=>last[x.naver_booking_no]=x);RSV=Object.values(last);nvBtn(true);refresh()}
+  const last={};(r.data||[]).forEach(x=>last[x.naver_booking_no]=x);RSV=Object.values(last);
+  for(const ym of new Set(RSV.filter(x=>x.use_at).map(x=>nvDT(x)[0].slice(0,7)))){try{await ensureMonth(+ym.slice(0,4),+ym.slice(5,7)-1)}catch(e){}}
+  nvBtn(true);refresh()}
 let NVN=-1;
 function nvBtn(chk){const n=nvMiss().length,b=$("nvbtn");if(b){b.hidden=!n;b.textContent=`네이버 ${n}`}
   if(chk&&NVN>=0&&n>NVN)toast("네이버 예약 확인할 게 있어요");NVN=n}
@@ -2280,16 +2282,17 @@ const nvNm=(m,n)=>{m=(m||"").trim();n=(n||"").trim();return !!(m&&n&&m[0]===n[0]
 const nvKind=x=>{const s=(x.product||"")+" "+(x.option_menu||"");return /증명|여권|주민증|반명함|비자/.test(x.product||"")?"증명":/가족성장/.test(s)?"가성":"가족"};
 const NVOFF={증명:"가족·가성",가족:"증명·가성",가성:"증명·가족"};
 function nvMiss(){const from=addDays(TODAY,-7)>"2026-11-15"?addDays(TODAY,-7):"2026-11-15",bs=Object.values(B),out=[];
+  const nvMine={};RSV.forEach(x=>{if(x.use_at&&x.event_type==="신규"){const d=nvDT(x)[0];(nvMine[d]=nvMine[d]||[]).push(x.customer_name)}}); /* 같은 날 다른 네이버 예약자 이름과 맞는 CRM 예약은 시간만으로 짝짓지 않음 */
+  const nvOther=(d,b)=>(nvMine[d]||[]).some(m=>nvNm(m,b.name));
   RSV.forEach(x=>{if(!x.use_at||NVACK[x.naver_booking_no])return;const[d,t]=nvDT(x);if(d<from)return;
     const k=nvKind(x),fresh=(x.created_at||"")>=NV_SINCE,o={nv:1,x,d,t,k};
     const live=bs.filter(b=>!(b.steps||{}).canceled&&b.date===d);
     if(x.event_type==="신규"){
-      if(k==="증명"){if(fresh&&d>=TODAY)out.push([{...o,n:`증명 예약 → ${NVOFF[k]} 끄기`},""]);return}
-      if(live.some(b=>(b.time||"").slice(0,5)===t||nvNm(x.customer_name,b.name)))return;
+      if(live.some(b=>nvNm(x.customer_name,b.name)||((b.time||"").slice(0,5)===t&&!nvOther(d,b))))return;
       if(k==="가성"&&bs.some(b=>!b.date&&!(b.steps||{}).canceled&&nvNm(x.customer_name,b.name)))return;
       out.push([{...o,n:`${k} 예약 등록 안 됨 → ${NVOFF[k]} 끄기`},""])}
     else if(x.event_type==="취소"){
-      if(k!=="증명"){const m=live.filter(b=>(b.time||"").slice(0,5)===t&&nvNm(x.customer_name,b.name));if(m.length){out.push([{...o,b:m[0],n:`네이버 취소됨 → CRM 취소 · ${NVOFF[k]} 다시 켜기`},""]);return}}
+      {const m=live.filter(b=>(b.time||"").slice(0,5)===t&&nvNm(x.customer_name,b.name));if(m.length){out.push([{...o,b:m[0],n:`네이버 취소됨 → CRM 취소 · ${NVOFF[k]} 다시 켜기`},""]);return}}
       if(fresh&&d>=TODAY)out.push([{...o,n:`${k} 취소 → ${NVOFF[k]} 다시 켜기`},""])}});
   return out}
 function nvHTML(o){const x=o.x;
