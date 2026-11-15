@@ -517,6 +517,8 @@ details.more summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(-
 .tb.more{color:var(--muted);border-style:dashed;font-weight:600}
 .tb.on{background:var(--acc);border-color:var(--acc);color:#fff}
 .pchk{flex-direction:row!important;align-items:center;gap:6px!important;font-size:13.5px!important}
+.callbar{position:fixed;top:12px;right:12px;z-index:85;background:var(--fg);color:var(--bg);padding:10px 14px;border-radius:12px;font-weight:600;display:flex;gap:8px;align-items:center;flex-wrap:wrap;max-width:92vw;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.callbar .mini{color:var(--fg)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 20px);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;z-index:80;max-width:90vw}
 /* 모션 — Material 3 강조 곡선(emphasized), 누를 때만 */
 :root{--e-out:cubic-bezier(.05,.7,.1,1);--e-std:cubic-bezier(.2,0,0,1)}
@@ -635,6 +637,7 @@ details.more summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(-
   </form>
 </div>
 <div class="toast" id="toast" hidden></div>
+<div class="callbar" id="callbar" hidden></div>
 
 <script>
 /* ===== 기본 ===== */
@@ -1695,6 +1698,8 @@ document.addEventListener("click",e=>{
     if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(ta.value).then(done,()=>{ta.select();try{document.execCommand("copy")}catch(e){}done()});else{ta.select();try{document.execCommand("copy")}catch(e){}done()}return}
   if(a==="back"){closeNav();return}
   if(a==="newbk"||a==="newbk-here"){openModal(a==="newbk-here");return}
+  if(a==="callx"){$("callbar").hidden=true;return}
+  if(a==="callnew"){$("callbar").hidden=true;openModal(false);$("n-phone").value=v;nHit();return}
   if(a==="mclose"){closeModal();return}
   if(a==="warn"){if(!openKey)return;const old=CUST[openKey]||{},n=Math.max(0,Math.min(5,warnN(openKey)+(+v)));if(n===warnN(openKey))return;const c={...old,warn:n,...meta()};CUST[openKey]=c;$("cp-head")._h=null;refresh();
     db.doc("customers/"+openKey).set(c).catch(()=>toast("저장하지 못했어요"));const lb=custBookings().sort(byDate).pop();if(lb)log(lb.id,`주의 표시 ${"@".repeat(n)||"없음"}`);return}
@@ -2235,7 +2240,19 @@ async function loadInbox(){const {data,error}=await sb.from("inbox").select("*")
 window.ibUpdate=async(ids,patch)=>{ids=[].concat(ids);const row={...patch,done_by:ME?ME.name:null,done_at:new Date().toISOString()};
   const {error}=await sb.from("inbox").update(row).in("id",ids);if(error)throw error;INBOX.forEach(r=>{if(ids.includes(r.id))Object.assign(r,row)});refresh()};
 window.ibPick=async(id,bid)=>{const {error}=await sb.rpc("inbox_pick",{iid:id,bid});if(error)throw error;await fetchBookings(q=>q.eq("id",bid));await loadInbox()};
+/* 전화 오면 손님 띄우기 — 지킴이가 받은 번호를 보내 줌 (폰 화면에서는 안 띄움) */
+let CALLT=0;
+function callPop(num){if(isPhone())return;const d=normP(num);if(d.length<9)return;
+  const hits=Object.entries(CUST).filter(([k,c])=>[c.phone,c.phone2,c.phone3].some(p=>normP(p)===d)&&Object.values(B).some(x=>ckey(x)===k));
+  const key=(hits.find(([k])=>k[0]==="n")||hits[0]||[null])[0],el=$("callbar"),ph=fmtPh(d);
+  if(key){const c=CUST[key]||{},who=["","2","3"].map(n=>normP(c["phone"+n])===d?c["phoneName"+n]:"").find(Boolean)||"";
+    const bs=Object.values(B).filter(x=>ckey(x)===key).sort(byDate),last=bs[bs.length-1];
+    el.innerHTML=`<span>📞 <b>${esc(custName(key)||c.name||"")}님</b>${who?` ${esc(who)}`:""}${key[0]==="n"?` #${key.slice(1)}`:""} · ${esc(ph)}</span><button class="mini" data-a="open" data-id="${esc(last.id)}">열기</button><button class="mini" data-a="callx">닫기</button>`;
+    if(!typing()&&$("modal").hidden)openCust(last.id,true)}
+  else el.innerHTML=`<span>📞 <b>${esc(ph)}</b> 새 번호</span><button class="mini" data-a="callnew" data-v="${esc(ph)}">새 예약·상담</button><button class="mini" data-a="callx">닫기</button>`;
+  el.hidden=false;clearTimeout(CALLT);CALLT=setTimeout(()=>{el.hidden=true},90000)}
 function startRealtime(){
+  sb.channel("calls").on("broadcast",{event:"call"},p=>callPop((p.payload||{}).num)).subscribe();
   const ch=sb.channel("crm");
   ["bookings","items","payments"].forEach(t=>ch.on("postgres_changes",{event:"*",schema:"public",table:t},p=>{const r=p.new&&Object.keys(p.new).length?p.new:p.old;const id=t==="bookings"?r.id:r.booking_id;if(id&&(SNAP[id]||t==="bookings")){rtB.add(id);rtFlush()}}));
   ch.on("postgres_changes",{event:"*",schema:"public",table:"schedules"},p=>{const s=p.new||{};if(isMine(s.id)||isMine(s.booking_id))return;
