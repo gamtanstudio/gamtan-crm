@@ -1730,7 +1730,7 @@ document.addEventListener("click",e=>{
   if(a==="newbk"||a==="newbk-here"){openModal(a==="newbk-here");return}
   if(a==="callx"){$("callbar").hidden=true;return}
   if(a==="nvgo"){const tb=document.querySelector('[data-a="tab"][data-v="today"]');if(tb)tb.click();setTimeout(()=>{const r=[...document.querySelectorAll("#tg-1 .rowa")].find(x=>x.querySelector('[data-a="nvack"]'));if(r)r.scrollIntoView({behavior:"smooth",block:"center"})},150);return}
-  if(a==="nvack"){NVACK[v]=TODAY;try{localStorage.setItem("nvack",JSON.stringify(NVACK))}catch(e){}nvBtn(false);refresh();toast("목록에서 뺐어요");return}
+  if(a==="nvack"){NVACK[v]=1;nvBtn(false);refresh();sb.from("naver_ack").insert({naver_booking_no:v,who:ME?ME.name:null}).then(({error})=>{if(error&&error.code!=="23505")toast("저장 못 했어요 — 다시 눌러 주세요")});toast("목록에서 뺐어요");return}
   if(a==="calls"){const el=$("calllog");if(el.hidden){drawCalls();el.hidden=false}else el.hidden=true;return}
   if(a==="callnew"){$("callbar").hidden=true;openModal(false);$("n-phone").value=v;nHit();return}
   if(a==="mclose"){closeModal();return}
@@ -2265,27 +2265,35 @@ function rtFlush(){clearTimeout(rtT);rtT=setTimeout(async()=>{
   if(bs.length||cs.length){["cp-bar","cp-head","cp-stats"].forEach(i=>{const e=$(i);if(e)e._h=null});refresh()}},600)}
 
 let OUTT=0;function confirmOut(){const b=$("logout");if(Date.now()-OUTT<3000)return true;OUTT=Date.now();b.textContent="한 번 더 누르면 로그아웃";setTimeout(()=>{b.textContent="로그아웃"},3000);return false}
-/* 네이버 예약 — CRM에 안 넣은 예약 / 네이버에서 취소된 예약 */
-let RSV=[];
-const NVACK=(()=>{try{return JSON.parse(localStorage.getItem("nvack")||"{}")}catch(e){return{}}})();
-async function loadRsv(){const {data,error}=await sb.from("reservations").select("naver_booking_no,event_type,customer_name,product,option_menu,use_at,created_at").gte("use_at",addDays(TODAY,-7)).order("created_at");if(error)return;
-  const last={};(data||[]).forEach(x=>last[x.naver_booking_no]=x);RSV=Object.values(last);nvBtn(true);refresh()}
+/* 네이버 예약 — 들어오면 할 일(다른 상품 끄기·CRM 등록) / 취소되면 다시 켜기. '확인'은 서버(naver_ack)에 저장 → 폰 알림도 멈춤 */
+let RSV=[];const NVACK={};
+const NV_SINCE="2026-11-15T12:30:00Z";
+async function loadRsv(){const [r,a]=await Promise.all([sb.from("reservations").select("naver_booking_no,event_type,customer_name,product,option_menu,use_at,created_at").gte("use_at",addDays(TODAY,-7)).order("created_at"),sb.from("naver_ack").select("naver_booking_no")]);if(r.error)return;
+  (a.data||[]).forEach(x=>NVACK[x.naver_booking_no]=1);
+  const last={};(r.data||[]).forEach(x=>last[x.naver_booking_no]=x);RSV=Object.values(last);nvBtn(true);refresh()}
 let NVN=-1;
 function nvBtn(chk){const n=nvMiss().length,b=$("nvbtn");if(b){b.hidden=!n;b.textContent=`네이버 ${n}`}
   if(chk&&NVN>=0&&n>NVN)toast("네이버 예약 확인할 게 있어요");NVN=n}
 setInterval(()=>nvBtn(false),20*1000);
 const nvDT=x=>{const d=new Date(new Date(x.use_at).getTime()+9*3600e3).toISOString();return[d.slice(0,10),d.slice(11,16)]};
 const nvNm=(m,n)=>{m=(m||"").trim();n=(n||"").trim();return !!(m&&n&&m[0]===n[0]&&m.slice(-1)===n.slice(-1))};
+const nvKind=x=>{const s=(x.product||"")+" "+(x.option_menu||"");return /증명|여권|주민증|반명함|비자/.test(x.product||"")?"증명":/가족성장/.test(s)?"가성":"가족"};
+const NVOFF={증명:"가족·가성",가족:"증명·가성",가성:"증명·가족"};
 function nvMiss(){const from=addDays(TODAY,-7)>"2026-11-15"?addDays(TODAY,-7):"2026-11-15",bs=Object.values(B),out=[];
-  RSV.forEach(x=>{if(!x.use_at||/증명/.test(x.product||"")||NVACK[x.naver_booking_no])return;const[d,t]=nvDT(x);if(d<from)return;
+  RSV.forEach(x=>{if(!x.use_at||NVACK[x.naver_booking_no])return;const[d,t]=nvDT(x);if(d<from)return;
+    const k=nvKind(x),fresh=(x.created_at||"")>=NV_SINCE,o={nv:1,x,d,t,k};
     const live=bs.filter(b=>!(b.steps||{}).canceled&&b.date===d);
-    if(x.event_type==="신규"){if(live.some(b=>(b.time||"").slice(0,5)===t||nvNm(x.customer_name,b.name)))return;
-      if(/가족성장/.test(x.product||"")&&bs.some(b=>!b.date&&!(b.steps||{}).canceled&&nvNm(x.customer_name,b.name)))return;
-      out.push([{nv:1,x,d,t},"네이버 예약 등록 안 됨"])}
-    else if(x.event_type==="취소"){const m=live.filter(b=>(b.time||"").slice(0,5)===t&&nvNm(x.customer_name,b.name));if(m.length)out.push([{nv:1,x,d,t,b:m[0]},"네이버 취소됨"])}});
+    if(x.event_type==="신규"){
+      if(k==="증명"){if(fresh&&d>=TODAY)out.push([{...o,n:`증명 예약 → ${NVOFF[k]} 끄기`},""]);return}
+      if(live.some(b=>(b.time||"").slice(0,5)===t||nvNm(x.customer_name,b.name)))return;
+      if(k==="가성"&&bs.some(b=>!b.date&&!(b.steps||{}).canceled&&nvNm(x.customer_name,b.name)))return;
+      out.push([{...o,n:`${k} 예약 등록 안 됨 → ${NVOFF[k]} 끄기`},""])}
+    else if(x.event_type==="취소"){
+      if(k!=="증명"){const m=live.filter(b=>(b.time||"").slice(0,5)===t&&nvNm(x.customer_name,b.name));if(m.length){out.push([{...o,b:m[0],n:`네이버 취소됨 → CRM 취소 · ${NVOFF[k]} 다시 켜기`},""]);return}}
+      if(fresh&&d>=TODAY)out.push([{...o,n:`${k} 취소 → ${NVOFF[k]} 다시 켜기`},""])}});
   return out}
-function nvHTML(o){const x=o.x,n=o.b?"네이버 취소됨":"네이버 예약 등록 안 됨",prod=(x.product||"").replace(/감탄삼촌 작가 전용 상품/,"").trim();
-  const body=`<span class="d tn">${md(o.d)} ${dow(o.d)}<br><b class="${ampm(o.t)}">${tm(o.t)}</b></span><span class="b"><span><b>${esc(o.b?o.b.name:x.customer_name)}</b>${prod?" · "+esc(prod):""}</span><span class="note">${n}</span></span><span class="sc c-crit">네이버</span>`;
+function nvHTML(o){const x=o.x;
+  const body=`<span class="d tn">${md(o.d)} ${dow(o.d)}<br><b class="${ampm(o.t)}">${tm(o.t)}</b></span><span class="b"><span><b>${esc(o.b?o.b.name:x.customer_name)}</b></span><span class="note">${esc(o.n)}</span></span><span class="sc c-crit">네이버</span>`;
   return `<div class="rowa">${o.b?`<button class="row" data-a="open" data-id="${esc(o.b.id)}">${body}</button>`:`<div class="row">${body}</div>`}<button class="ackb" data-a="nvack" data-v="${esc(x.naver_booking_no)}" title="확인함 — 목록에서 빼기">확인</button></div>`}
 
 /* 오늘 들어온 일 (감탄 지킴이) */
