@@ -1595,7 +1595,7 @@ async function makeNext(b){
   B[id]={id,...doc};B[b.id]={...B[b.id],nextId:id};SEEN.add(id);EXP.add(id);refresh();
   try{await db.doc("bookings/"+id).set(doc);await db.doc("bookings/"+b.id).update({nextId:id});log(b.id,`다음 회차 ${gs} 예약 · 예약금 100,000원`);
     toast(`다음 회차${gs?" "+gs:""} 예약에 예약금 10만원을 넣었어요. 결제 방법만 골라 주세요`)}
-  catch(e){delete B[id];toast("다음 회차를 만들지 못했어요")}
+  catch(e){delete B[id];B[b.id]={...B[b.id],nextId:null};toast("다음 회차를 만들지 못했어요")}
 }
 function setPayments(b,list,msg){save(b.id,{payments:list},msg)}
 function rowsWithEdit(b,i,patch){const r=clone(priceRows(b));if(r[i])Object.assign(r[i],patch);return r}
@@ -2112,7 +2112,7 @@ function bookingRow(b){
     channel:b.rn?"리뷰노트":(snap.channel==="리뷰노트"?null:(snap.channel??null))};
   // 처음 저장 때 의미 없는 값 바뀜 줄이기 (빈 값 = 그대로)
   if(snap.pets==null&&!row.pets)row.pets=snap.pets??null;
-  if(snap.sns==null&&!row.sns)row.sns=snap.sns??null;
+  if(b._bid&&snap.sns==null&&!row.sns)row.sns=snap.sns??null; /* 새 계약은 false로 (빈 값이면 저장이 막힘 — 가성 다음 회차 안 만들어지던 것) */
   if(!snap.price_override||!Object.keys(snap.price_override).length){if(Object.keys(po).length===1&&po.priceOverride===(snap.base_price||0))row.price_override=snap.price_override??{}}
   if(row.base_price===0&&snap.base_price&&!b.rn)row.base_price=snap.base_price;
   for(const [k,c] of Object.entries(STEPCOL)){const v=(b.steps||{})[k];row[c]=D8(v)||(v?snap[c]||null:null)}
