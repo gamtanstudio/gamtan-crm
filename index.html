@@ -931,7 +931,9 @@ function withAnchor(fn){
 }
 
 /* ===== 캘린더 ===== */
-const FILTERS=[["상담","상담"],["미입금","미입금"],["원본 발송 전","원본 발송 전"],["사진 선택 대기","사진 선택 대기"],["작업중","작업중"],["보정본 확인","보정본 확인"],["공방","공방"],["출고 연락 전","출고 연락 전"],["수령 대기","수령 대기"],["rest","남은 출고"]];
+const FILTERS=[["상담","상담"],["미입금","미입금"],["원본 발송 전","원본 발송 전"],["사진 선택 대기","사진 선택 대기"],["작업중","작업중"],["보정본 확인","보정본 확인"],["공방","공방"],["출고 연락 전","출고 연락 전"],["수령 대기","수령 대기"],["rest","남은 출고"],["gs1y","가성 1년 지남"]];
+const GS1Y="가성 미등록 1년 — 연락";
+const gs1y=b=>{if(status(b).k!=="미등록"||(b.ack||{})[GS1Y])return false;const g=gsBase(b);return !!g&&g<=addDays(TODAY,-365)};
 const fkey=b=>{const st=status(b);return st.rest?"rest":st.k.startsWith("보정본 확인")?"보정본 확인":st.k};
 let calBuilt="";
 function buildCal(){
@@ -949,11 +951,11 @@ function evHTML(b){const st=status(b),sc=chipC(b,st);const t=b.time?`<span class
   return `<button class="ev ${kindCls(b)}" data-a="open" data-id="${esc(b.id)}" title="${esc(b.name)} · ${esc(st.k)}${b.rn?" · 리뷰노트":""}${(CUST[ckey(b)]||{}).wnote?" · ⚠ "+esc(CUST[ckey(b)].wnote):""}">${t}<b${b.rn?' class="rnn"':""}>${esc(b.name)}</b>${atHTML(ckey(b))}<span class="evx">-${esc(calText(b))}</span>${b.rn?`<span class="sc rnc">리뷰노트</span>`:""}${b.ship==="택배"?`<span class="sc kc k-cend">택배</span>`:""}${st.k!=="예약확정"&&!((P(b)||{}).idlike&&st.k==="완료")?`<span class="sc ${sc}">${esc(st.k)}</span>`:""}</button>`}
 function drawCal(){
   buildCal();
-  const all=Object.values(B);const cnt={};all.forEach(b=>{const k=fkey(b);cnt[k]=(cnt[k]||0)+1});
+  const all=Object.values(B);const cnt={};all.forEach(b=>{const k=fkey(b);cnt[k]=(cnt[k]||0)+1;if(gs1y(b))cnt.gs1y=(cnt.gs1y||0)+1});
   put("fchips",FILTERS.map(([k,l])=>`<button class="fchip${k==="상담"&&cnt[k]?" fcon":""}" data-a="filter" data-v="${esc(k)}" aria-pressed="${calFilter===k}">${l}<b>${cnt[k]||0}</b></button>`).join(""));
   // 칩을 누르면 캘린더 대신 그 상태 손님 목록 (진행판처럼)
-  if(calFilter){const list=all.filter(b=>fkey(b)===calFilter).sort(byDate);const l=(FILTERS.find(f=>f[0]===calFilter)||[0,calFilter])[1];
-    put("flist",`<div class="grp"><h3>${esc(l)}<span>${list.length}건 · <button class="mini" data-a="filter" data-v="${esc(calFilter)}">캘린더로</button></span></h3>${list.map(b=>rowHTML(b)).join("")||`<div class="empty">없음</div>`}</div>`);
+  if(calFilter){const g1=calFilter==="gs1y",list=all.filter(b=>g1?gs1y(b):fkey(b)===calFilter).sort(byDate);const l=(FILTERS.find(f=>f[0]===calFilter)||[0,calFilter])[1];
+    put("flist",`<div class="grp"><h3>${esc(l)}<span>${list.length}건 · <button class="mini" data-a="filter" data-v="${esc(calFilter)}">캘린더로</button></span></h3>${list.map(b=>g1?`<div class="rowa">${rowHTML(b)}<button class="ackb" data-a="ack" data-id="${esc(b.id)}" data-v="${esc(GS1Y)}" title="확인함 — 목록에서 빼기">확인</button></div>`:rowHTML(b)).join("")||`<div class="empty">없음</div>`}</div>`);
     $("flist").hidden=false;$("cal").hidden=true;$("agenda").hidden=true;$("cal").previousElementSibling&&0;return}
   $("flist").hidden=true;$("cal").hidden=false;$("agenda").hidden=false;
   const by={};all.forEach(b=>{if(!b.date)return;(by[b.date]=by[b.date]||[]).push(b)});
@@ -981,8 +983,7 @@ function drawToday(){
   all.forEach(b=>{if(b.date&&b.date<"2026-09-01")return; /* 9월 전 옛날 건은 놓친 것에서 뺌 */const st=status(b),s=b.steps||{};if(st.crit)add(b,st.crit);
     if(st.k==="예약확정"&&!s.slot_off&&!(P(b)||{}).idlike)add(b,"증명끔 확인");
     if(pays(b).some(p=>p.amount&&!p.method))add(b,"결제 방법"); /* 영수증 칸은 놓친 것으로 안 셈 */
-    if(s.workshop&&!s.done&&s.workshop<=addDays(TODAY,-14))add(b,"공방 2주 지남");
-    if(st.k==="미등록"){const g=gsBase(b);if(g&&g<=addDays(TODAY,-365))add(b,"가성 미등록 1년 — 연락")}});
+    if(s.workshop&&!s.done&&s.workshop<=addDays(TODAY,-14))add(b,"공방 2주 지남");});
   /* 맨 위: 오늘 찍을 손님 브리핑 (진행판 방식) — Claude가 쓴 요약(b.pts/b.brief)이 있으면 먼저, 없어도 기록 원문은 항상 자동으로 */
   const tl=all.filter(b=>b.date===TODAY&&!(b.steps||{}).canceled).sort(byDate);
   if(typeof ensureCust==="function"&&typeof LOADED_C!=="undefined"){const nos=[...new Set(tl.map(b=>b.customer_no).filter(Boolean))];nos.filter(n=>!LOADED_C.has(n)).forEach(n=>ensureCust(n));
