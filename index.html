@@ -1561,7 +1561,8 @@ function custEditHTML(){
   const names=[...new Set(Object.values(B).filter(x=>ckey(x)!==openKey).map(x=>`${x.name}${x.customer_no?" #"+x.customer_no:""}`))].sort((a,b)=>a.localeCompare(b,"ko"));
   return `<form class="cedit" id="cedit">
     <label>이름<input class="inp" id="ce-name" value="${esc(last.name)}"></label>
-    ${[["","전화"],["2","전화2"],["3","전화3"]].map(([n,l])=>`<label>${l}<span class="phn"><input class="inp pn" id="ce-pn${n}" autocomplete="off" aria-label="${l} 이름" value="${esc(c["phoneName"+n]||"")}"><input class="inp" id="ce-phone${n}" inputmode="tel" aria-label="${l} 번호" value="${esc(fmtPhone(c["phone"+n]||""))}"></span></label>`).join("")}
+    <label>전화1<input class="inp" id="ce-phone" inputmode="tel" value="${esc(fmtPhone(c.phone||""))}"></label>
+    ${[["2","전화2"],["3","전화3"]].map(([n,l])=>`<label>${l}<span class="phn"><input class="inp pn" id="ce-pn${n}" autocomplete="off" aria-label="${l} 이름" value="${esc(c["phoneName"+n]||"")}"><input class="inp" id="ce-phone${n}" inputmode="tel" aria-label="${l} 번호" value="${esc(fmtPhone(c["phone"+n]||""))}"></span></label>`).join("")}
     <label>이메일<input class="inp" id="ce-email" type="email" inputmode="email" autocomplete="off" value="${esc(c.email||"")}"></label>
     <label>고객번호<input class="inp num" id="ce-no" inputmode="numeric" value="${esc(last.customer_no||"")}"></label>
     <label>방문동기<select class="inp" id="ce-visit"><option value=""></option>${c.visit&&!VISIT.includes(c.visit)?`<option selected>${esc(c.visit)}</option>`:""}${VISIT.map(v=>`<option${c.visit===v?" selected":""}>${v}</option>`).join("")}</select></label>
@@ -1591,7 +1592,7 @@ function referredBy(){const out=Object.entries(CUST).filter(([k,c])=>c.refKey===
 async function saveCustEdit(){
   const list=custBookings(),last=list.slice().sort(byDate).pop(),oldKey=openKey,c={...(CUST[oldKey]||{})};
   const name=$("ce-name").value.trim()||last.name,no=digits($("ce-no").value)||null,ref=$("ce-ref").value.trim();
-  c.phone=$("ce-phone").value.trim();c.phone2=$("ce-phone2").value.trim();c.phone3=$("ce-phone3").value.trim();["","2","3"].forEach(n=>{c["phoneName"+n]=$("ce-pn"+n).value.trim()});c.email=$("ce-email").value.trim();c.visit=$("ce-visit").value;c.bday=$("ce-bday").value.trim();c.anniv=$("ce-anniv").value.trim();c.family=$("ce-family").value.trim();
+  c.phone=$("ce-phone").value.trim();c.phone2=$("ce-phone2").value.trim();c.phone3=$("ce-phone3").value.trim();["2","3"].forEach(n=>{c["phoneName"+n]=$("ce-pn"+n).value.trim()});c.email=$("ce-email").value.trim();c.visit=$("ce-visit").value;c.bday=$("ce-bday").value.trim();c.anniv=$("ce-anniv").value.trim();c.family=$("ce-family").value.trim();
   if(ref){const m=/#(\d+)\s*$/.exec(ref);const rk=m?"n"+m[1]:(Object.values(B).find(x=>x.name===ref)?ckey(Object.values(B).find(x=>x.name===ref)):"");c.refName=ref.replace(/\s*#\d+\s*$/,"");c.refKey=rk}else{c.refName="";c.refKey=""}
   if(no&&no!==last.customer_no&&Object.values(B).some(x=>x.customer_no===no&&ckey(x)!==oldKey)){toast(`#${no}은 다른 고객 번호예요`);return}
   CEDIT=false;
