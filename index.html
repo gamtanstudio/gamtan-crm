@@ -34,7 +34,7 @@
 /* 레이아웃: 예전 CRM(v17) 그대로 — 위 남색 띠, 왼쪽 캘린더/목록, 오른쪽 고객 화면(폰은 전체 화면) */
 :root{
   --bg:#eef0f5; --card:#ffffff; --line:#e2e5ee; --line2:#eff1f6; --fg:#1a1a2e; --sub:#4b5263; --muted:#8a90a0;
-  --acc:#6366f1; --acc-bg:#eef0ff; --acc-fg:#4338ca;
+  --acc:#6366f1;--sx-prev:#c9ccd8; --acc-bg:#eef0ff; --acc-fg:#4338ca;
   --top:#1a1a2e; --top-fg:#ffffff; --top-sub:#a9adc4;
   --memo-bg:#fffbea; --memo-line:#fde68a; --memo-fg:#92400e;
   --ok:#15803d; --ok-bg:#ecfdf3; --ok-line:#bbf7d0;
@@ -49,7 +49,7 @@
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#121319; --card:#1b1d27; --line:#2c2f3d; --line2:#232633; --fg:#eceef5; --sub:#b7bccb; --muted:#7f8597;
-  --acc:#8b8ef7; --acc-bg:#25264a; --acc-fg:#c7c9ff;
+  --acc:#8b8ef7;--sx-prev:#454a5c; --acc-bg:#25264a; --acc-fg:#c7c9ff;
   --top:#0b0c13; --top-fg:#f3f4fa; --top-sub:#8d92ab;
   --memo-bg:#2a2415; --memo-line:#5a4919; --memo-fg:#f3cf7c;
   --ok:#4ade80; --ok-bg:#13281c; --ok-line:#1f5133;
@@ -62,7 +62,7 @@
   --green-box:#122219; --green-line:#1f4a30; --green-fg:#86efac; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#121319; --card:#1b1d27; --line:#2c2f3d; --line2:#232633; --fg:#eceef5; --sub:#b7bccb; --muted:#7f8597;
-  --acc:#8b8ef7; --acc-bg:#25264a; --acc-fg:#c7c9ff;
+  --acc:#8b8ef7;--sx-prev:#454a5c; --acc-bg:#25264a; --acc-fg:#c7c9ff;
   --top:#0b0c13; --top-fg:#f3f4fa; --top-sub:#8d92ab;
   --memo-bg:#2a2415; --memo-line:#5a4919; --memo-fg:#f3cf7c;
   --ok:#4ade80; --ok-bg:#13281c; --ok-line:#1f5133;
@@ -89,6 +89,24 @@ button{cursor:pointer}
 .top-in{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .brand{font-weight:800;font-size:17px;letter-spacing:-.01em;white-space:nowrap}
 .tabs{display:flex;gap:4px}
+.sxbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}.sxy{font-size:18px;min-width:64px;text-align:center}
+.sxms{display:flex;gap:4px;flex-wrap:wrap}
+.sxcards{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.sxcard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}.sxcard small{display:block;color:var(--muted);font-size:12px;font-weight:700}.sxcard b{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+.sxup{color:var(--ok)}.sxdn{color:var(--crit)}
+.sxchart{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;padding:12px 12px 6px;height:190px}
+.sxc{display:flex;flex-direction:column;align-items:stretch;background:transparent;border:0;border-radius:6px;padding:0;cursor:pointer;min-width:0}
+.sxc:hover,.sxc.on{background:var(--acc-bg)}
+.sxbars{flex:1;display:flex;align-items:flex-end;justify-content:center;gap:2px;padding:0 3px}
+.sxbars i{display:block;width:42%;max-width:16px;border-radius:4px 4px 0 0;min-height:0}
+.b1{background:var(--acc)}.b0{background:var(--sx-prev)}
+.sxl{font-size:11.5px;color:var(--muted);text-align:center;padding:4px 0 2px;font-weight:700}
+.sxleg{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--sub);font-weight:700}.sxleg i{display:inline-block;width:10px;height:10px;border-radius:3px}
+.sxr{display:grid;grid-template-columns:110px 1fr 44px 70px 54px;align-items:center;gap:8px;padding:8px 14px;border-top:1px solid var(--line2);font-size:13.5px}
+.sxr2{grid-template-columns:110px 1fr 44px}
+.sxn{font-weight:800}.sxv{position:relative;height:22px;display:flex;align-items:center}.sxv i{position:absolute;left:0;top:3px;bottom:3px;background:var(--acc-bg);border-radius:0 4px 4px 0}
+.sxv b{position:relative;font-variant-numeric:tabular-nums;padding-left:6px}.sxp,.sxo,.sxd{text-align:right;font-variant-numeric:tabular-nums;color:var(--sub);font-size:12.5px}.sxd{font-weight:800}
+@media (max-width:700px){.sxcards{grid-template-columns:repeat(2,1fr)}.sxr{grid-template-columns:76px 1fr 38px 0 46px}.sxr .sxo{display:none}.sxr2{grid-template-columns:76px 1fr 38px}.sxchart{height:150px;padding:10px 6px 4px;gap:2px}}
 .tab{background:transparent;border:1px solid transparent;color:var(--top-sub);border-radius:8px;padding:6px 12px;font-weight:700;font-size:14px;min-height:36px}
 .tab[aria-pressed="true"]{background:rgba(255,255,255,.12);color:var(--top-fg);border-color:rgba(255,255,255,.18)}
 .top-r{margin-left:auto;display:flex;gap:8px;align-items:center;flex:1 1 260px;justify-content:flex-end;min-width:0;flex-wrap:wrap}
@@ -570,6 +588,7 @@ details.more summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(-
     <button class="tab" data-a="tab" data-v="cal" aria-pressed="true">캘린더</button>
     <button class="tab" data-a="tab" data-v="today" aria-pressed="false">오늘</button>
     <button class="tab" data-a="tab" data-v="cust" aria-pressed="false">고객</button>
+    <button class="tab" data-a="tab" data-v="stat" aria-pressed="false" id="tabstat" hidden>통계</button>
   </nav>
   <div class="top-r">
     <input class="srch" id="q" type="search" placeholder="이름 · 전화 · 번호 · 메모" aria-label="고객 찾기" autocomplete="off">
@@ -600,6 +619,7 @@ details.more summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(-
       <div id="tg-0"></div><div id="tg-1"></div><div id="tg-2"></div><div id="tg-3"></div><div id="tg-4"></div><div id="tg-5"></div><div id="tg-6"></div>
     </section>
     <section id="v-cust" hidden><div id="clist"></div></section>
+    <section id="v-stat" hidden></section>
   </main>
   <aside id="right" aria-label="고객 화면">
     <div id="cp-empty" hidden></div>
@@ -912,7 +932,7 @@ document.addEventListener("focusout",()=>{if(pending)setTimeout(()=>{if(!pointer
 
 function draw(){
   if(!loaded)return;
-  if(view==="cal")drawCal();else if(view==="today")drawToday();else drawList();
+  if(view==="cal")drawCal();else if(view==="today")drawToday();else if(view==="stat")drawStat();else drawList();
   if(openKey)withAnchor(()=>{drawCust();fitAll()});else fitAll();
 }
 function fit(t,force){if(!t||t.tagName!=="TEXTAREA"||!t.offsetParent)return;const sig=t.value+"|"+t.clientWidth;if(!force&&t._fs===sig)return;t._fs=sig;const min=parseFloat(getComputedStyle(t).minHeight)||0;t.style.height="auto";const h=Math.max(min,t.scrollHeight+2);t.style.height=h+"px"}
@@ -1701,7 +1721,7 @@ function navSync(){if(NAVPOP||Date.now()<NAVSKIP)return;const s=navState(),h=his
 /* 고객 닫기: 고객을 열 때 쌓인 기록만큼 되돌아가서, 닫은 뒤 뒤로가기를 눌러도 그 고객이 다시 열리지 않게 */
 function closeNav(){animOut($("cp"),"leave",()=>{const h=history.state,n=h&&h.c&&h.c===LASTOPEN&&h.cd>0?h.cd:0;closeCust();if(n){NAVSKIP=Date.now()+1500;history.go(-n)}})}
 addEventListener("popstate",e=>{NAVSKIP=0;const s=e.state;if(!s)return;NAVPOP=true;
-  try{view=s.v;document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===view));["cal","today","cust"].forEach(n=>$("v-"+n).hidden=n!==view);
+  try{view=s.v;document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===view));["cal","today","cust","stat"].forEach(n=>$("v-"+n).hidden=n!==view);
     calY=s.y;calM=s.m;selDay=s.d;calFilter=s.f||null;if(view!=="cust")clearQ();
     if(!$("modal").hidden)closeModal();
     if(s.c&&B[s.c]){CEDIT=false;openCust(s.c)}else if(openKey)closeCust();
@@ -1714,7 +1734,7 @@ document.addEventListener("click",e=>{
   if(dc&&isPhone()&&!e.target.closest("textarea")){e.preventDefault();selDay=dc.dataset.ds;draw();setTimeout(showAgenda,30);return}
   const t=e.target.closest("[data-a]");if(!t)return;
   if(/^(step|ship|flag|idq|ex|num|eth|etm)$/.test(t.dataset.a)){const q=["a","id","v","r","d"].filter(k=>t.dataset[k]!=null).map(k=>`[data-${k}="${CSS.escape(t.dataset[k])}"]`).join("");requestAnimationFrame(()=>requestAnimationFrame(()=>{const n=document.querySelector(q);if(n)anim(n,"pop")}))}if(e.target!==t&&/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))return;if(downEl&&downEl!==t&&t.contains(downEl)&&/^(INPUT|TEXTAREA|SELECT)$/.test(downEl.tagName))return;{const ae=document.activeElement;if(ae&&ae!==t&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))ae.blur()}const a=t.dataset.a,id=t.dataset.id,b=id?B[id]:null,v=t.dataset.v;
-  if(a==="tab"){if(v!=="cust")clearQ();view=v;document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===v));["cal","today","cust"].forEach(n=>$("v-"+n).hidden=n!==v);draw();return}
+  if(a==="tab"){if(v!=="cust")clearQ();view=v;document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===v));["cal","today","cust","stat"].forEach(n=>$("v-"+n).hidden=n!==v);draw();return}
   if(a==="calprev"||a==="calnext"){calM+=a==="calprev"?-1:1;if(calM<0){calM=11;calY--}if(calM>11){calM=0;calY++}draw();return}
   if(a==="mpick"){const m=$("mpick");if(m.hidden){pickY=calY;drawPick();m.hidden=false;t.setAttribute("aria-expanded","true")}else closePick();return}
   if(a==="mpy"){pickY+=+v;drawPick();return}
@@ -1732,6 +1752,8 @@ document.addEventListener("click",e=>{
   if(a==="callx"){$("callbar").hidden=true;return}
   if(a==="nvgo"){const tb=document.querySelector('[data-a="tab"][data-v="today"]');if(tb)tb.click();setTimeout(()=>{const r=[...document.querySelectorAll("#tg-1 .rowa")].find(x=>x.querySelector('[data-a="nvack"]'));if(r)r.scrollIntoView({behavior:"smooth",block:"center"})},150);return}
   if(a==="nvack"){NVACK[v]=1;nvBtn(false);refresh();sb.from("naver_ack").insert({naver_booking_no:v,who:ME?ME.name:null}).then(({error})=>{if(error&&error.code!=="23505")toast("저장 못 했어요 — 다시 눌러 주세요")});toast("목록에서 뺐어요");return}
+  if(a==="sxy"){sxY+=+v;sxM=0;drawStat();return}
+  if(a==="sxm"){sxM=+v===sxM&&+v?0:+v;drawStat();return}
   if(a==="calls"){const el=$("calllog");if(el.hidden){drawCalls();el.hidden=false}else el.hidden=true;return}
   if(a==="callnew"){$("callbar").hidden=true;openModal(false);$("n-phone").value=v;nHit();return}
   if(a==="mclose"){closeModal();return}
@@ -1833,7 +1855,7 @@ document.addEventListener("input",e=>{const t=e.target,f=t.dataset&&t.dataset.f;
 function fmtPhone(v){const d=String(v).replace(/\D/g,"").slice(0,11);if(d.startsWith("02")){if(d.length<3)return d;if(d.length<6)return d.slice(0,2)+"-"+d.slice(2);if(d.length<10)return d.slice(0,2)+"-"+d.slice(2,5)+"-"+d.slice(5);return d.slice(0,2)+"-"+d.slice(2,6)+"-"+d.slice(6,10)}
   if(d.length<4)return d;if(d.length<8)return d.slice(0,3)+"-"+d.slice(3);if(d.length<11)return d.slice(0,3)+"-"+d.slice(3,6)+"-"+d.slice(6);return d.slice(0,3)+"-"+d.slice(3,7)+"-"+d.slice(7)}
 document.addEventListener("input",e=>{const t=e.target;if(!["n-phone","ce-phone","ce-phone2","ce-phone3"].includes(t.id))return;const v=t.value,c=t.selectionStart??v.length,nd=v.slice(0,c).replace(/\D/g,"").length,out=fmtPhone(v);if(out===v)return;t.value=out;let k=0,pos=0;while(pos<out.length&&k<nd){if(/\d/.test(out[pos]))k++;pos++}try{t.setSelectionRange(pos,pos)}catch(_){}});
-$("q").addEventListener("input",()=>{if(view!=="cust"){view="cust";document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v==="cust"));["cal","today","cust"].forEach(n=>$("v-"+n).hidden=n!=="cust");setTimeout(navSync,0)}drawList()});
+$("q").addEventListener("input",()=>{if(view!=="cust"){view="cust";document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v==="cust"));["cal","today","cust","stat"].forEach(n=>$("v-"+n).hidden=n!=="cust");setTimeout(navSync,0)}drawList()});
 
 /* ===== 새 예약 ===== */
 let TH="",TM="00";
@@ -2266,6 +2288,54 @@ function rtFlush(){clearTimeout(rtT);rtT=setTimeout(async()=>{
   if(bs.length||cs.length){["cp-bar","cp-head","cp-stats"].forEach(i=>{const e=$(i);if(e)e._h=null});refresh()}},600)}
 
 let OUTT=0;function confirmOut(){const b=$("logout");if(Date.now()-OUTT<3000)return true;OUTT=Date.now();b.textContent="한 번 더 누르면 로그아웃";setTimeout(()=>{b.textContent="로그아웃"},3000);return false}
+/* ===== 통계 (실장·팀장만) — 매출은 돈 받은 날 기준, 2019년부터 ===== */
+let STX=null,STXL=false,sxY=+TODAY.slice(0,4),sxM=0;
+const SXG={story:"감탄스토리",bigfam_orig:"감탄스토리",simpfam:"심플패밀리",bigfam:"대가족 STORY",bigfam_old:"대가족",growth:"가족성장",kids:"키즈",profile:"프로필",perform:"프로필",audition:"프로필",friend:"우정",jangsu:"장수",id:"증명",halfid:"증명",etc:"기타"};
+const SXO=["감탄스토리","대가족","대가족 STORY","가족성장","심플패밀리","증명","프로필","키즈","장수","우정","기타"];
+const SXMETH=["카드","계좌이체","현금","온누리","네이버페이","기타","미정"];
+const sxMan=v=>{const m=Math.round(v/10000);return (m||!v)?`${m.toLocaleString()}만`:`${money(v)}원`};
+function sxKind(b,tot){if(!b)return"기타";let k=b.product&&b.product!=="etc"?b.product:"";
+  if(k==="bigfam"&&(b.contract_date||"")<NEWP)k="bigfam_old";
+  if(!k){const bp=b.booked_product||"";
+    if(/5인\s*이상/.test(bp)){const orig=(b.items||[]).some(i=>/원본/.test((i.kind||"")+(i.sm_item||"")));k=orig||tot>400000?"story":"bigfam_old"} /* SM '가족사진(5인이상)': 원본 있으면 감탄스토리, 없으면 대가족 */
+    else k=guessKey({product:bp,cal:b.calendar_memo||""})||"etc";
+    if(k==="bigfam")k="bigfam_old"}
+  return SXG[k]||"기타"}
+async function loadStat(){if(STXL)return;STXL=true;put("v-stat",`<div class="empty">불러오는 중…</div>`);
+  const sel="amount,paid_at,method,booking_id,bookings(product,booked_product,calendar_memo,contract_date,items(kind,sm_item))";
+  const {count}=await sb.from("payments").select("id",{count:"exact",head:true}).gte("paid_at","2019-01-01");
+  const parts=await Promise.all(Array.from({length:Math.ceil((count||0)/1000)+1},(_,i)=>sb.from("payments").select(sel).gte("paid_at","2019-01-01").order("id").range(i*1000,i*1000+999).then(r=>r.data||[])));
+  const rows=parts.flat(),tot={};rows.forEach(p=>{tot[p.booking_id]=(tot[p.booking_id]||0)+(+p.amount||0)});
+  STX=rows.filter(p=>p.paid_at).map(p=>({d:p.paid_at.slice(0,10),a:+p.amount||0,m:SXMETH.includes(p.method)?p.method:(p.method?"기타":"미정"),k:sxKind(p.bookings,tot[p.booking_id]||0)}));
+  STXL=false;if(view==="stat")drawStat()}
+function sxSum(from,to){const o={sum:0,n:0,k:{},m:{}};STX.forEach(p=>{if(p.d<from||p.d>to)return;o.sum+=p.a;o.n++;o.k[p.k]=(o.k[p.k]||0)+p.a;o.m[p.m]=(o.m[p.m]||0)+p.a});return o}
+function drawStat(){
+  if(!STX){loadStat();return}
+  const y=sxY,cy=+TODAY.slice(0,4),md=TODAY.slice(5),p2m=n=>String(n).padStart(2,"0");
+  const lastDay=(yy,mm)=>new Date(yy,mm,0).getDate();
+  const rng=yy=>{if(sxM){const e=`${yy}-${p2m(sxM)}-${lastDay(yy,sxM)}`;const cut=y===cy&&sxM===+TODAY.slice(5,7)?`${yy}-${md}`:e;return[`${yy}-${p2m(sxM)}-01`,cut<e?cut:e]}
+    return[`${yy}-01-01`,y===cy?`${yy}-${md}`:`${yy}-12-31`]};
+  const [f1,t1]=rng(y),[f0,t0]=rng(y-1),A=sxSum(f1,t1),B=sxSum(f0,t0);
+  const diff=B.sum?Math.round((A.sum-B.sum)/B.sum*100):null;
+  const dTxt=diff==null?"—":`${diff>0?"▲":diff<0?"▼":""}${Math.abs(diff)}%`,dCls=diff>0?"sxup":diff<0?"sxdn":"";
+  /* 월별 */
+  const mon=yy=>Array.from({length:12},(_,i)=>{const m=p2m(i+1);let s=0;STX.forEach(p=>{if(p.d.slice(0,7)===`${yy}-${m}`)s+=p.a});return s});
+  const M1=mon(y),M0=mon(y-1),mx=Math.max(1,...M1,...M0);
+  const bars=M1.map((v,i)=>{const fut=y===cy&&i+1>+TODAY.slice(5,7);return`<button class="sxc${sxM===i+1?" on":""}" data-a="sxm" data-v="${i+1}" title="${i+1}월 · ${y}년 ${sxMan(v)} · ${y-1}년 ${sxMan(M0[i])}">
+    <span class="sxbars"><i class="b0" style="height:${M0[i]/mx*100}%"></i><i class="b1" style="height:${fut?0:v/mx*100}%"></i></span><span class="sxl">${i+1}</span></button>`}).join("");
+  const keys=SXO.filter(k=>A.k[k]||B.k[k]),kmax=Math.max(1,...keys.map(k=>A.k[k]||0));
+  const prow=keys.map(k=>{const a=A.k[k]||0,b=B.k[k]||0,d=b?Math.round((a-b)/b*100):null;
+    return`<div class="sxr"><span class="sxn">${esc(k)}</span><span class="sxv"><i style="width:${a/kmax*100}%"></i><b>${sxMan(a)}</b></span><span class="sxp">${A.sum?Math.round(a/A.sum*100):0}%</span><span class="sxo">${sxMan(b)}</span><span class="sxd ${d>0?"sxup":d<0?"sxdn":""}">${d==null?"—":(d>0?"▲":d<0?"▼":"")+Math.abs(d)+"%"}</span></div>`}).join("");
+  const mrow=SXMETH.filter(m=>A.m[m]).map(m=>`<div class="sxr sxr2"><span class="sxn">${m}</span><span class="sxv"><i style="width:${(A.m[m]||0)/A.sum*100}%"></i><b>${sxMan(A.m[m])}</b></span><span class="sxp">${Math.round((A.m[m]||0)/A.sum*100)}%</span></div>`).join("");
+  const per=sxM?`${y}년 ${sxM}월`:`${y}년`;
+  put("v-stat",`<div class="sxbar"><button class="nav" data-a="sxy" data-v="-1" aria-label="작년">‹</button><b class="sxy">${y}년</b><button class="nav" data-a="sxy" data-v="1" aria-label="다음 해"${y>=cy?" disabled":""}>›</button>
+    <div class="sxms"><button class="fchip" data-a="sxm" data-v="0" aria-pressed="${!sxM}">전체</button>${Array.from({length:12},(_,i)=>`<button class="fchip" data-a="sxm" data-v="${i+1}" aria-pressed="${sxM===i+1}">${i+1}월</button>`).join("")}</div></div>
+  <div class="sxcards"><div class="sxcard"><small>${per} 매출</small><b>${sxMan(A.sum)}</b></div><div class="sxcard"><small>작년 같은 기간</small><b>${sxMan(B.sum)}</b></div><div class="sxcard"><small>작년 대비</small><b class="${dCls}">${dTxt}</b></div><div class="sxcard"><small>결제 건수</small><b>${A.n.toLocaleString()}</b></div></div>
+  <div class="grp"><h3>월별 매출<span class="sxleg"><i class="b1"></i>${y} <i class="b0"></i>${y-1}</span></h3><div class="sxchart">${bars}</div></div>
+  <div class="grp"><h3>상품별 · ${per}<span>작년 · 대비</span></h3>${prow||`<div class="empty">없음</div>`}</div>
+  <div class="grp"><h3>결제 수단 · ${per}</h3>${mrow||`<div class="empty">없음</div>`}</div>`);
+}
+
 /* 네이버 예약 — 들어오면 할 일(다른 상품 끄기·CRM 등록) / 취소되면 다시 켜기. '확인'은 서버(naver_ack)에 저장 → 폰 알림도 멈춤 */
 let RSV=[];const NVACK={};
 const NV_SINCE="2026-11-15T12:30:00Z";
@@ -2352,7 +2422,7 @@ function startRealtime(){
   sessUid=session.user.id;
   const {data:me}=await sb.from("user_roles").select("name,role,active").eq("user_id",session.user.id).maybeSingle();
   if(!me||!me.active){$("status").textContent="권한 없는 계정";return}
-  ME=me;const w=$("who");w.innerHTML=`<option>${esc(me.name)}</option>`;w.disabled=true;
+  ME=me;if(["owner","manager"].includes(me.role))$("tabstat").hidden=false;const w=$("who");w.innerHTML=`<option>${esc(me.name)}</option>`;w.disabled=true;
   if(!$("logout")){const lb=document.createElement("button");lb.id="logout";lb.type="button";lb.className="logout";lb.textContent="로그아웃";
     lb.onclick=async()=>{if(!confirmOut()){return}await sb.auth.signOut();location.replace("login.html")};$("status").after(lb)}
   sb.from("customers").select("customer_no",{count:"exact",head:true}).then(({count})=>{if(count){window.CUSTTOTAL=count;if(view==="cust")drawList()}});
