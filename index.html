@@ -1760,8 +1760,8 @@ document.addEventListener("click",e=>{
   if(a==="nedit"){if(t.querySelector("textarea"))return;const n=(NOTES[openKey]||[]).find(x=>String(x.id)===id);if(!n)return;
     t.innerHTML=`<textarea class="inp" rows="3" style="width:100%;font:inherit"></textarea><div style="display:flex;gap:6px;justify-content:flex-end;margin-top:4px"><button type="button" class="mini" data-a="nsave" data-id="${esc(id)}">저장</button><button type="button" class="mini" data-a="ncancel">취소</button></div>`;
     const ta=t.querySelector("textarea");ta.value=n.text||"";ta.focus();return}
-  if(a==="ncancel"){refresh();return}
-  if(a==="nsave"){const box=t.closest(".ntext"),v=box?box.querySelector("textarea").value.trim():"",n=(NOTES[openKey]||[]).find(x=>String(x.id)===id);if(!n||!v){refresh();return}
+  if(a==="ncancel"){$("cp-notes")._h=null;refresh();return}
+  if(a==="nsave"){const box=t.closest(".ntext"),v=box?box.querySelector("textarea").value.trim():"",n=(NOTES[openKey]||[]).find(x=>String(x.id)===id);$("cp-notes")._h=null;if(!n||!v){refresh();return}
     const old=n.text;n.text=v;refresh();mine("note"+id);sb.from("notes").update({text:v}).eq("id",id).select("id").then(({data,error})=>{if(error||!data||!data.length){n.text=old;refresh();toast("수정 못 했어요")}});return}
   if(a==="callnew"){$("callbar").hidden=true;openModal(false);$("n-phone").value=v;nHit();return}
   if(a==="mclose"){closeModal();return}
