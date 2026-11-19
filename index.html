@@ -285,6 +285,7 @@ html.lock,html.lock body{overflow:hidden}
 .nrow{padding:7px 0;border-top:1px solid var(--line)}.nrow:first-child{border-top:0}
 .nmeta{font-size:11.5px;color:var(--muted)}.nmeta b{font-weight:600;color:#6a6af0}
 .ntext{white-space:pre-wrap;font-size:13.5px;line-height:1.55;margin-top:2px}
+.ntext[data-a="nedit"]{cursor:pointer;border-radius:4px}.ntext[data-a="nedit"]:hover{background:var(--line)}
 .nnone{font-size:12.5px;color:var(--muted)}.rsel{margin-left:8px;font-size:12.5px;color:var(--muted);white-space:nowrap}.r4w{margin-left:6px;font-size:11.5px;font-weight:700;color:var(--crit);background:var(--crit-bg);border-radius:4px;padding:1px 6px;white-space:nowrap}
 .rfam{margin-left:8px;font-size:13px;color:var(--sub);font-weight:500}
 .ncnt{font-size:11.5px;font-weight:500;color:var(--muted)}.nmore{margin-top:6px;width:100%}
@@ -1136,7 +1137,7 @@ function notesHTML(key){const nob=Object.values(B).find(x=>ckey(x)===key),pno=no
   const pev=(PHOTOS[pno]||[]).filter(p=>!isFace(p)).map(p=>({at:p.at||"",who:p.who||"",text:(p.kind==="final"?"보정본 사진":"선택 사진")+(p.label?" "+p.label:""),pid:p.id,url:p.url}));
   const ns=[...(NOTES[key]||[]),...pev].slice().sort((a,b)=>(b.at||"").localeCompare(a.at||""));if(!ns.length)return`<div class="nnone">이력 없음</div>`;
   const show=ns;
-  return show.map(n=>`<div class="nrow"><span class="nd tn">${esc((n.at||"").slice(0,16).replace("T"," "))}</span><b class="nw">${esc(n.who||"")}</b><div class="ntext"${n.color&&!/^#?(161616|000000|000)$/i.test(n.color)?` style="color:${esc(n.color)}"`:""}>${esc(n.text)}${n.pid?`<button class="ph sq nph" data-a="ph-view" data-id="${esc(n.pid)}" aria-label="크게 보기">${n.url?`<img src="${esc(n.url)}" alt="">`:""}</button>`:""}</div></div>`).join("")
+  return show.map(n=>`<div class="nrow"><span class="nd tn">${esc((n.at||"").slice(0,16).replace("T"," "))}</span><b class="nw">${esc(n.who||"")}</b><div class="ntext"${n.id&&!n.pid?` data-a="nedit" data-id="${esc(n.id)}"`:""}${n.color&&!/^#?(161616|000000|000)$/i.test(n.color)?` style="color:${esc(n.color)}"`:""}>${esc(n.text)}${n.pid?`<button class="ph sq nph" data-a="ph-view" data-id="${esc(n.pid)}" aria-label="크게 보기">${n.url?`<img src="${esc(n.url)}" alt="">`:""}</button>`:""}</div></div>`).join("")
    ;}
 document.addEventListener("submit",async e=>{if(e.target.id!=="cp-nform")return;e.preventDefault();const t=$("cp-nin"),v=t.value.trim();if(!v||!openKey)return;
   const n={at:new Date(Date.now()+9*3600e3).toISOString().slice(0,19),who:who(),text:v};(NOTES[openKey]=NOTES[openKey]||[]).push(n);t.value="";refresh();
@@ -1756,6 +1757,12 @@ document.addEventListener("click",e=>{
   if(a==="sxy"){sxY+=+v;sxM=0;drawStat();return}
   if(a==="sxm"){sxM=+v===sxM&&+v?0:+v;drawStat();return}
   if(a==="calls"){const el=$("calllog");if(el.hidden){drawCalls();el.hidden=false}else el.hidden=true;return}
+  if(a==="nedit"){if(t.querySelector("textarea"))return;const n=(NOTES[openKey]||[]).find(x=>String(x.id)===id);if(!n)return;
+    t.innerHTML=`<textarea class="inp" rows="3" style="width:100%;font:inherit"></textarea><div style="display:flex;gap:6px;justify-content:flex-end;margin-top:4px"><button type="button" class="mini" data-a="nsave" data-id="${esc(id)}">저장</button><button type="button" class="mini" data-a="ncancel">취소</button></div>`;
+    const ta=t.querySelector("textarea");ta.value=n.text||"";ta.focus();return}
+  if(a==="ncancel"){refresh();return}
+  if(a==="nsave"){const box=t.closest(".ntext"),v=box?box.querySelector("textarea").value.trim():"",n=(NOTES[openKey]||[]).find(x=>String(x.id)===id);if(!n||!v){refresh();return}
+    const old=n.text;n.text=v;refresh();mine("note"+id);sb.from("notes").update({text:v}).eq("id",id).select("id").then(({data,error})=>{if(error||!data||!data.length){n.text=old;refresh();toast("수정 못 했어요")}});return}
   if(a==="callnew"){$("callbar").hidden=true;openModal(false);$("n-phone").value=v;nHit();return}
   if(a==="mclose"){closeModal();return}
   if(a==="warn"){if(!openKey)return;const old=CUST[openKey]||{},n=Math.max(0,Math.min(5,warnN(openKey)+(+v)));if(n===warnN(openKey))return;const c={...old,warn:n,...meta()};CUST[openKey]=c;$("cp-head")._h=null;refresh();
@@ -2418,6 +2425,7 @@ function startRealtime(){
   ch.on("postgres_changes",{event:"*",schema:"public",table:"customers"},p=>{const c=p.new||{};if(c.customer_no&&CUSTROW[c.customer_no]){rtC.add(c.customer_no);rtFlush()}});
   ch.on("postgres_changes",{event:"*",schema:"public",table:"day_memos"},p=>{const d=p.new||{};if(d.date&&!isMine("m"+d.date)){MEMO[d.date]=d.text||"";if(d.color)MEMOC[d.date]=d.color;refresh()}});
   ch.on("postgres_changes",{event:"INSERT",schema:"public",table:"logs"},p=>{const l=p.new||{};if(l.action==="note"&&l.user_id!==sessUid){LOGS.unshift({booking:l.row_id,text:l.note,who:l.who,at:kst(l.at)});refresh()}});
+  ch.on("postgres_changes",{event:"UPDATE",schema:"public",table:"notes"},p=>{const r=p.new||{};if(!r.customer_no||!NOTE_LOADED.has(r.customer_no))return;const x=(NOTES["n"+r.customer_no]||[]).find(y=>y.id===r.id);if(x&&x.text!==r.text){x.text=r.text;if(!typing())refresh()}});
   ch.on("postgres_changes",{event:"INSERT",schema:"public",table:"notes"},p=>{const r=p.new||{};if(!r.customer_no||isMine("note"+r.id)||r.user_id===sessUid)return;if(NOTE_LOADED.has(r.customer_no)){const a=NOTES["n"+r.customer_no];if(!a.some(x=>x.id===r.id)){a.push(noteRow(r));refresh()}}});
   ch.on("postgres_changes",{event:"*",schema:"public",table:"inbox"},p=>{const r=p.new||{};if(!r.id)return;const i=INBOX.findIndex(x=>x.id===r.id);if(i>=0)INBOX[i]=r;else INBOX.push(r);
     if(r.booking_id){rtB.add(r.booking_id);rtFlush()}else refresh()});
