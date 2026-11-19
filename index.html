@@ -1558,7 +1558,7 @@ function msgHTML(b){
     <div class="mchips">${Object.entries(MSGS).map(([k,x])=>`<button class="tg${k===sel.k?" on":""}" data-a="msgk" data-id="${id}" data-v="${k}">${x.l}</button>`).join("")}</div>
     ${Object.keys(m.v).length>1?`<div class="mchips" style="margin-top:6px">${Object.keys(m.v).map(v=>`<button class="mini${v===vk?" pri":""}" data-a="msgv" data-id="${id}" data-v="${esc(v)}">${esc(v)}</button>`).join("")}</div>`:""}
     <textarea class="msgta" id="mt-${id}" aria-label="문자 내용">${esc(txt)}</textarea>
-    <div style="display:flex;gap:6px;justify-content:flex-end"><button class="mini pri" data-a="msgcopy" data-id="${id}">복사</button></div></div>`;
+    <div style="display:flex;gap:6px;justify-content:flex-end"><button class="mini" data-a="smsms" data-id="${id}">SM 문자</button><button class="mini pri" data-a="msgcopy" data-id="${id}">복사</button></div></div>`;
 }
 /* 고객 정보 수정 (이름·전화·고객번호·방문동기·추천인·생일·기념일·가족) */
 let CEDIT=false;
@@ -1773,6 +1773,8 @@ document.addEventListener("click",e=>{
     if(!last()&&x&&x.no){LOADED_C.delete(x.no);ensureCust(x.no).then(go)}else go();return}
   if(a==="dmgo"){clearQ();calY=+v.slice(0,4);calM=+v.slice(5,7)-1;selDay=v;calFilter=null;const tb=document.querySelector('[data-a="tab"][data-v="cal"]');if(tb)tb.click();else draw();setTimeout(()=>{const el=$("cd-"+v);if(el)el.scrollIntoView({block:"center"})},300);return}
   if(a==="newwin"){window.open(location.pathname,"_blank");return}
+  if(a==="smkakao"){smSms(KAKAO_MSG,v);return}
+  if(a==="smsms"){const bk=B[id],c=bk?CUST[ckey(bk)]||{}:{};smSms(($("mt-"+id)||{}).value||"",c.phone||"");return}
   if(a==="callnew"){$("callbar").hidden=true;openModal(false);$("n-phone").value=v;nHit();return}
   if(a==="mclose"){closeModal();return}
   if(a==="warn"){if(!openKey)return;const old=CUST[openKey]||{},n=Math.max(0,Math.min(5,warnN(openKey)+(+v)));if(n===warnN(openKey))return;const c={...old,warn:n,...meta()};CUST[openKey]=c;$("cp-head")._h=null;refresh();
@@ -2014,6 +2016,13 @@ isPast=b=>!!b.legacy||(!!b.date&&b.date<CUTOFF);
 const isU=s=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s||"");
 const newId=()=>crypto.randomUUID?crypto.randomUUID():"10000000-1000-4000-8000-100000000000".replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));
 const D8=v=>typeof v==="string"&&/^\d{4}-\d\d-\d\d/.test(v)?v.slice(0,10):null;
+const KAKAO_MSG="안녕하세요 감탄사진관입니다^^\n상담은 카카오톡 채널로 편하게 남겨주세요~\nhttp://pf.kakao.com/_xiNxoGs";
+/* SM 남은 문자 건수로 보내기 — 문구는 복사, SM 문자 창은 받는 번호 채워서 열기 (보내기는 사람이 직접) */
+function smSms(text,phone){const d=normP(phone),p=d.length>=10?[d.slice(0,3),d.slice(3,d.length-4),d.slice(-4)]:["","",""];
+  const long=[...text].reduce((n,c)=>n+(c.charCodeAt(0)>127?2:1),0)>90,page=long?"mms.htm":"sms.htm";
+  const ta=document.createElement("textarea");ta.value=text;ta.style.cssText="position:fixed;left:-9999px;top:0";document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand("copy")}catch(e){}ta.remove();
+  window.open(`https://smmate.com/${page}?midx=&rhp1=${p[0]}&rhp2=${p[1]}&rhp3=${p[2]}&dhp1=&dhp2=&dhp3=`,"smsms",long?"width=620,height=740,scrollbars=yes":"width=500,height=525");
+  toast(ok?"문구 복사됨 — SM 창 내용 칸에 Ctrl+V":"문구 복사가 안 됐어요 — 직접 복사해 주세요")}
 async function rpcNo(){const {data,error}=await sb.rpc("next_customer_no");if(error)throw error;return data}
 /* 같은 전화번호 손님이 서버에 있으면 그 번호를 씀 (화면에 안 불러온 옛 손님도) */
 async function phoneOnServer(ph){const d=normP(ph);if(d.length<10)return null;const {data}=await sb.from("customers").select("*").or(`phone.ilike.%${d.slice(-4)}%,phone2.ilike.%${d.slice(-4)}%`).order("customer_no",{ascending:false}).limit(40);const c=(data||[]).find(x=>normP(x.phone)===d||normP(x.phone2)===d);if(!c)return null;putCust(c);return c.customer_no}
@@ -2420,9 +2429,9 @@ function callPop(num){const d=normP(num);if(d.length<9)return;
   const key=callKey(d),el=$("callbar"),ph=fmtPh(d);
   if(key){const c=CUST[key]||{},who=["","2","3"].map(n=>normP(c["phone"+n])===d?c["phoneName"+n]:"").find(Boolean)||"";
     const bs=Object.values(B).filter(x=>ckey(x)===key).sort(byDate),last=bs[bs.length-1];
-    el.innerHTML=`<span>📞 <b>${esc(custName(key)||c.name||"")}님</b>${who?` ${esc(who)}`:""}${key[0]==="n"?` #${key.slice(1)}`:""} · ${esc(ph)}</span><button class="mini" data-a="open" data-id="${esc(last.id)}">열기</button><button class="mini" data-a="callx">닫기</button>`;
+    el.innerHTML=`<span>📞 <b>${esc(custName(key)||c.name||"")}님</b>${who?` ${esc(who)}`:""}${key[0]==="n"?` #${key.slice(1)}`:""} · ${esc(ph)}</span><button class="mini" data-a="open" data-id="${esc(last.id)}">열기</button><button class="mini" data-a="smkakao" data-v="${esc(ph)}">카톡 안내 문자</button><button class="mini" data-a="callx">닫기</button>`;
     if(!isPhone()&&!typing()&&$("modal").hidden)openCust(last.id,true)}
-  else el.innerHTML=`<span>📞 <b>${esc(ph)}</b> 새 번호</span><button class="mini" data-a="callnew" data-v="${esc(ph)}">새 예약·상담</button><button class="mini" data-a="callx">닫기</button>`;
+  else el.innerHTML=`<span>📞 <b>${esc(ph)}</b> 새 번호</span><button class="mini" data-a="callnew" data-v="${esc(ph)}">새 예약·상담</button><button class="mini" data-a="smkakao" data-v="${esc(ph)}">카톡 안내 문자</button><button class="mini" data-a="callx">닫기</button>`;
   el.hidden=false;clearTimeout(CALLT);CALLT=setTimeout(()=>{el.hidden=true},90000);
   try{if(window.Notification&&Notification.permission==="granted"&&(document.hidden||!document.hasFocus())){
     let t="📞 "+ph+" 새 번호",bd="",go=()=>{$("callbar").hidden=true;openModal(false);$("n-phone").value=ph;nHit()};
