@@ -109,7 +109,7 @@ button{cursor:pointer}
 @media (max-width:700px){.sxcards{grid-template-columns:repeat(2,1fr)}.sxr{grid-template-columns:76px 1fr 38px 0 46px}.sxr .sxo{display:none}.sxr2{grid-template-columns:76px 1fr 38px}.sxchart{height:150px;padding:10px 6px 4px;gap:2px}}
 .tab{background:transparent;border:1px solid transparent;color:var(--top-sub);border-radius:8px;padding:6px 12px;font-weight:700;font-size:14px;min-height:36px}
 .tab[aria-pressed="true"]{background:rgba(255,255,255,.12);color:var(--top-fg);border-color:rgba(255,255,255,.18)}
-.qrecbar{display:flex;gap:4px;flex:1 1 0;min-width:0;overflow:hidden;margin:0 8px 0 16px}.qrecbar button{flex:none;background:rgba(255,255,255,.08);color:var(--top-fg);border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:4px 10px;font-size:13px;font-weight:600;white-space:nowrap;min-height:30px}.qrecbar button:hover{background:rgba(255,255,255,.18)}@media(max-width:900px){.qrecbar{display:none}}
+.qrecbar{display:flex;flex-wrap:wrap;align-content:flex-start;align-self:center;gap:4px;flex:1 1 0;min-width:0;height:30px;overflow:hidden;margin:0 8px 0 16px}.qrecbar button{flex:none;background:rgba(255,255,255,.08);color:var(--top-fg);border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:4px 10px;font-size:13px;font-weight:600;white-space:nowrap;min-height:30px}.qrecbar button:hover{background:rgba(255,255,255,.18)}@media(max-width:900px){.qrecbar{display:none}}
 .top-r{margin-left:auto;display:flex;gap:8px;align-items:center;flex:1 1 260px;justify-content:flex-end;min-width:0;flex-wrap:wrap}
 .qrec{position:fixed;z-index:60;display:flex;flex-wrap:wrap;gap:4px;max-width:420px;padding:6px;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.15)}.qrec[hidden]{display:none}
 .srch{flex:1 1 120px;max-width:280px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:7px 10px;color:var(--top-fg);min-width:0}
@@ -1109,7 +1109,7 @@ function briefHTML(b){
   return `<div class="brow"><span class="d tn">${b.time?`<b class="${ampm(b.time)}">${tm(b.time)}</b>`:"시간 미정"}</span><div class="b"><button class="lnk bnm${b.rn?" rnn":""}" data-a="open" data-id="${esc(b.id)}">${esc(b.name)}</button>${b.rn?`<span class="rnb">리뷰노트</span>`:""}${atHTML(k)}${b.customer_no?` <span class="cno">#${b.customer_no}</span>`:""} <span class="${kindCls(b)}">${esc(calText(b))}</span> <span class="sc ${chipC(b,st)}">${esc(st.k)}</span>${ul(pts)}${!isId&&body?`<details class="bbox"><summary>촬영 전 숙지${mine?"":" (기록)"}</summary><div class="bbody">${body}</div></details>`:""}</div></div>`}
 function hitSnip(t,q){t=String(t).replace(/\s+/g," ");const terms=q.split(/\s+/).filter(Boolean),lo=t.toLowerCase(),i=Math.max(0,lo.indexOf(terms[0].toLowerCase()));const a=Math.max(0,i-14),cut=(a>0?"…":"")+t.slice(a,a+46)+(a+46<t.length?"…":"");
   let h=esc(cut);terms.forEach(w=>{const e=esc(w).replace(/[.*+?^${}()|[\]\\]/g,"\\$&");h=h.replace(new RegExp(e,"gi"),m=>`<mark>${m}</mark>`)});return h}
-let DMHIT={q:"",m:{}},RECENT=[];try{RECENT=JSON.parse(localStorage.getItem("gt-recent")||"[]")||[]}catch(e){}
+let DMHIT={q:"",m:{}},RECENT=[];try{RECENT=(JSON.parse(localStorage.getItem("gt-recent")||"[]")||[]).filter(x=>!(x.no>=20000))}catch(e){}
 /* 검색어가 날짜(11/10, 11.10, 26.11.10, 2026-11-10)면 그날 예약 접수(계약일)한 고객 */
 function qDate(q){const m=/^(?:(\d{2}|\d{4})[.\/-])?(\d{1,2})[.\/-](\d{1,2})$/.exec(String(q).trim());if(!m)return"";const y=m[1]?(m[1].length===2?"20"+m[1]:m[1]):TODAY.slice(0,4),mo=+m[2],d=+m[3];if(mo<1||mo>12||d<1||d>31)return"";let s=`${y}-${p2(mo)}-${p2(d)}`;if(!m[1]&&s>TODAY)s=`${+y-1}-${p2(mo)}-${p2(d)}`;return s}
 function drawList(){
@@ -1769,7 +1769,7 @@ document.addEventListener("click",e=>{
   if(a==="ncancel"){const e=$("cp-notes"),h=notesHTML(openKey);e.innerHTML=h;e._h=h;return}
   if(a==="nsave"){const box=t.closest(".ntext"),v=box?box.querySelector("textarea").value.trim():"",n=(NOTES[openKey]||[]).find(x=>String(x.id)===id);$("cp-notes")._h=null;if(!n||!v){refresh();return}
     const old=n.text;n.text=v;refresh();mine("note"+id);sb.from("notes").update({text:v}).eq("id",id).select("id").then(({data,error})=>{if(error||!data||!data.length){n.text=old;refresh();toast("수정 못 했어요")}});return}
-  if(a==="qrec"){const x=RECENT.find(r=>r.k===v),last=()=>Object.values(B).filter(y=>ckey(y)===v).sort(byDate).pop(),go=()=>{const l=last();if(l)openCust(l.id,true);else toast("손님을 못 찾았어요")};
+  if(a==="qrec"){const x=RECENT.find(r=>r.k===v),last=()=>Object.values(B).filter(y=>ckey(y)===v).sort(byDate).pop(),go=()=>{const l=last();if(l)openCust(l.id,true);else{RECENT=RECENT.filter(r=>r.k!==v);try{localStorage.setItem("gt-recent",JSON.stringify(RECENT))}catch(e){}recentShow();toast("손님을 못 찾았어요")}};
     if(!last()&&x&&x.no){LOADED_C.delete(x.no);ensureCust(x.no).then(go)}else go();return}
   if(a==="dmgo"){clearQ();calY=+v.slice(0,4);calM=+v.slice(5,7)-1;selDay=v;calFilter=null;const tb=document.querySelector('[data-a="tab"][data-v="cal"]');if(tb)tb.click();else draw();setTimeout(()=>{const el=$("cd-"+v);if(el)el.scrollIntoView({block:"center"})},300);return}
   if(a==="newwin"){window.open(location.pathname,"_blank");return}
