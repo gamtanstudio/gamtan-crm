@@ -975,10 +975,10 @@ function evHTML(b){const st=status(b),sc=chipC(b,st);const t=b.time?`<span class
   return `<button class="ev ${kindCls(b)}" data-a="open" data-id="${esc(b.id)}" title="${esc(b.name)} · ${esc(st.k)}${b.rn?" · 리뷰노트":""}${(CUST[ckey(b)]||{}).wnote?" · ⚠ "+esc(CUST[ckey(b)].wnote):""}">${t}<b${b.rn?' class="rnn"':""}>${esc(b.name)}</b>${atHTML(ckey(b))}<span class="evx">-${esc(calText(b))}</span>${b.rn?`<span class="sc rnc">리뷰노트</span>`:""}${b.ship==="택배"?`<span class="sc kc k-cend">택배</span>`:""}${st.k!=="예약확정"&&!((P(b)||{}).idlike&&st.k==="완료")?`<span class="sc ${sc}">${esc(st.k)}</span>`:""}</button>`}
 function drawCal(){
   buildCal();
-  const all=Object.values(B);const cnt={};all.forEach(b=>{const k=fkey(b);cnt[k]=(cnt[k]||0)+1;if(gs1y(b))cnt.gs1y=(cnt.gs1y||0)+1});
+  const all=Object.values(B);const cnt={};all.forEach(b=>{if(retakePar(b))return;const k=fkey(b);cnt[k]=(cnt[k]||0)+1;if(gs1y(b))cnt.gs1y=(cnt.gs1y||0)+1});
   put("fchips",FILTERS.map(([k,l])=>`<button class="fchip${k==="상담"&&cnt[k]?" fcon":""}" data-a="filter" data-v="${esc(k)}" aria-pressed="${calFilter===k}">${l}<b>${cnt[k]||0}</b></button>`).join(""));
   // 칩을 누르면 캘린더 대신 그 상태 손님 목록 (진행판처럼)
-  if(calFilter){const g1=calFilter==="gs1y",list=all.filter(b=>g1?gs1y(b):fkey(b)===calFilter).sort(byDate);const l=(FILTERS.find(f=>f[0]===calFilter)||[0,calFilter])[1];
+  if(calFilter){const g1=calFilter==="gs1y",list=all.filter(b=>!retakePar(b)&&(g1?gs1y(b):fkey(b)===calFilter)).sort(byDate);const l=(FILTERS.find(f=>f[0]===calFilter)||[0,calFilter])[1];
     put("flist",`<div class="grp"><h3>${esc(l)}<span>${list.length}건 · <button class="mini" data-a="filter" data-v="${esc(calFilter)}">캘린더로</button></span></h3>${list.map(b=>g1?`<div class="rowa">${rowHTML(b)}<button class="ackb" data-a="ack" data-id="${esc(b.id)}" data-v="${esc(GS1Y)}" title="확인함 — 목록에서 빼기">확인</button></div>`:rowHTML(b)).join("")||`<div class="empty">없음</div>`}</div>`);
     $("flist").hidden=false;$("cal").hidden=true;$("agenda").hidden=true;$("cal").previousElementSibling&&0;return}
   $("flist").hidden=true;$("cal").hidden=false;$("agenda").hidden=false;
@@ -1127,8 +1127,9 @@ function drawList(){
   const lastD=k=>groups[k].reduce((m,b)=>b.date&&b.date>m?b.date:m,"");
   keys.sort((a,b)=>lastD(b).localeCompare(lastD(a))||groups[a][0].name.localeCompare(groups[b][0].name,"ko")); /* 최근 촬영한 고객이 위로 */
   put("clist",`<div class="grp"><h3>${q?`'${esc(q)}' 찾은 고객`:"최근 고객"}<span>${q&&window.SRCHBUSY?"찾는 중… ":""}${keys.length}명${!q&&window.CUSTTOTAL?` · 전체 ${money(window.CUSTTOTAL)}명`:""}</span></h3>${keys.map(k=>{const bs=groups[k].sort(byDate),last=bs[bs.length-1],st=status(last);
-    return `<button class="row" data-a="open" data-src="q" data-id="${esc(last.id)}"><span class="b"><b>${esc(last.name)}</b>${atHTML(k)}${last.customer_no?` <span class="cno">#${last.customer_no}</span>`:""}${(CUST[k]||{}).family?`<span class="rfam">${esc(String(CUST[k].family).replace(/\s+/g," ").slice(0,40))}</span>`:""}<span style="display:block;font-size:12.5px;color:var(--muted)">촬영 ${bs.length}건 · 최근 ${md(last.date)} ${esc(calText(last))}${(CUST[k]||{}).phone?` · <span class="tn">${esc(fmtPhone(CUST[k].phone))}</span>`:""}</span>${(CUST[k]||{}).wnote?`<span class="wnb" style="display:block;margin:3px 0 0">${esc(CUST[k].wnote)}</span>`:""}${HIT[k]&&HIT[k]!==(CUST[k]||{}).family?`<span class="mhit">${hitSnip(HIT[k],q)}</span>`:""}</span><span class="sc ${chipC(last,st)}">${esc(st.k)}</span></button>`}).join("")||`<div class="empty">찾는 고객이 없어요</div>`}</div>`);
+    return `<button class="row" data-a="open" data-src="q" data-id="${esc(last.id)}"><span class="b"><b>${esc(last.name)}</b>${atHTML(k)}${last.customer_no?` <span class="cno">#${last.customer_no}</span>`:""}${(CUST[k]||{}).family?`<span class="rfam">${esc(String(CUST[k].family).replace(/\s+/g," ").slice(0,40))}</span>`:""}<span style="display:block;font-size:12.5px;color:var(--muted)">촬영 ${bs.length}건 · 최근 ${md(last.date)} ${esc(calText(last))}${(CUST[k]||{}).phone?` · <span class="tn">${esc(fmtPhone(CUST[k].phone))}</span>`:""}</span>${(CUST[k]||{}).wnote?`<span class="wnb" style="display:block;margin:3px 0 0">${esc(CUST[k].wnote)}</span>`:""}${HIT[k]&&HIT[k]!==(CUST[k]||{}).family?`<span class="mhit">${hitSnip(HIT[k],q)}</span>`:""}</span><span class="sc ${chipC(last,st)}">${esc(st.k)}</span></button>`}).join("")||`<div class="empty">찾는 고객이 없어요</div>`}</div>${dmHTML(q)}`);
 }
+function dmHTML(q){const L=q&&DMHIT.q===q?DMHIT.list||[]:[];if(!L.length)return"";return `<div class="grp"><h3>캘린더 메모<span>${L.length}건</span></h3>${L.map(m=>`<button class="row" data-a="dmgo" data-v="${esc(m.date)}"><span class="b"><b>${esc(md(m.date))} ${esc(dow(m.date))}</b><span class="mhit">${hitSnip(m.text,q)}</span></span></button>`).join("")}</div>`}
 
 /* ===== 고객 화면 ===== */
 /* ===== 이력 (SM 이력처럼: 날짜 시간 · 작성자 · 내용, 최신이 위) ===== */
@@ -1769,6 +1770,7 @@ document.addEventListener("click",e=>{
     const old=n.text;n.text=v;refresh();mine("note"+id);sb.from("notes").update({text:v}).eq("id",id).select("id").then(({data,error})=>{if(error||!data||!data.length){n.text=old;refresh();toast("수정 못 했어요")}});return}
   if(a==="qrec"){const x=RECENT.find(r=>r.k===v),last=()=>Object.values(B).filter(y=>ckey(y)===v).sort(byDate).pop(),go=()=>{const l=last();if(l)openCust(l.id,true);else toast("손님을 못 찾았어요")};
     if(!last()&&x&&x.no){LOADED_C.delete(x.no);ensureCust(x.no).then(go)}else go();return}
+  if(a==="dmgo"){clearQ();calY=+v.slice(0,4);calM=+v.slice(5,7)-1;selDay=v;calFilter=null;const tb=document.querySelector('[data-a="tab"][data-v="cal"]');if(tb)tb.click();else draw();setTimeout(()=>{const el=$("cd-"+v);if(el)el.scrollIntoView({block:"center"})},300);return}
   if(a==="callnew"){$("callbar").hidden=true;openModal(false);$("n-phone").value=v;nHit();return}
   if(a==="mclose"){closeModal();return}
   if(a==="warn"){if(!openKey)return;const old=CUST[openKey]||{},n=Math.max(0,Math.min(5,warnN(openKey)+(+v)));if(n===warnN(openKey))return;const c={...old,warn:n,...meta()};CUST[openKey]=c;$("cp-head")._h=null;refresh();
@@ -2136,7 +2138,7 @@ async function serverSearch(q){
     memo?sb.from("day_memos").select("date,text").or(cnd("text")).order("date",{ascending:false}).limit(60):none]).catch(()=>[{data:[]},{data:[]},{data:[]},{data:[]},{data:[]}]);
   const found=new Set();
   [...(r0.data||[]),...(r3.data||[])].forEach(c=>{putCust(c);found.add(c.customer_no)});
-  DMHIT={q,m:{}};(r4.data||[]).forEach(m=>String(m.text||"").split("\n").forEach(ln=>{(ln.match(/#(\d{2,6})/g)||[]).forEach(h=>{const n=+h.slice(1);if(!DMHIT.m[n])DMHIT.m[n]=`${md(m.date)} ${ln.trim()}`;found.add(n)})}));
+  DMHIT={q,m:{},list:(r4.data||[]).map(x=>({date:x.date,text:String(x.text||"")}))};(r4.data||[]).forEach(m=>String(m.text||"").split("\n").forEach(ln=>{(ln.match(/#(\d{2,6})/g)||[]).forEach(h=>{const n=+h.slice(1);if(!DMHIT.m[n])DMHIT.m[n]=`${md(m.date)} ${ln.trim()}`;found.add(n)})}));
   [...(r1.data||[]),...(r2.data||[])].map(x=>x.customer_no).filter(Boolean).forEach(n=>{if(found.size<120)found.add(n)});
   if(q!==srchQ)return;
   const nos=[...found].filter(n=>!LOADED_C.has(n));
