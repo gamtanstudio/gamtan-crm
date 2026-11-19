@@ -1772,7 +1772,7 @@ document.addEventListener("click",e=>{
   if(a==="qrec"){const x=RECENT.find(r=>r.k===v),last=()=>Object.values(B).filter(y=>ckey(y)===v).sort(byDate).pop(),go=()=>{const l=last();if(l)openCust(l.id,true);else toast("손님을 못 찾았어요")};
     if(!last()&&x&&x.no){LOADED_C.delete(x.no);ensureCust(x.no).then(go)}else go();return}
   if(a==="dmgo"){clearQ();calY=+v.slice(0,4);calM=+v.slice(5,7)-1;selDay=v;calFilter=null;const tb=document.querySelector('[data-a="tab"][data-v="cal"]');if(tb)tb.click();else draw();setTimeout(()=>{const el=$("cd-"+v);if(el)el.scrollIntoView({block:"center"})},300);return}
-  if(a==="newwin"){window.open(location.pathname+"?c="+encodeURIComponent(v),"cw"+v);return}
+  if(a==="newwin"){window.open(location.pathname,"_blank");return}
   if(a==="callnew"){$("callbar").hidden=true;openModal(false);$("n-phone").value=v;nHit();return}
   if(a==="mclose"){closeModal();return}
   if(a==="warn"){if(!openKey)return;const old=CUST[openKey]||{},n=Math.max(0,Math.min(5,warnN(openKey)+(+v)));if(n===warnN(openKey))return;const c={...old,warn:n,...meta()};CUST[openKey]=c;$("cp-head")._h=null;refresh();
