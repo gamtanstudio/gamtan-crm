@@ -515,6 +515,8 @@ details.more summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(-
 .nscript summary::-webkit-details-marker{display:none}
 .nscript summary em{font-style:normal;font-weight:500;color:var(--muted);font-size:12px}
 .nscript .sn{color:var(--acc);min-width:16px}
+.nscript .nsms{display:flex;gap:8px;align-items:baseline;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:8px;margin-bottom:6px;padding:8px 10px;font:inherit;font-weight:800;color:var(--fg);cursor:pointer}
+.nscript .nsms:hover{border-color:var(--acc)}
 .nscript .ln{padding:4px 10px 6px 34px;line-height:1.6;color:var(--fg)}
 .nscript .ln.ask{color:var(--pm);font-weight:600}
 .nscript .tip{margin:2px 10px 8px 34px;padding:5px 8px;border-radius:6px;background:var(--warn-bg);color:var(--warn);font-size:12px;font-weight:600}
@@ -1781,6 +1783,8 @@ document.addEventListener("click",e=>{
   if(a==="mclose"){closeModal();return}
   if(a==="warn"){if(!openKey)return;const old=CUST[openKey]||{},n=Math.max(0,Math.min(5,warnN(openKey)+(+v)));if(n===warnN(openKey))return;const c={...old,warn:n,...meta()};CUST[openKey]=c;$("cp-head")._h=null;refresh();
     db.doc("customers/"+openKey).set(c).catch(()=>toast("저장하지 못했어요"));const lb=custBookings().sort(byDate).pop();if(lb)log(lb.id,`주의 표시 ${"@".repeat(n)||"없음"}`);return}
+  if(a==="nkakao"){smSms(KAKAO_MSG,$("n-phone").value);return}
+  if(a==="nsms"){smSms("",$("n-phone").value);return}
   if(a==="bigcopy"){const done=()=>toast("복사됐어요");if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(BIGFAM_INQUIRY).then(done,()=>{const r=document.createRange();r.selectNodeContents($("n-bigfam"));const sl=getSelection();sl.removeAllRanges();sl.addRange(r);toast("길게 눌러 복사하세요")});return}
   if(a==="ncmp"){$("n-pkey").value=v;calPreview();nPrice();return}
   if(a==="form-close"){FORM=null;refresh();return}
@@ -1957,7 +1961,7 @@ const BIGFAM_INQUIRY = `안녕하세요^^
 감사합니다^^`;
 
 /* 상담 대본은 10/31 뺀 (나중에 다시) — SCRIPT 내용은 코드에 남겨 둠 */
-function scriptHTML(){return `<details><summary><span class="sn">📋</span><span>대가족 문의 답변 <em>복사해서 전송</em></span></summary><pre id="n-bigfam">${esc(BIGFAM_INQUIRY)}</pre><div style="padding:0 10px 8px;text-align:right"><button type="button" class="mini pri" data-a="bigcopy">복사</button></div></details>`}
+function scriptHTML(){return `<details><summary><span class="sn">📋</span><span>대가족 문의 답변 <em>복사해서 전송</em></span></summary><pre id="n-bigfam">${esc(BIGFAM_INQUIRY)}</pre><div style="padding:0 10px 8px;text-align:right"><button type="button" class="mini pri" data-a="bigcopy">복사</button></div></details><button type="button" class="nsms" data-a="nkakao"><span class="sn">💬</span><span>카톡 안내 문자</span></button><button type="button" class="nsms" data-a="nsms"><span class="sn">✉️</span><span>SM 문자</span></button>`}
 $("n-script").innerHTML=scriptHTML();
 const CMPK=["simpfam","story","bigfam","bigfam_old","bigfam_orig"];
 function nBook(k){return{pkey:k||null,adults:+$("n-adults").value||0,kids:+$("n-kids").value||0,pet:$("n-pet").checked,up11:$("n-up11").checked&&!!(PRODUCTS[k]||{}).up11,product:"",cal:""}}
