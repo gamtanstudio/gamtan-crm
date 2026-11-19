@@ -810,6 +810,7 @@ let RTC=null,RTT=0;
 let RVC=null,RVT=0;
 function rvisitOf(bid){if(!bid)return null;if(!RVC||Date.now()-RVT>1500){RVC=new Map();RVT=Date.now();for(const x of Object.values(B)){if(!x._hist||!x._sid||(x.date||"")<TODAY||(x.steps||{}).canceled)continue;const sn=typeof SNAPS!=="undefined"&&SNAPS[x._sid];if(sn&&sn.booking_id&&sn.kind==="monitor"){const o=RVC.get(sn.booking_id);if(!o||(x.date+(x.time||""))<(o.date+(o.time||"")))RVC.set(sn.booking_id,x)}}}return RVC.get(bid)||null}
 /* 재촬영(보충) 방문을 찍었으면 그 원래 계약 */
+function retakeKidOf(b){if(!b||b.kind==="visit")return null;return Object.values(B).filter(x=>x.kind==="visit"&&retakePar(x)===b).sort(byDate).pop()||null}
 function retakePar(b){if(b.kind!=="visit"||!(b.steps||{}).shot||!b._sid||typeof SNAPS==="undefined")return null;const sn=SNAPS[b._sid];return sn&&sn.booking_id?Object.values(B).find(x=>!x._hist&&x._bid===sn.booking_id)||null:null}
 function retakeOf(bid){if(!bid)return null;if(!RTC||Date.now()-RTT>1500){RTC=new Map();RTT=Date.now();for(const x of Object.values(B)){if(!x._hist||!x._sid||(x.date||"")<TODAY||(x.steps||{}).canceled||(x.steps||{}).shot)continue; /* 재촬영 찍었으면 원래 계약으로 진행 */const sn=typeof SNAPS!=="undefined"&&SNAPS[x._sid];if(sn&&sn.booking_id&&sn.kind==="supplement")RTC.set(sn.booking_id,x)}}return RTC.get(bid)||null}
 function status(b){
@@ -1152,7 +1153,7 @@ function openCust(id,fromSearch){ /* 캘린더 등에서 누르면 그 예약을
   const b=B[id];if(!b)return;LASTOPEN=id;recentAdd(b);if(fromSearch)QOPEN=true;const k=ckey(b);
   if(openKey!==k){openKey=k;LOGSHOW=false;LOGALL=false;LOGF="all";LOGB="";EXP.clear();SEEN.clear();$("hlist").innerHTML="";FORM=null;
     ["cp-bar","cp-head","cp-stats","cp-logs"].forEach(i=>{$(i)._h=null});$("right").scrollTop=0}
-  if(!fromSearch)EXP.add(id); /* 캘린더·오늘에서 누른 일정 하나만 펼침, 검색은 전부 접힘 */
+  if(!fromSearch){EXP.add(id);const kd=retakeKidOf(b);if(kd)EXP.add(kd.id)} /* 캘린더·오늘에서 누른 일정 하나만 펼침, 검색은 전부 접힘 */
   const wasHidden=$("cp").hidden,newCust=wasHidden||$("cp").dataset.k!==k;$("cp").dataset.k=k;
   $("cp").hidden=false;$("cp-empty").hidden=true;if(newCust)anim($("cp"),"enter");$("right").classList.add("open");document.documentElement.classList.add("lock");
   drawCust();
@@ -1202,29 +1203,29 @@ function drawCust(){
     put("hrw-"+b.id,rowHTML2(b));drawCard(b)});
 }
 function drawCard(b){
-  const id=b.id,st=status(b),[pn,pc]=pinfo(b),s=b.steps||{},open=EXP.has(id);
+  const id=b.id,st=status(b),[pn,pc]=pinfo(b),s=b.steps||{},open=EXP.has(id),par=retakePar(b),kid=par?null:retakeKidOf(b),SB=par||b; /* 재촬영 찍었으면 재촬영 카드에서 진행, 원래 카드는 한 줄 */
   const el=$("hc-"+id);
   const cls="hc "+(s.canceled?"cancel":st.k==="완료"?"done":(!b.date?"tbd":"live"))+" sg-"+stg(b,st)+(open?"":" closed");
   if(el.className!==cls)el.className=cls;el.style.setProperty("--pc",pc);
-  const tot=totalOf(b),pd=paidOf(b),bal=tot-pd;const n=(+b.adults||0)+(+b.kids||0)||(+b.people||0);
+  const tot=totalOf(SB),pd=paidOf(SB),bal=tot-pd;const n=(+b.adults||0)+(+b.kids||0)||(+b.people||0);
   const tag=s.canceled?`<span class="tag" style="background:var(--k-cancel)">취소</span>`:s.postponed?`<span class="tag" style="background:var(--k-delay)">연기</span>`:b.kind==="consult"&&!s.shot?`<span class="tag" style="background:${pc}">${consOpen(b)?"상담":"상담 끝"}</span>`:!b.date?`<span class="tag" style="background:var(--tbd)">날짜 미정</span>`:st.k==="완료"?`<span class="tag" style="background:${pc}">완료</span>`:"";
   put("hh-"+id,`<div class="hh" role="button" tabindex="0" data-a="toggle" data-id="${esc(id)}" aria-expanded="${open}"><span class="hh-l">${tag}
     <span class="hdate tn">${b.date?fullDate(b.date):"날짜 미정"}${b.time?` <span class="${ampm(b.time)}">${tm(b.time)}</span>`:""}</span>${b.booked&&b.booked!==b.date?`<span class="hbook tn">예약 접수 ${b.booked.slice(2).replace(/-/g,".")}</span>`:""}
     <span class="pb" style="background:${pc}">${esc(pn)}</span>${b.gs?`<span class="gsb">${esc(b.gs)}</span>`:""}${b.rn?`<span class="rnb">리뷰노트</span>`:""}${n?`<span class="ppl">${n}명</span>`:""}
     <span class="sc ${chipC(b,st)}">${esc(st.k)}</span><input class="hcal${b.cal?"":" auto"}" data-f="cal" data-id="${esc(id)}" value="${esc(calText(b))}" placeholder="캘린더 문구" title="캘린더 문구" aria-label="캘린더 문구"></span>
-    <span class="hh-r tn">${tot?(bal>0?`잔금 <b>${money(bal)}</b>`:`${money(tot)} 완납`):""}${shipSummary(b)}</span><span class="chev" aria-hidden="true">${open?"▴":"▾"}</span></div>`);
+    <span class="hh-r tn">${tot?(bal>0?`잔금 <b>${money(bal)}</b>`:`${money(tot)} 완납`):""}${shipSummary(SB)}</span><span class="chev" aria-hidden="true">${open?"▴":"▾"}</span></div>`);
   setVal($("hm-"+id),b.memo||"");
-  const SB=retakePar(b)||b,L=stepsFor(SB),na=nextAction(SB);const first=L.findIndex(([k])=>!stepOn(SB,k)); /* 재촬영 카드는 원래 계약 단계를 그대로 */
-  put("hf-"+id,retakePar(b)?"":(s.canceled||st.past?"":L.map(([k,l],i)=>{const on=stepOn(SB,k);return `<button class="st${on?" on":i===first?" now":""}" data-a="step" data-id="${esc(SB.id)}" data-v="${k}" title="${on?"눌러서 되돌리기":"눌러서 체크"}">${on?"✓ ":""}${l}<small>${esc(on?stepDate(SB,k):"")}</small></button>`}).join(""))
+  const L=stepsFor(SB),na=nextAction(SB);const first=L.findIndex(([k])=>!stepOn(SB,k)); /* 재촬영 카드는 원래 계약 단계를 그대로 */
+  put("hf-"+id,kid?"":(s.canceled||st.past?"":L.map(([k,l],i)=>{const on=stepOn(SB,k);return `<button class="st${on?" on":i===first?" now":""}" data-a="step" data-id="${esc(SB.id)}" data-v="${k}" title="${on?"눌러서 되돌리기":"눌러서 체크"}">${on?"✓ ":""}${l}<small>${esc(on?stepDate(SB,k):"")}</small></button>`}).join(""))
     +(((SB.steps||{}).shot&&!stepOn(SB,"done")&&!L.some(x=>x[0]==="workshop")&&(SB.items||[]).some(i=>i.kind==="액자")&&!s.canceled&&!st.past)?`<button class="mini" data-a="step" data-id="${esc(SB.id)}" data-v="workshop">+ 공방</button>`:"")
     +((L.some(x=>x[0]==="rnotify")||((SB.steps||{}).shot&&!stepOn(SB,"done")&&(SB.items||[]).some(i=>i.kind==="액자")))&&!(SB.steps||{}).rcheck&&!s.canceled&&!st.past?(RVF===id?`<span class="rvf"><input type="date" class="inp" id="rvd-${esc(id)}" value="${TODAY}" aria-label="보정본 확인 날짜"><input type="time" class="inp" id="rvt-${esc(id)}" step="600" aria-label="보정본 확인 시간"><button class="mini pri" data-a="rv-save" data-id="${esc(id)}">저장</button><button class="mini" data-a="rv-x" data-id="${esc(id)}">취소</button></span>`:`<button class="mini" data-a="rv-open" data-id="${esc(id)}">+ 보정본 일정</button>`):"")
     +(st.past?`<span class="sc c-mute">지난 기록</span>`:"")
     +`<button class="mini msgbtn${MSGON===id?" pri":""}" data-a="msg" data-id="${esc(id)}">문자</button>`
     +(na&&!s.canceled?`<button class="nextbtn" data-a="step" data-id="${esc(SB.id)}" data-v="${na[0]}">${na[1]}</button>`:""));
   put("hq-"+id,MSGON===id&&!wide()?msgHTML(b):"");
-  const hd=$("hd-"+id);if(retakePar(b)){hd.hidden=true;return}if(hd.hidden===open)hd.hidden=!open;
+  const hd=$("hd-"+id);if(kid){hd.hidden=true;["hg","hp","hy","he","hs"].forEach(p=>put(p+"-"+id,""));return}if(hd.hidden===open)hd.hidden=!open;
   if(!open)return;
-  put("hg-"+id,growthHTML(b));put("hp-"+id,priceHTML(b));put("hy-"+id,payHTML(b));put("hs-"+id,shipHTML(b));put("he-"+id,editHTML(b));
+  put("hg-"+id,growthHTML(SB));put("hp-"+id,priceHTML(SB));put("hy-"+id,payHTML(SB));put("hs-"+id,shipHTML(SB));put("he-"+id,editHTML(b));
 }
 /* 히스토리 진행 색: 주황=우리 차례, 파랑=손님 기다림, 초록=아직 안 찍음, 끝난 건 흐리게 */
 function stg(b,st){const k=st.k;if((b.steps||{}).canceled)return"cx";const made=()=>shipRows(b).some(r=>r.ready&&!r.shipped&&r.kind!=="원본");if(st.past)return k==="완료"?"fin":made()?"made":"wait";if(k==="출고 연락 전"||k==="수령 대기"||(st.rest&&made()))return"made"; /* SM 완성색(보라) */if(k==="완료"||k==="상담 끝")return"fin";if(b.kind==="visit"&&(k==="방문 예정"||k==="완료"))return k==="방문 예정"?"wait":"fin";
