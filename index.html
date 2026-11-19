@@ -109,6 +109,7 @@ button{cursor:pointer}
 @media (max-width:700px){.sxcards{grid-template-columns:repeat(2,1fr)}.sxr{grid-template-columns:76px 1fr 38px 0 46px}.sxr .sxo{display:none}.sxr2{grid-template-columns:76px 1fr 38px}.sxchart{height:150px;padding:10px 6px 4px;gap:2px}}
 .tab{background:transparent;border:1px solid transparent;color:var(--top-sub);border-radius:8px;padding:6px 12px;font-weight:700;font-size:14px;min-height:36px}
 .tab[aria-pressed="true"]{background:rgba(255,255,255,.12);color:var(--top-fg);border-color:rgba(255,255,255,.18)}
+.qrecbar{display:flex;gap:4px;flex:1 1 0;min-width:0;overflow:hidden;margin:0 8px 0 16px}.qrecbar button{flex:none;background:rgba(255,255,255,.08);color:var(--top-fg);border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:4px 10px;font-size:13px;font-weight:600;white-space:nowrap;min-height:30px}.qrecbar button:hover{background:rgba(255,255,255,.18)}@media(max-width:900px){.qrecbar{display:none}}
 .top-r{margin-left:auto;display:flex;gap:8px;align-items:center;flex:1 1 260px;justify-content:flex-end;min-width:0;flex-wrap:wrap}
 .qrec{position:fixed;z-index:60;display:flex;flex-wrap:wrap;gap:4px;max-width:420px;padding:6px;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.15)}.qrec[hidden]{display:none}
 .srch{flex:1 1 120px;max-width:280px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:7px 10px;color:var(--top-fg);min-width:0}
@@ -592,6 +593,7 @@ details.more summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(-
     <button class="tab" data-a="tab" data-v="cust" aria-pressed="false">고객</button>
     <button class="tab" data-a="tab" data-v="stat" aria-pressed="false" id="tabstat" hidden>통계</button>
   </nav>
+  <div class="qrecbar" id="qrecbar"></div>
   <div class="top-r">
     <input class="srch" id="q" type="search" placeholder="이름 · 전화 · 번호 · 메모" aria-label="고객 찾기" autocomplete="off"><div id="qrec" class="qrec" hidden></div>
     <select class="who" id="who" aria-label="지금 쓰는 사람"><option>팀장</option><option>실장님</option><option>동수씨</option><option>직원</option></select>
@@ -1765,7 +1767,7 @@ document.addEventListener("click",e=>{
   if(a==="ncancel"){const e=$("cp-notes"),h=notesHTML(openKey);e.innerHTML=h;e._h=h;return}
   if(a==="nsave"){const box=t.closest(".ntext"),v=box?box.querySelector("textarea").value.trim():"",n=(NOTES[openKey]||[]).find(x=>String(x.id)===id);$("cp-notes")._h=null;if(!n||!v){refresh();return}
     const old=n.text;n.text=v;refresh();mine("note"+id);sb.from("notes").update({text:v}).eq("id",id).select("id").then(({data,error})=>{if(error||!data||!data.length){n.text=old;refresh();toast("수정 못 했어요")}});return}
-  if(a==="qrec"){$("qrec").hidden=true;$("q").blur();const x=RECENT.find(r=>r.k===v),last=()=>Object.values(B).filter(y=>ckey(y)===v).sort(byDate).pop(),go=()=>{const l=last();if(l)openCust(l.id,true);else toast("손님을 못 찾았어요")};
+  if(a==="qrec"){const x=RECENT.find(r=>r.k===v),last=()=>Object.values(B).filter(y=>ckey(y)===v).sort(byDate).pop(),go=()=>{const l=last();if(l)openCust(l.id,true);else toast("손님을 못 찾았어요")};
     if(!last()&&x&&x.no){LOADED_C.delete(x.no);ensureCust(x.no).then(go)}else go();return}
   if(a==="callnew"){$("callbar").hidden=true;openModal(false);$("n-phone").value=v;nHit();return}
   if(a==="mclose"){closeModal();return}
@@ -2145,11 +2147,9 @@ async function serverSearch(q){
   }finally{busy(false)}
 }
 $("q").addEventListener("input",()=>{clearTimeout(srchT);srchT=setTimeout(()=>serverSearch($("q").value||""),350)});
-function recentAdd(b){const k=ckey(b);if(!k)return;const nm=(CUST[k]||{}).name||b.name||"";if(!nm)return;RECENT=[{k,no:b.customer_no||null,nm},...RECENT.filter(x=>x.k!==k)].slice(0,10);try{localStorage.setItem("gt-recent",JSON.stringify(RECENT))}catch(e){}}
-function recentShow(){const el=$("qrec");if(($("q").value||"").trim()||!RECENT.length||document.activeElement!==$("q")){el.hidden=true;return}const r=$("q").getBoundingClientRect();el.style.top=(r.bottom+4)+"px";el.style.left=Math.max(8,Math.min(r.left,innerWidth-430))+"px";el.innerHTML=RECENT.map(x=>`<button type="button" class="mini" data-a="qrec" data-v="${esc(x.k)}">${esc(x.nm)}</button>`).join("");el.hidden=false}
-$("q").addEventListener("focus",recentShow);$("q").addEventListener("input",recentShow);
-$("q").addEventListener("blur",()=>setTimeout(()=>{$("qrec").hidden=true},150));
-$("qrec").addEventListener("pointerdown",e=>e.preventDefault());
+function recentAdd(b){const k=ckey(b);if(!k)return;const nm=(CUST[k]||{}).name||b.name||"";if(!nm)return;RECENT=[{k,no:b.customer_no||null,nm},...RECENT.filter(x=>x.k!==k)].slice(0,10);try{localStorage.setItem("gt-recent",JSON.stringify(RECENT))}catch(e){}recentShow()}
+function recentShow(){const el=$("qrecbar");if(el)el.innerHTML=RECENT.map(x=>`<button type="button" data-a="qrec" data-v="${esc(x.k)}">${esc(x.nm)}</button>`).join("")}
+recentShow();
 
 /* ---------- 화면 → 서버 ---------- */
 const BOOKED=new Set(["id","_bid","_sid","kind","name","customer_no","date","time","pkey","product","cal","memo","growth","gs","review","sns","ship","track","ack","pet","adults","kids","steps","items","payments","priceOverride","priceItems","ex","idq","up11","retouch","needOrig","prevId","legacy","tkey","rn"]);
