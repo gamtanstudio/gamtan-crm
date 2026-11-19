@@ -892,7 +892,7 @@ function custName(key){const bs=Object.values(B).filter(x=>ckey(x)===key).sort(b
 const newNo=()=>Math.max(21000,...Object.values(B).map(b=>+b.customer_no||0).filter(n=>n>=21000))+1;
 async function assignNumber(key){ // 번호 없는 손님(상담)에게 번호를 줌 — 같은 전화번호 손님이 있으면 그 번호로 합침
   if(key[0]==="n")return +key.slice(1);
-  const tc=CUST[key]||{},hit=findByPhone(tc.phone),tgt=hit&&hit[0]==="n"?hit:null,no=tgt?+tgt.slice(1):(await rpcNo()),nk="n"+no;
+  const tc=CUST[key]||{},hit=findByPhone(tc.phone),tgt=hit&&hit[0]==="n"?hit:null,no=tgt?+tgt.slice(1):(await noForPhone(tc.phone)),nk="n"+no;
   const bs=Object.values(B).filter(x=>ckey(x)===key),nm=tgt?custName(tgt):"";
   for(const b of bs)await save(b.id,{customer_no:no,tkey:null,...(nm?{name:nm}:{})},null);
   const merged=tgt?{...tc,...(CUST[tgt]||{}),memo:[(CUST[tgt]||{}).memo,tc.memo].filter(Boolean).join("\n")}:{...tc};
@@ -1065,7 +1065,7 @@ async function ibMakeId(ids,method){
   const rows=ibRows().filter(r=>ids.includes(r.id));if(!rows.length)return;const r=rows[0];
   const uses=[...new Set(rows.map(x=>x.purpose))];const pkey=uses.some(u=>/반명함/.test(u))?"halfid":"id";
   let no=null,nm=r.name;const hit=findByPhone(r.phone);
-  if(hit&&hit[0]==="n"){no=+hit.slice(1);nm=custName(hit)||nm}else if(hit)no=await assignNumber(hit);else no=(typeof rpcNo==="function")?await rpcNo():newNo();
+  if(hit&&hit[0]==="n"){no=+hit.slice(1);nm=custName(hit)||nm}else if(hit)no=await assignNumber(hit);else no=(typeof rpcNo==="function")?await noForPhone(r.phone):newNo();
   const id=uid("b");const nowK=new Date(Date.now()+9*3600e3).toISOString();
   const doc={name:nm,customer_no:no,tkey:null,date:r.day,time:nowK.slice(11,16),up11:false,product:"",pkey,booked_pkey:pkey,adults:1,kids:0,pet:false,cal:uses.join("·"),growth:false,gs:"",kind:"shoot",
     memo:"",steps:{shot:r.day},items:[],payments:[],origin:"지킴이"};
@@ -1967,7 +1967,7 @@ function calPreview(){const c=$("n-cal");if(c.dataset.dirty)return;c.value=nAuto
 $("n-cal").addEventListener("input",()=>{const c=$("n-cal");c.classList.remove("auto");c.dataset.dirty=c.value.trim()?"1":"";if(!c.dataset.dirty&&document.activeElement!==c)calPreview()});
 $("n-cal").addEventListener("blur",()=>{const c=$("n-cal");if(!c.value.trim()){c.dataset.dirty="";calPreview()}});
 $("n-phone").addEventListener("input",nHit);
-function nHit(){const el=$("n-hit");if(modalForCust){el.hidden=true;return}const k=findByPhone($("n-phone").value);if(!k){el.hidden=true;return}const bs=Object.values(B).filter(x=>ckey(x)===k).sort(byDate),l=bs[bs.length-1];el.hidden=false;el.textContent=`기존 손님: ${l.name}${l.customer_no?" #"+l.customer_no:" (번호 없음)"} · 최근 ${l.date?l.date.slice(2).replace(/-/g,"."):"미정"} ${SHORT[pk(l)]||pinfo(l)[0]} — 이 손님에게 붙어요`}
+function nHit(){const el=$("n-hit");if(modalForCust){el.hidden=true;return}const k=findByPhone($("n-phone").value);if(!k){el.hidden=true;const ph=$("n-phone").value;if(normP(ph).length>=10&&nHit._p!==ph){nHit._p=ph;phoneOnServer(ph).then(n=>{if(n)ensureCust(n).then(()=>{if($("n-phone").value===ph)nHit()})}).catch(()=>{})}return}const bs=Object.values(B).filter(x=>ckey(x)===k).sort(byDate),l=bs[bs.length-1];el.hidden=false;el.textContent=`기존 손님: ${l.name}${l.customer_no?" #"+l.customer_no:" (번호 없음)"} · 최근 ${l.date?l.date.slice(2).replace(/-/g,"."):"미정"} ${SHORT[pk(l)]||pinfo(l)[0]} — 이 손님에게 붙어요`}
 ["n-pkey","n-adults","n-kids","n-pet","n-up11"].forEach(i=>{$(i).addEventListener("input",()=>{calPreview();nPrice()});$(i).addEventListener("change",()=>{calPreview();nPrice()})});
 document.addEventListener("click",e=>{if(e.target.closest("[data-a=nxh]")){NXH=true;drawHours();return}const t=e.target.closest("[data-a=th],[data-a=tm]");if(!t)return;if(t.dataset.a==="th")TH=t.dataset.v;else{TM=t.dataset.v;if(!TH)TH="11"}paintTime()});
 let modalForCust=null;
@@ -1991,7 +1991,7 @@ $("mform").addEventListener("submit",async e=>{
   else{hitKey=findByPhone(phone);
     if(hitKey&&hitKey[0]==="n"){no=+hitKey.slice(1);nmx=custName(hitKey)||nm}
     else if(hitKey){if(cons){tkey=hitKey;nmx=custName(hitKey)||nm}else no=await assignNumber(hitKey)}
-    else if(!cons)no=await rpcNo()}
+    else if(!cons){no=await noForPhone(phone);if(CUST["n"+no])nmx=custName("n"+no)||nmx}}
   const id=uid("b");if(cons&&!no&&!tkey)tkey="t"+id;const nowK=new Date(Date.now()+9*3600e3).toISOString();const doc={name:nmx,customer_no:no,tkey,date:cons?nowK.slice(0,10):$("n-date").value,time:cons?nowK.slice(11,16):$("n-time").value,up11:$("n-up11").checked&&!!(PRODUCTS[pkey]||{}).up11,product:"",pkey:pkey||null,booked_pkey:pkey||null,
     adults:+$("n-adults").value||0,kids:+$("n-kids").value||0,pet:$("n-pet").checked,cal:(()=>{const v=$("n-cal").value.replace(/\s+/g," ").trim();return v===nAuto()?"":v})(),growth:pkey==="growth",gs:"",kind:cons?"consult":"shoot",memo:$("n-memo").value.trim(),steps:{},items:[],payments:[],origin:"앱에서 등록"};
   B[id]={id,...doc};closeModal();openCust(id);
@@ -2014,6 +2014,9 @@ const isU=s=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.t
 const newId=()=>crypto.randomUUID?crypto.randomUUID():"10000000-1000-4000-8000-100000000000".replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));
 const D8=v=>typeof v==="string"&&/^\d{4}-\d\d-\d\d/.test(v)?v.slice(0,10):null;
 async function rpcNo(){const {data,error}=await sb.rpc("next_customer_no");if(error)throw error;return data}
+/* 같은 전화번호 손님이 서버에 있으면 그 번호를 씀 (화면에 안 불러온 옛 손님도) */
+async function phoneOnServer(ph){const d=normP(ph);if(d.length<10)return null;const {data}=await sb.from("customers").select("*").or(`phone.ilike.%${d.slice(-4)}%,phone2.ilike.%${d.slice(-4)}%`).order("customer_no",{ascending:false}).limit(40);const c=(data||[]).find(x=>normP(x.phone)===d||normP(x.phone2)===d);if(!c)return null;putCust(c);return c.customer_no}
+async function noForPhone(ph){let n=null;try{n=await phoneOnServer(ph)}catch(e){}if(n){await ensureCust(n);return n}return await rpcNo()}
 const SELF=new Map();const mine=id=>{SELF.set(id,Date.now())};const isMine=id=>(Date.now()-(SELF.get(id)||0))<5000;
 const kst=a=>new Date(new Date(a).getTime()+9*3600e3).toISOString();
 
