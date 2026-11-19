@@ -2437,7 +2437,9 @@ function drawCalls(){const el=$("calllog");let day="",h=`<div class="cl-h"><span
     let who=`<b>새 번호</b>`,act=`data-a="callnew" data-v="${esc(fmtPh(num))}"`;
     if(key){const bs=Object.values(B).filter(x=>ckey(x)===key).sort(byDate),last=bs[bs.length-1];who=`<b>${esc(custName(key))}님</b>${key[0]==="n"?` #${key.slice(1)}`:""}`;act=`data-a="open" data-id="${esc(last.id)}"`}
     h+=`<button class="cl-r" ${act}><span class="cl-t">${t.slice(11,16)}</span><span>${who}</span><span class="cl-n">${esc(fmtPh(num))}</span></button>`});
-  if(!CALLS.length)h+=`<div class="cl-d">없음</div>`;el.innerHTML=h}
+  if(!CALLS.length)h+=`<div class="cl-d">없음</div>`;el.innerHTML=h;
+  const T=drawCalls.T||(drawCalls.T=new Set()),miss=[...new Set(CALLS.map(c=>normP(c.num)))].filter(n=>n.length>=10&&!T.has(n)&&!callKey(n));
+  if(miss.length){miss.forEach(n=>T.add(n));Promise.all(miss.map(n=>phoneOnServer(n).then(no=>no&&ensureCust(no)).catch(()=>{}))).then(drawCalls)}}
 async function callPop(num){const d=normP(num);if(d.length<9)return;
   if(!callKey(d)){try{const n=await phoneOnServer(d);if(n)await ensureCust(n)}catch(e){}}
   const key=callKey(d),el=$("callbar"),ph=fmtPh(d);
