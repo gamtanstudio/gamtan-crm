@@ -1964,7 +1964,7 @@ const BIGFAM_INQUIRY = `안녕하세요^^
 /* 상담 대본은 10/31 뺀 (나중에 다시) — SCRIPT 내용은 코드에 남겨 둠 */
 function scriptHTML(){return `<details><summary><span class="sn">📋</span><span>대가족 문의 답변 <em>복사해서 전송</em></span></summary><pre id="n-bigfam">${esc(BIGFAM_INQUIRY)}</pre><div style="padding:0 10px 8px;text-align:right"><button type="button" class="mini pri" data-a="bigcopy">복사</button></div></details><button type="button" class="nsms" data-a="nkakao"><span class="sn">💬</span><span>카톡 안내 문자</span></button><button type="button" class="nsms" data-a="nsms"><span class="sn">✉️</span><span>SM 문자</span></button>`}
 $("n-script").innerHTML=scriptHTML();
-const CMPK=["simpfam","story","bigfam","bigfam_old","bigfam_orig"];
+const CMPK=["simpfam","story","bigfam"];
 function nBook(k){return{pkey:k||null,adults:+$("n-adults").value||0,kids:+$("n-kids").value||0,pet:$("n-pet").checked,up11:$("n-up11").checked&&!!(PRODUCTS[k]||{}).up11,product:"",cal:""}}
 function nPrice(){const k=$("n-pkey").value,p=PRODUCTS[k];$("n-up11w").hidden=!(p&&p.up11);
   const rows=k?calcRows(nBook(k))||[]:[];const tot=rows.reduce((a,r)=>a+(+r.amt||0),0);
