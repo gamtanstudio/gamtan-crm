@@ -2025,7 +2025,7 @@ const D8=v=>typeof v==="string"&&/^\d{4}-\d\d-\d\d/.test(v)?v.slice(0,10):null;
 const KAKAO_MSG="안녕하세요 감탄사진관입니다^^\n상담은 카카오톡 채널로 편하게 남겨주세요~\nhttp://pf.kakao.com/_xiNxoGs";
 /* SM 남은 문자 건수로 보내기 — 문구는 복사, SM 문자 창은 받는 번호 채워서 열기 (보내기는 사람이 직접) */
 function smSms(text,phone){const d=normP(phone),p=d.length>=10?[d.slice(0,3),d.slice(3,d.length-4),d.slice(-4)]:["","",""];
-  const long=[...text].reduce((n,c)=>n+(c.charCodeAt(0)>127?2:1),0)>90,page=long?"mms.htm":"sms.htm";
+  const long=true,page="mms.htm";
   if(!text){window.open(`https://smmate.com/sms.htm?midx=&rhp1=${p[0]}&rhp2=${p[1]}&rhp3=${p[2]}&dhp1=&dhp2=&dhp3=`,"smsms","width=500,height=525");return}
   const ta=document.createElement("textarea");ta.value=text;ta.style.cssText="position:fixed;left:-9999px;top:0";document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand("copy")}catch(e){}ta.remove();
   window.open(`https://smmate.com/${page}?midx=&rhp1=${p[0]}&rhp2=${p[1]}&rhp3=${p[2]}&dhp1=&dhp2=&dhp3=`,"smsms",long?"width=620,height=740,scrollbars=yes":"width=500,height=525");
