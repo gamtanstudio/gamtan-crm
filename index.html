@@ -2038,7 +2038,7 @@ function smSms(text,phone){const d=normP(phone),p=d.length>=10?[d.slice(0,3),d.s
   toast(ok?"문구 복사됨 — SM 창 내용 칸에 Ctrl+V":"문구 복사가 안 됐어요 — 직접 복사해 주세요")}
 async function rpcNo(){const {data,error}=await sb.rpc("next_customer_no");if(error)throw error;return data}
 /* 같은 전화번호 손님이 서버에 있으면 그 번호를 씀 (화면에 안 불러온 옛 손님도) */
-async function phoneOnServer(ph){const d=normP(ph);if(d.length<10)return null;const {data}=await sb.from("customers").select("*").or(`phone.ilike.%${d.slice(-4)}%,phone2.ilike.%${d.slice(-4)}%`).order("customer_no",{ascending:false}).limit(40);const c=(data||[]).find(x=>normP(x.phone)===d||normP(x.phone2)===d);if(!c)return null;putCust(c);return c.customer_no}
+async function phoneOnServer(ph){const d=normP(ph);if(d.length<10)return null;const {data}=await sb.from("customers").select("*").or(`phone.ilike.%${d.slice(-4)}%,phone2.ilike.%${d.slice(-4)}%,ui->>phone3.ilike.%${d.slice(-4)}%`).order("customer_no",{ascending:false}).limit(40);const c=(data||[]).find(x=>normP(x.phone)===d||normP(x.phone2)===d||normP((x.ui||{}).phone3)===d);if(!c)return null;putCust(c);return c.customer_no}
 async function noForPhone(ph){let n=null;try{n=await phoneOnServer(ph)}catch(e){}if(n){await ensureCust(n);return n}return await rpcNo()}
 const SELF=new Map();const mine=id=>{SELF.set(id,Date.now())};const isMine=id=>(Date.now()-(SELF.get(id)||0))<5000;
 const kst=a=>new Date(new Date(a).getTime()+9*3600e3).toISOString();
@@ -2438,7 +2438,8 @@ function drawCalls(){const el=$("calllog");let day="",h=`<div class="cl-h"><span
     if(key){const bs=Object.values(B).filter(x=>ckey(x)===key).sort(byDate),last=bs[bs.length-1];who=`<b>${esc(custName(key))}님</b>${key[0]==="n"?` #${key.slice(1)}`:""}`;act=`data-a="open" data-id="${esc(last.id)}"`}
     h+=`<button class="cl-r" ${act}><span class="cl-t">${t.slice(11,16)}</span><span>${who}</span><span class="cl-n">${esc(fmtPh(num))}</span></button>`});
   if(!CALLS.length)h+=`<div class="cl-d">없음</div>`;el.innerHTML=h}
-function callPop(num){const d=normP(num);if(d.length<9)return;
+async function callPop(num){const d=normP(num);if(d.length<9)return;
+  if(!callKey(d)){try{const n=await phoneOnServer(d);if(n)await ensureCust(n)}catch(e){}}
   const key=callKey(d),el=$("callbar"),ph=fmtPh(d);
   if(key){const c=CUST[key]||{},who=["","2","3"].map(n=>normP(c["phone"+n])===d?c["phoneName"+n]:"").find(Boolean)||"";
     const bs=Object.values(B).filter(x=>ckey(x)===key).sort(byDate),last=bs[bs.length-1];
