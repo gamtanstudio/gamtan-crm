@@ -2004,11 +2004,11 @@ $("mform").addEventListener("submit",async e=>{
   if(mode==="book"&&!$("n-date").value){toast("날짜를 골라 주세요");return}
   const phone=$("n-phone").value.trim(),pkey=$("n-pkey").value;
   const cons=mode==="consult";let no=null,tkey=null,nmx=nm,hitKey=null;
-  if(modalForCust){const mk=ckey(modalForCust);if(modalForCust.customer_no)no=modalForCust.customer_no;else if(cons)tkey=mk;else no=await assignNumber(mk)}
+  if(modalForCust){const mk=ckey(modalForCust);if(modalForCust.customer_no)no=modalForCust.customer_no;else if(cons&&normP((CUST[mk]||{}).phone||phone).length<10)tkey=mk;else no=await assignNumber(mk)}
   else{hitKey=findByPhone(phone);
     if(hitKey&&hitKey[0]==="n"){no=+hitKey.slice(1);nmx=custName(hitKey)||nm}
-    else if(hitKey){if(cons){tkey=hitKey;nmx=custName(hitKey)||nm}else no=await assignNumber(hitKey)}
-    else if(!cons){no=await noForPhone(phone);if(CUST["n"+no])nmx=custName("n"+no)||nmx}}
+    else if(hitKey){if(cons&&normP(phone).length<10){tkey=hitKey;nmx=custName(hitKey)||nm}else{no=await assignNumber(hitKey);nmx=custName("n"+no)||custName(hitKey)||nm}}
+    else if(!cons||normP(phone).length>=10){no=await noForPhone(phone);if(CUST["n"+no])nmx=custName("n"+no)||nmx}}
   const id=uid("b");if(cons&&!no&&!tkey)tkey="t"+id;const nowK=new Date(Date.now()+9*3600e3).toISOString();const doc={name:nmx,customer_no:no,tkey,date:cons?nowK.slice(0,10):$("n-date").value,time:cons?nowK.slice(11,16):$("n-time").value,up11:$("n-up11").checked&&!!(PRODUCTS[pkey]||{}).up11,product:"",pkey:pkey||null,booked_pkey:pkey||null,
     adults:+$("n-adults").value||0,kids:+$("n-kids").value||0,pet:$("n-pet").checked,cal:(()=>{const v=$("n-cal").value.replace(/\s+/g," ").trim();return v===nAuto()?"":v})(),growth:pkey==="growth",gs:"",kind:cons?"consult":"shoot",memo:$("n-memo").value.trim(),steps:{},items:[],payments:[],origin:"앱에서 등록",by:who()};
   B[id]={id,...doc};closeModal();openCust(id);
