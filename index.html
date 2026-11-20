@@ -887,6 +887,7 @@ function nextAction(b){if(b.kind==="consult"&&!(b.steps||{}).shot)return null;
 /* ===== 표시 도우미 ===== */
 const warnN=k=>Math.max(0,Math.min(5,+((CUST[k]||{}).warn)||0));
 const atHTML=k=>{const n=warnN(k);return n?`<span class="atm">${"@".repeat(n)}</span>`:""};
+const byShort=n=>{n=String(n||"").trim();if(!n)return"";if(/님$/.test(n))n=n.slice(0,-1);else if(/^[가-힣]{3}$/.test(n))n=n.slice(1);return n+" "};
 const consOpen=b=>b.kind==="consult"&&!(b.steps||{}).shot&&!(b.steps||{}).closed&&!(b.steps||{}).canceled&&(b.date||"9")>=addDays(TODAY,-30);
 const ckey=b=>b.customer_no?"n"+b.customer_no:(b.tkey||"m"+(b.name||"").replace(/[^\w가-힣]/g,""));
 /* 사람 = 전화번호로 알아봄(이름으로는 절대 안 합침). 고객번호 = 예약할 때 한 번만 */
@@ -1213,7 +1214,7 @@ function drawCard(b){
   const cls="hc "+(s.canceled?"cancel":st.k==="완료"?"done":(!b.date?"tbd":"live"))+" sg-"+stg(b,st)+(open?"":" closed");
   if(el.className!==cls)el.className=cls;el.style.setProperty("--pc",pc);
   const tot=totalOf(SB),pd=paidOf(SB),bal=tot-pd;const n=(+b.adults||0)+(+b.kids||0)||(+b.people||0);
-  const tag=s.canceled?`<span class="tag" style="background:var(--k-cancel)">취소</span>`:s.postponed?`<span class="tag" style="background:var(--k-delay)">연기</span>`:b.kind==="consult"&&!s.shot?`<span class="tag" style="background:${pc}">${consOpen(b)?"상담":"상담 끝"}</span>`:!b.date?`<span class="tag" style="background:var(--tbd)">날짜 미정</span>`:st.k==="완료"?`<span class="tag" style="background:${pc}">완료</span>`:"";
+  const tag=s.canceled?`<span class="tag" style="background:var(--k-cancel)">취소</span>`:s.postponed?`<span class="tag" style="background:var(--k-delay)">연기</span>`:b.kind==="consult"&&!s.shot?`<span class="tag" style="background:${pc}">${byShort(b.by)}${consOpen(b)?"상담":"상담 끝"}</span>`:!b.date?`<span class="tag" style="background:var(--tbd)">날짜 미정</span>`:st.k==="완료"?`<span class="tag" style="background:${pc}">완료</span>`:"";
   put("hh-"+id,`<div class="hh" role="button" tabindex="0" data-a="toggle" data-id="${esc(id)}" aria-expanded="${open}"><span class="hh-l">${tag}
     <span class="hdate tn">${b.date?fullDate(b.date):"날짜 미정"}${b.time?` <span class="${ampm(b.time)}">${tm(b.time)}</span>`:""}</span>${b.booked&&b.booked!==b.date?`<span class="hbook tn">예약 접수 ${b.booked.slice(2).replace(/-/g,".")}</span>`:""}
     <span class="pb" style="background:${pc}">${esc(pn)}</span>${b.gs?`<span class="gsb">${esc(b.gs)}</span>`:""}${b.rn?`<span class="rnb">리뷰노트</span>`:""}${n?`<span class="ppl">${n}명</span>`:""}
@@ -2009,7 +2010,7 @@ $("mform").addEventListener("submit",async e=>{
     else if(hitKey){if(cons){tkey=hitKey;nmx=custName(hitKey)||nm}else no=await assignNumber(hitKey)}
     else if(!cons){no=await noForPhone(phone);if(CUST["n"+no])nmx=custName("n"+no)||nmx}}
   const id=uid("b");if(cons&&!no&&!tkey)tkey="t"+id;const nowK=new Date(Date.now()+9*3600e3).toISOString();const doc={name:nmx,customer_no:no,tkey,date:cons?nowK.slice(0,10):$("n-date").value,time:cons?nowK.slice(11,16):$("n-time").value,up11:$("n-up11").checked&&!!(PRODUCTS[pkey]||{}).up11,product:"",pkey:pkey||null,booked_pkey:pkey||null,
-    adults:+$("n-adults").value||0,kids:+$("n-kids").value||0,pet:$("n-pet").checked,cal:(()=>{const v=$("n-cal").value.replace(/\s+/g," ").trim();return v===nAuto()?"":v})(),growth:pkey==="growth",gs:"",kind:cons?"consult":"shoot",memo:$("n-memo").value.trim(),steps:{},items:[],payments:[],origin:"앱에서 등록"};
+    adults:+$("n-adults").value||0,kids:+$("n-kids").value||0,pet:$("n-pet").checked,cal:(()=>{const v=$("n-cal").value.replace(/\s+/g," ").trim();return v===nAuto()?"":v})(),growth:pkey==="growth",gs:"",kind:cons?"consult":"shoot",memo:$("n-memo").value.trim(),steps:{},items:[],payments:[],origin:"앱에서 등록",by:who()};
   B[id]={id,...doc};closeModal();openCust(id);
   try{await db.doc("bookings/"+id).set(doc);{const k=no?"n"+no:tkey;if(phone&&k&&!normP((CUST[k]||{}).phone)){const c={...(CUST[k]||{}),phone};CUST[k]=c;await db.doc("customers/"+k).set(c)}}
     if(hitKey&&!modalForCust)toast(`기존 손님 ${nmx}${no?" #"+no:""}에 붙였어요`);log(id,cons?`상담 저장${pkey?" · "+PRODUCTS[pkey].name:""}${totalOf(doc)?" "+money(totalOf(doc))+"원":""}`:`예약 등록 ${md(doc.date)} ${tm(doc.time)}`)}
