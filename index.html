@@ -1275,8 +1275,9 @@ function priceHTML(b){
   </div>${calcBar(b)}${b.booked_pkey&&k&&b.booked_pkey!==k?`<div class="incl" style="margin-top:6px">${esc((PRODUCTS[b.booked_pkey]||{}).name||"")} → ${esc(PRODUCTS[k].name)}</div>`:""}`;
 }
 function calcBar(b){
-  const k=b.pkey?pk(b):b.pkey,p=PRODUCTS[k],id=esc(b.id);if(!p)return"";
+  const k=b.pkey?pk(b):b.pkey,p=PRODUCTS[k],id=esc(b.id);
   const num=(f,v,l)=>`<span class="stp">${l}<button class="sb" data-a="num" data-id="${id}" data-v="${f}" data-d="-1" aria-label="${l} 빼기">−</button><b class="tn">${v}</b><button class="sb" data-a="num" data-id="${id}" data-v="${f}" data-d="1" aria-label="${l} 더하기">+</button></span>`;
+  if(!p)return b.kind==="visit"?"":`<div class="nums" style="margin:6px 0 0">${num("adults",+b.adults||0,"성인")}${num("kids",+b.kids||0,"아이")}</div>`;
   const chk=(f,l)=>`<label><input type="checkbox" data-f="${f}" data-id="${id}" ${b[f]?"checked":""}> ${l}</label>`;
   let h="";
   if(k==="id"){const q=b.idq||{};return `<div class="nums idg" style="margin:6px 0 0">${ID_TYPES.map(t=>{const v=+q[t.k]||0;return `<span class="stp${v?" on":""}${t.add?" add":""}">${t.label}<button class="sb" data-a="idq" data-id="${id}" data-v="${t.k}" data-d="-1" aria-label="${t.label} 빼기">−</button><b class="tn">${v}</b><button class="sb" data-a="idq" data-id="${id}" data-v="${t.k}" data-d="1" aria-label="${t.label} 더하기">+</button></span>`}).join("")}${Array.isArray(b.priceItems)?`<button class="mini" data-a="recalc" data-id="${id}">자동 계산으로</button>`:""}</div>`}
