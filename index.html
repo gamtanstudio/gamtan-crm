@@ -2445,7 +2445,8 @@ function drawCalls(){const el=$("calllog");let day="",h=`<div class="cl-h"><span
   if(!CALLS.length)h+=`<div class="cl-d">없음</div>`;el.innerHTML=h;
   const T=drawCalls.T||(drawCalls.T=new Set()),miss=[...new Set(CALLS.map(c=>normP(c.num)))].filter(n=>n.length>=10&&!T.has(n)&&!callKey(n));
   if(miss.length){miss.forEach(n=>T.add(n));Promise.all(miss.map(n=>phoneOnServer(n).then(no=>no&&ensureCust(no)).catch(()=>{}))).then(drawCalls)}}
-async function callPop(num){const d=normP(num);if(d.length<9)return;
+const LASTPOP={};
+async function callPop(num){const d=normP(num);if(d.length<9)return;if(Date.now()-(LASTPOP[d]||0)<60000)return;LASTPOP[d]=Date.now();
   if(!callKey(d)){try{const n=await phoneOnServer(d);if(n)await ensureCust(n)}catch(e){}}
   const key=callKey(d),el=$("callbar"),ph=fmtPh(d);
   if(key){const c=CUST[key]||{},who=["","2","3"].map(n=>normP(c["phone"+n])===d?c["phoneName"+n]:"").find(Boolean)||"";
@@ -2465,8 +2466,11 @@ async function callPop(num){const d=normP(num);if(d.length<9)return;
 document.addEventListener("click",()=>{try{if(window.Notification&&Notification.permission==="default")Notification.requestPermission()}catch(e){}},{once:true});
 function startRealtime(){
   sb.channel("calls").on("broadcast",{event:"call"},p=>callPop((p.payload||{}).num)).subscribe();
+  /* 실시간 연결이 끊겨도(탭 절전 등) 전화가 뜨도록: 15초마다 + 화면 돌아올 때 최근 전화 확인 */
+  const pollCalls=async()=>{try{const {data}=await sb.from("calls").select("*").order("at",{ascending:false}).limit(5);let ch=false;for(const r of (data||[]).slice().reverse()){if(CALLS.some(x=>x.id===r.id))continue;CALLS.unshift(r);ch=true;if(Date.now()-new Date(r.at).getTime()<180000)callPop(r.num)}if(ch){callBtn();if(!$("calllog").hidden)drawCalls()}}catch(e){}};
+  setInterval(pollCalls,15000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)pollCalls()});window.addEventListener("focus",pollCalls);
   const ch=sb.channel("crm");
-  ch.on("postgres_changes",{event:"INSERT",schema:"public",table:"calls"},p=>{const r=p.new||{};if(!r.id||CALLS.some(x=>x.id===r.id))return;CALLS.unshift(r);callBtn();if(!$("calllog").hidden)drawCalls()});
+  ch.on("postgres_changes",{event:"INSERT",schema:"public",table:"calls"},p=>{const r=p.new||{};if(!r.id||CALLS.some(x=>x.id===r.id))return;CALLS.unshift(r);callBtn();if(!$("calllog").hidden)drawCalls();if(Date.now()-new Date(r.at).getTime()<180000)callPop(r.num)});
   ["bookings","items","payments"].forEach(t=>ch.on("postgres_changes",{event:"*",schema:"public",table:t},p=>{const r=p.new&&Object.keys(p.new).length?p.new:p.old;const id=t==="bookings"?r.id:r.booking_id;if(id&&(SNAP[id]||t==="bookings")){rtB.add(id);rtFlush()}}));
   ch.on("postgres_changes",{event:"*",schema:"public",table:"schedules"},p=>{const s=p.new||{};if(isMine(s.id)||isMine(s.booking_id))return;
     if(s.booking_id){rtB.add(s.booking_id);rtFlush()}else if(s.id){const x=sToB(s,CUSTROW[s.customer_no]);B[x.id]=x;refresh()}});
