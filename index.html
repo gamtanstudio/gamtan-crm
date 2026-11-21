@@ -2329,6 +2329,16 @@ const noteRow=n=>({id:n.id,at:kst(n.at).slice(0,19),who:n.who||"",text:n.text,co
 async function loadNotes(nos){nos=[...new Set(nos.filter(n=>n&&!NOTE_LOADED.has(n)))];if(!nos.length)return;
   for(let i=0;i<nos.length;i+=150){const part=nos.slice(i,i+150);const {data}=await sb.from("notes").select("*").in("customer_no",part).order("at",{ascending:false}).limit(5000);
     part.forEach(n=>{NOTE_LOADED.add(n);NOTES["n"+n]=[]});(data||[]).forEach(r=>NOTES["n"+r.customer_no].push(noteRow(r)))}}
+/* 고객 화면을 열 때·화면으로 돌아올 때 그 손님 이력·사진을 서버에서 다시 받음 (2026-11-21) — 실패하면 있던 내용 그대로 */
+const CUST_RF={};
+async function refreshCust(no){if(!no||!NOTE_LOADED.has(no))return;const now=Date.now();if(now-(CUST_RF[no]||0)<3000)return;CUST_RF[no]=now;
+  try{const {data,error}=await sb.from("notes").select("*").eq("customer_no",no).order("at",{ascending:false}).limit(5000);
+    if(!error&&data){const k="n"+no,old=NOTES[k]||[],pend=old.filter(x=>!x.id),fresh=data.map(noteRow);
+      const sig=a=>a.map(x=>x.id+"|"+x.text+"|"+(x.color||"")).join("\n");
+      if(sig(fresh)!==sig(old.filter(x=>x.id))){NOTES[k]=[...fresh,...pend];if(!typing())refresh()}}}catch(e){}
+  try{if(PH_LOADED.has(no)){const {data,error}=await sb.from("photos").select("id").eq("customer_no",no);
+    if(!error&&data){const a=(PHOTOS[no]||[]).map(p=>p.id).sort().join(),b=data.map(p=>p.id).sort().join();
+      if(a!==b){await loadPhotos(no);const h=$("cp-head");if(h)h._h=null;if(!typing())refresh()}}}}catch(e){}}
 window.saveNote=async(key,n)=>{const no=+String(key).replace(/^n/,"");if(!no){throw new Error("번호 없는 손님")}
   const {data,error}=await sb.from("notes").insert({customer_no:no,at:n.at+"+09:00",who:ME?ME.name:n.who,text:n.text}).select().single();if(error)throw error;n.id=data.id;mine("note"+data.id)};
 
@@ -2470,7 +2480,9 @@ function startRealtime(){
   sb.channel("calls").on("broadcast",{event:"call"},p=>callPop((p.payload||{}).num)).subscribe();
   /* 실시간 연결이 끊겨도(탭 절전 등) 전화가 뜨도록: 15초마다 + 화면 돌아올 때 최근 전화 확인 */
   const pollCalls=async()=>{try{const {data}=await sb.from("calls").select("*").order("at",{ascending:false}).limit(5);let ch=false;for(const r of (data||[]).slice().reverse()){if(CALLS.some(x=>x.id===r.id))continue;CALLS.unshift(r);ch=true;if(Date.now()-new Date(r.at).getTime()<180000)callPop(r.num)}if(ch){callBtn();if(!$("calllog").hidden)drawCalls()}}catch(e){}};
-  setInterval(pollCalls,15000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)pollCalls()});window.addEventListener("focus",pollCalls);
+  setInterval(pollCalls,15000);
+  const rfOpen=()=>{try{if(openKey&&/^n\d+$/.test(openKey))refreshCust(+openKey.slice(1))}catch(e){}};
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden)rfOpen()});window.addEventListener("focus",rfOpen);document.addEventListener("visibilitychange",()=>{if(!document.hidden)pollCalls()});window.addEventListener("focus",pollCalls);
   const ch=sb.channel("crm");
   ch.on("postgres_changes",{event:"INSERT",schema:"public",table:"calls"},p=>{const r=p.new||{};if(!r.id||CALLS.some(x=>x.id===r.id))return;CALLS.unshift(r);callBtn();if(!$("calllog").hidden)drawCalls();if(Date.now()-new Date(r.at).getTime()<180000)callPop(r.num)});
   ["bookings","items","payments"].forEach(t=>ch.on("postgres_changes",{event:"*",schema:"public",table:t},p=>{const r=p.new&&Object.keys(p.new).length?p.new:p.old;const id=t==="bookings"?r.id:r.booking_id;if(id&&(SNAP[id]||t==="bookings")){rtB.add(id);rtFlush()}}));
@@ -2480,7 +2492,9 @@ function startRealtime(){
   ch.on("postgres_changes",{event:"*",schema:"public",table:"day_memos"},p=>{const d=p.new||{};if(d.date&&!isMine("m"+d.date)){MEMO[d.date]=d.text||"";if(d.color)MEMOC[d.date]=d.color;refresh()}});
   ch.on("postgres_changes",{event:"INSERT",schema:"public",table:"logs"},p=>{const l=p.new||{};if(l.action==="note"&&l.user_id!==sessUid){LOGS.unshift({booking:l.row_id,text:l.note,who:l.who,at:kst(l.at)});refresh()}});
   ch.on("postgres_changes",{event:"UPDATE",schema:"public",table:"notes"},p=>{const r=p.new||{};if(!r.customer_no||!NOTE_LOADED.has(r.customer_no))return;const x=(NOTES["n"+r.customer_no]||[]).find(y=>y.id===r.id);if(x&&x.text!==r.text){x.text=r.text;if(!typing())refresh()}});
-  ch.on("postgres_changes",{event:"INSERT",schema:"public",table:"notes"},p=>{const r=p.new||{};if(!r.customer_no||isMine("note"+r.id)||r.user_id===sessUid)return;if(NOTE_LOADED.has(r.customer_no)){const a=NOTES["n"+r.customer_no];if(!a.some(x=>x.id===r.id)){a.push(noteRow(r));refresh()}}});
+  ch.on("postgres_changes",{event:"INSERT",schema:"public",table:"notes"},p=>{const r=p.new||{};if(!r.customer_no||isMine("note"+r.id)||!NOTE_LOADED.has(r.customer_no))return;
+    const add=()=>{const a=NOTES["n"+r.customer_no];if(a&&!a.some(x=>x.id===r.id)){a.push(noteRow(r));if(!typing())refresh()}};
+    if(r.user_id===sessUid)setTimeout(()=>{if(!isMine("note"+r.id))add()},4000);else add()});
   ch.on("postgres_changes",{event:"*",schema:"public",table:"inbox"},p=>{const r=p.new||{};if(!r.id)return;const i=INBOX.findIndex(x=>x.id===r.id);if(i>=0)INBOX[i]=r;else INBOX.push(r);
     if(r.booking_id){rtB.add(r.booking_id);rtFlush()}else refresh()});
   ch.subscribe();
@@ -2502,7 +2516,7 @@ function startRealtime(){
   await fetchBookings(q=>q.eq("legacy",false));
   const _draw=draw;draw=function(){ensureMonth(calY,calM);_draw()};
   const _open=openCust;openCust=function(id,fs){const b=B[id];const no=b&&b.customer_no;
-    if(no&&!NOTE_LOADED.has(no))loadNotes([no]).then(refresh);
+    if(no&&!NOTE_LOADED.has(no))loadNotes([no]).then(refresh);else if(no)refreshCust(no);
     if(no&&!PH_LOADED.has(no))loadPhotos(no).then(()=>{$("cp-head")._h=null;refresh()});
     if(no&&!LOADED_C.has(no))ensureCust(no).then(()=>_open(id,fs));else _open(id,fs)};
   await ensureMonth(calY,calM);
