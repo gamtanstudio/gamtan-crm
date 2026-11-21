@@ -2517,6 +2517,8 @@ function startRealtime(){
   {const qc=+new URLSearchParams(location.search).get("c");if(qc)ensureCust(qc).then(()=>{const l=Object.values(B).filter(x=>x.customer_no===qc).sort(byDate).pop();if(l)openCust(l.id,true)})}
   $("status").textContent=`${me.name} · ${Math.round(performance.now()-t0)}ms`;
   refresh();
+  /* 새 버전 자동 새로고침 뒤에도 보던 화면 그대로 */
+  try{const k=JSON.parse(sessionStorage.getItem("gt-keep")||"null");sessionStorage.removeItem("gt-keep");if(k){if(k.calY!=null){calY=k.calY;calM=k.calM}if(k.selDay)selDay=k.selDay;const tb=k.view&&k.view!=="cal"&&document.querySelector(`.tab[data-v="${k.view}"]`);if(tb&&!tb.hidden)tb.click();else refresh();setTimeout(()=>scrollTo(0,k.y||0),400)}}catch(e){}
 })();
 
 </script>
@@ -2538,7 +2540,7 @@ function startRealtime(){
   async function check(){
     if(today()!==START)want=true;
     if(!want&&Date.now()-lastVer>5*60*1000){lastVer=Date.now();if(await verChanged())want=true}
-    if(want&&!busy())location.reload()}
+    if(want&&!busy()){try{sessionStorage.setItem("gt-keep",JSON.stringify({view,calY,calM,selDay,y:scrollY}))}catch(e){}location.reload()}}
   verChanged();
   setInterval(check,60*1000);
   document.addEventListener("visibilitychange",()=>{if(!document.hidden){lastVer=0;check()}});
