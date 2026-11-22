@@ -2459,20 +2459,38 @@ function drawCalls(){const el=$("calllog");let day="",h=`<div class="cl-h"><span
   const T=drawCalls.T||(drawCalls.T=new Set()),miss=[...new Set(CALLS.map(c=>normP(c.num)))].filter(n=>n.length>=10&&!T.has(n)&&!callKey(n));
   if(miss.length){miss.forEach(n=>T.add(n));Promise.all(miss.map(n=>phoneOnServer(n).then(no=>no&&ensureCust(no)).catch(()=>{}))).then(drawCalls)}}
 const LASTPOP={};
+/* 전화 팝업 한 줄 — 이 손님 지금 상태 (급한 것 하나) */
+function callInfo(key,d){
+  if(!key){const pv=CALLS.filter(c=>normP(c.num)===d&&Date.now()-new Date(c.at).getTime()>120000).map(c=>kst(c.at)).sort().pop();
+    return pv?`새 번호 · ${pv.slice(0,10)===TODAY?"오늘 "+pv.slice(11,16):md(pv.slice(0,10))}에도 전화 옴`:"새 번호"}
+  const bs=Object.values(B).filter(x=>ckey(x)===key&&!x._hist);
+  const T1=addDays(TODAY,1),act=bs.filter(b=>b.kind!=="visit").map(b=>({b,k:status(b).k})).filter(o=>!["완료","취소","상담 끝","중단"].includes(o.k));
+  const rank=o=>{const b=o.b,sh=(b.steps||{}).shot;if(b.date===TODAY&&!sh)return 0;if(b.date===T1&&!sh)return 1;if(o.k==="미입금")return 2;if(o.k==="수령 대기")return 3;if(o.k==="예약확정")return 4;if(o.k==="상담")return 6;if(o.k==="미등록")return 7;return 5};
+  act.sort((a,b)=>rank(a)-rank(b)||byDate(a.b,b.b));const o=act[0];
+  if(o){const b=o.b,s=b.steps||{},k=o.k,ct=calText(b)||"",r=rank(o);
+    if(r<=2||r===4)return [b.date===TODAY?"오늘":b.date===T1?"내일":md(b.date),b.time?tm(b.time):"",ct?"· "+ct:"",k==="미입금"?"· 미입금":r<=1?"촬영 예정":""].filter(Boolean).join(" ");
+    if(k==="수령 대기")return `액자 수령 대기${s.notified?` (${md(s.notified)} 연락함)`:""}`;
+    if(k==="사진 선택 대기"){const n=s.orig?Math.round((new Date(TODAY)-new Date(s.orig))/864e5):null;return `사진 선택 대기${n!=null?` (${n}일째)`:""}`}
+    if(k==="상담")return `${md(b.date)} 상담${ct?" · "+ct:""}${b.by?` (${byShort(b.by)}상담)`:""}`;
+    if(k==="미등록")return "가성 다음 회차 미등록";
+    return `${k}${b.date?" · "+md(b.date):""}${ct?" "+ct:""}`}
+  const dn=bs.filter(x=>x.kind!=="visit"&&x.kind!=="consult"&&(x.steps||{}).shot).sort(byDate),l=dn[dn.length-1];
+  if(l)return `마지막 ${l.date.slice(2).replace(/-/g,".")} ${SHORT[pk(l)]||calText(l)||""} · 방문 ${dn.length}회`.replace(/\s+/g," ");
+  const cs=bs.filter(x=>x.kind==="consult").sort(byDate),c=cs[cs.length-1];return c?`${md(c.date)} 상담했음${calText(c)?" · "+calText(c):""}${c.by?` (${byShort(c.by)}상담)`:""}`:""}
 async function callPop(num){const d=normP(num);if(d.length<9)return;if(Date.now()-(LASTPOP[d]||0)<60000)return;LASTPOP[d]=Date.now();
   if(!callKey(d)){try{const n=await phoneOnServer(d);if(n)await ensureCust(n)}catch(e){}}
   const key=callKey(d),el=$("callbar"),ph=fmtPh(d);
   if(key){const c=CUST[key]||{},who=["","2","3"].map(n=>normP(c["phone"+n])===d?c["phoneName"+n]:"").find(Boolean)||"";
     const bs=Object.values(B).filter(x=>ckey(x)===key).sort(byDate),last=bs[bs.length-1];
-    el.innerHTML=`<span>📞 <b>${esc(custName(key)||c.name||"")}님</b>${who?` ${esc(who)}`:""}${key[0]==="n"?` #${key.slice(1)}`:""} · ${esc(ph)}</span><button class="mini" data-a="open" data-id="${esc(last.id)}">열기</button><button class="mini" data-a="smkakao" data-v="${esc(ph)}">카톡 안내 문자</button><button class="mini" data-a="callx">닫기</button>`;
+    el.innerHTML=`<span>📞 <b>${esc(custName(key)||c.name||"")}님</b>${who?` ${esc(who)}`:""}${key[0]==="n"?` #${key.slice(1)}`:""} · ${esc(ph)}${(i=>i?` <b class="cinf">· ${esc(i)}</b>`:"")(callInfo(key,d))}</span><button class="mini" data-a="open" data-id="${esc(last.id)}">열기</button><button class="mini" data-a="smkakao" data-v="${esc(ph)}">카톡 안내 문자</button><button class="mini" data-a="callx">닫기</button>`;
     if(!isPhone()&&!typing()&&$("modal").hidden)openCust(last.id,true)}
-  else el.innerHTML=`<span>📞 <b>${esc(ph)}</b> 새 번호</span><button class="mini" data-a="callnew" data-v="${esc(ph)}">새 예약·상담</button><button class="mini" data-a="smkakao" data-v="${esc(ph)}">카톡 안내 문자</button><button class="mini" data-a="callx">닫기</button>`;
+  else el.innerHTML=`<span>📞 <b>${esc(ph)}</b> ${esc(callInfo(null,d))}</span><button class="mini" data-a="callnew" data-v="${esc(ph)}">새 예약·상담</button><button class="mini" data-a="smkakao" data-v="${esc(ph)}">카톡 안내 문자</button><button class="mini" data-a="callx">닫기</button>`;
   el.hidden=false;clearTimeout(CALLT);CALLT=setTimeout(()=>{el.hidden=true},90000);
   try{if(window.Notification&&Notification.permission==="granted"&&(document.hidden||!document.hasFocus())){
-    let t="📞 "+ph+" 새 번호",bd="",go=()=>{$("callbar").hidden=true;openModal(false);$("n-phone").value=ph;nHit()};
+    let t="📞 "+ph+" "+callInfo(null,d),bd="",go=()=>{$("callbar").hidden=true;openModal(false);$("n-phone").value=ph;nHit()};
     if(key){const c=CUST[key]||{},bs=Object.values(B).filter(x=>ckey(x)===key).sort(byDate),last=bs[bs.length-1];
       t="📞 "+(custName(key)||c.name||"")+"님"+(key[0]==="n"?" #"+key.slice(1):"");
-      bd=ph+(last?" · "+calText(last)+(last.date?" "+last.date.slice(5).replace("-","/"):""):"");
+      bd=[ph,callInfo(key,d)].filter(Boolean).join(" · ");
       go=()=>{if(last&&$("modal").hidden)openCust(last.id,true)}}
     const n=new Notification(t,{body:bd||ph,tag:"gamtan-call",renotify:true,requireInteraction:true});
     n.onclick=()=>{window.focus();n.close();go()}}}catch(e){}}
