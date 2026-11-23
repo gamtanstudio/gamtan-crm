@@ -794,7 +794,7 @@ function shipRows(b){
   const v=[];
   if(p&&!p.idlike&&!b.rn){ /* 리뷰노트는 원본만 (액자·보정본 없음) */
     if(p.frame&&!has("액자"))v.push({id:"v-frame",kind:"액자",size:p.frameTier?bigFrame(b):p.frame,virtual:1});
-    if(p.frame&&!has("보정본"))v.push({id:"v-ret",kind:"보정본",size:"",virtual:1});
+    if(p.frame&&!has("보정본")&&k!=="jangsu")v.push({id:"v-ret",kind:"보정본",size:"",virtual:1}); /* 장수는 보정본 파일 없음 — 드린 경우만 보정본 줄 직접 추가 */
     if(!p.frame&&!has("보정 파일")&&!has("보정본"))v.push({id:"v-file",kind:"보정 파일",size:"",virtual:1});
   }
   if((hasOrig(b)||b.rn)&&!has("원본"))v.push({id:"v-orig",kind:"원본",size:"",virtual:1});
@@ -829,7 +829,7 @@ function status(b){
   if(b.kind==="consult"&&!s.shot)return consOpen(b)?{k:"상담",c:"c-con"}:{k:"상담 끝",c:"c-mute"};
   if(b.kind==="visit"){const par=retakePar(b);if(par)return status(par); /* 재촬영 찍은 날은 원래 계약 상태(작업중 등) 그대로 */
     return (b.date||"")<TODAY||s.shot?{k:"완료",c:"c-ok"}:{k:"방문 예정",c:"c-acc"}}
-  if(!b.date&&!s.shot){if(b.growth||pk(b)==="growth"){const g=gsBase(b);return g&&g<=addDays(TODAY,-365*3)?{k:"중단",c:"c-mute"}:{k:"미등록",c:"c-tbd"}}return{k:"날짜 미정",c:"c-tbd"}}
+  if(!b.date&&!s.shot){if(s.delivered&&!(b.growth||pk(b)==="growth")){const left=shipRows(b).filter(r=>!r.shipped).map(r=>r.kind||"출고");return left.length?{k:`${left[0]}${left.length>1?" 외":""} 출고 전`,c:"c-warn",crit:"출고 남음",rest:1}:{k:"완료",c:"c-ok"}} /* 촬영 없이 맡긴 작업(장수·복원 등) 수령 끝 */ if(b.growth||pk(b)==="growth"){const g=gsBase(b);return g&&g<=addDays(TODAY,-365*3)?{k:"중단",c:"c-mute"}:{k:"미등록",c:"c-tbd"}}return{k:"날짜 미정",c:"c-tbd"}}
   if(!s.shot){
     if((b.date||"")>=TODAY)return(hasDep(b)||(p&&p.idlike)||b.rn||(Array.isArray(b.priceItems)&&totalOf(b)===0))?{k:"예약확정",c:"c-ok"}:{k:"미입금",c:"c-crit",crit:"미입금"};
     return{k:"촬영 기록 없음",c:"c-crit",crit:"촬영 기록 없음"};
