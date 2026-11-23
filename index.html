@@ -2485,7 +2485,7 @@ async function callPop(num){const d=normP(num);if(d.length<9)return;if(Date.now(
     el.innerHTML=`<span>📞 <b>${esc(custName(key)||c.name||"")}님</b>${who?` ${esc(who)}`:""}${key[0]==="n"?` #${key.slice(1)}`:""} · ${esc(ph)}${(i=>i?` <b class="cinf">· ${esc(i)}</b>`:"")(callInfo(key,d))}</span><button class="mini" data-a="open" data-id="${esc(last.id)}">열기</button><button class="mini" data-a="smkakao" data-v="${esc(ph)}">카톡 안내 문자</button><button class="mini" data-a="callx">닫기</button>`;
     if(!isPhone()&&!typing()&&$("modal").hidden)openCust(last.id,true)}
   else el.innerHTML=`<span>📞 <b>${esc(ph)}</b> ${esc(callInfo(null,d))}</span><button class="mini" data-a="callnew" data-v="${esc(ph)}">새 예약·상담</button><button class="mini" data-a="smkakao" data-v="${esc(ph)}">카톡 안내 문자</button><button class="mini" data-a="callx">닫기</button>`;
-  el.hidden=false;clearTimeout(CALLT);CALLT=setTimeout(()=>{el.hidden=true},90000);
+  el.hidden=false;clearTimeout(CALLT);if(key)CALLT=setTimeout(()=>{el.hidden=true},90000);else if(!isPhone()&&!typing()&&$("modal").hidden){openModal(false);$("n-phone").value=ph;nHit()}
   try{if(window.Notification&&Notification.permission==="granted"&&(document.hidden||!document.hasFocus())){
     let t="📞 "+ph+" "+callInfo(null,d),bd="",go=()=>{$("callbar").hidden=true;openModal(false);$("n-phone").value=ph;nHit()};
     if(key){const c=CUST[key]||{},bs=Object.values(B).filter(x=>ckey(x)===key).sort(byDate),last=bs[bs.length-1];
