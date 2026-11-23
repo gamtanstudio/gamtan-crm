@@ -1870,12 +1870,14 @@ document.addEventListener("change",e=>{if(e.target.dataset&&e.target.dataset.f==
   if(f==="pkey"){const v=t.value;if(v&&PRODUCTS[v])save(id,{pkey:v,priceItems:null,priceOverride:null,booked_pkey:b.booked_pkey||b.pkey||v},`상품 → ${PRODUCTS[v].name}`);return}
   if(f==="m-total"){const v=digits(t.value),r=priceRows(b);if(v===totalOf(b))return;save(id,{priceItems:[{label:(r[0]&&r[0].label)||((PRODUCTS[b.pkey]||{}).name)||"촬영",amt:v}]},`금액 ${money(v)}원`);return}
   if(f==="m-amt"){const v=digits(t.value),l=clone(pays(b));
-    if(i<0){if(!v)return;l.push({id:uid("p"),date:TODAY,amount:v,kind:t.dataset.kind,method:"",receipt:""})}
+    if(i<0){if(!v)return;const j=l.map((x,n)=>n).reverse().find(n=>l[n].kind===t.dataset.kind&&!(+l[n].amount)); /* 같은 칸에서 결제 수단을 먼저 골라 생긴 0원 줄이 있으면 그 줄에 금액을 넣음 (0원 줄 중복 방지) */
+      if(j!==undefined)l[j].amount=v;else l.push({id:uid("p"),date:TODAY,amount:v,kind:t.dataset.kind,method:"",receipt:""})}
     else{if(!l[i])return;if(!v)l.splice(i,1);else l[i].amount=v}
     setPayments(b,l,`${t.dataset.kind==="예약금"?"예약금":"현장결제"} ${money(v)}원`);return}
   if(f==="pi-label"){save(id,{priceItems:rowsWithEdit(b,i,{label:t.value})});return}
   if(f==="pi-amt"){save(id,{priceItems:rowsWithEdit(b,i,{amt:digits(t.value)})},"금액 수정");return}
-  if(f.startsWith("pay-")){const l=clone(pays(b));if(i<0){if(!t.value)return;l.push({id:uid("p"),date:TODAY,amount:0,kind:t.dataset.kind||"잔금",method:"",receipt:""});i=l.length-1}const p=l[i];if(!p)return;
+  if(f.startsWith("pay-")){const l=clone(pays(b));if(i<0){if(!t.value)return;const k0=t.dataset.kind||"잔금",fk=f==="pay-receipt"?"receipt":"method",j=l.map((x,n)=>n).reverse().find(n=>l[n].kind===k0&&!l[n][fk]); /* 금액을 막 넣은 같은 칸 줄이 있으면 그 줄에 수단을 넣음 (0원 줄 중복 방지) */
+    if(j!==undefined)i=j;else{l.push({id:uid("p"),date:TODAY,amount:0,kind:k0,method:"",receipt:""});i=l.length-1}}const p=l[i];if(!p)return;
     if(f==="pay-amt")p.amount=digits(t.value);if(f==="pay-kind")p.kind=t.value;
     if(f==="pay-method"){p.method=t.value;if(!needReceipt(t.value))p.receipt=""}
     if(f==="pay-receipt")p.receipt=t.value;
