@@ -2548,6 +2548,7 @@ function startRealtime(){
   loadCalls();
   loaded=true;
   {const qc=+new URLSearchParams(location.search).get("c");if(qc)ensureCust(qc).then(()=>{const l=Object.values(B).filter(x=>x.customer_no===qc).sort(byDate).pop();if(l)openCust(l.id,true)})}
+  {const qn=new URLSearchParams(location.search).get("call");if(qn){try{history.replaceState(null,"",location.pathname)}catch(e){}callPop(qn)}}
   $("status").textContent=`${me.name} · ${Math.round(performance.now()-t0)}ms`;
   refresh();
   /* 새 버전 자동 새로고침 뒤에도 보던 화면 그대로 */
