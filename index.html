@@ -2465,7 +2465,7 @@ function callInfo(key,d){
     return pv?`새 번호 · ${pv.slice(0,10)===TODAY?"오늘 "+pv.slice(11,16):md(pv.slice(0,10))}에도 전화 옴`:"새 번호"}
   const bs=Object.values(B).filter(x=>ckey(x)===key&&!x._hist);
   const T1=addDays(TODAY,1),act=bs.filter(b=>b.kind!=="visit").map(b=>({b,k:status(b).k})).filter(o=>!["완료","취소","상담 끝","중단"].includes(o.k));
-  const rank=o=>{const b=o.b,sh=(b.steps||{}).shot;if(b.date===TODAY&&!sh)return 0;if(b.date===T1&&!sh)return 1;if(o.k==="미입금")return 2;if(o.k==="수령 대기")return 3;if(o.k==="예약확정")return 4;if(o.k==="상담")return 6;if(o.k==="미등록")return 7;return 5};
+  const rank=o=>{const b=o.b,sh=(b.steps||{}).shot;if(b.kind!=="consult"&&b.date===TODAY&&!sh)return 0;if(b.kind!=="consult"&&b.date===T1&&!sh)return 1;if(o.k==="미입금")return 2;if(o.k==="수령 대기")return 3;if(o.k==="예약확정")return 4;if(o.k==="상담")return 6;if(o.k==="미등록")return 7;return 5};
   act.sort((a,b)=>rank(a)-rank(b)||byDate(a.b,b.b));const o=act[0];
   if(o){const b=o.b,s=b.steps||{},k=o.k,ct=calText(b)||"",r=rank(o);
     if(r<=2||r===4)return [b.date===TODAY?"오늘":b.date===T1?"내일":md(b.date),b.time?tm(b.time):"",ct?"· "+ct:"",k==="미입금"?"· 미입금":r<=1?"촬영 예정":""].filter(Boolean).join(" ");
