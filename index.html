@@ -820,6 +820,7 @@ function rvisitOf(bid){if(!bid)return null;if(!RVC||Date.now()-RVT>1500){RVC=new
 /* 재촬영(보충) 방문을 찍었으면 그 원래 계약 */
 function retakeKidOf(b){if(!b||b.kind==="visit")return null;return Object.values(B).filter(x=>x.kind==="visit"&&retakePar(x)===b).sort(byDate).pop()||null}
 function retakePar(b){if(b.kind!=="visit"||!(b.steps||{}).shot||!b._sid||typeof SNAPS==="undefined")return null;const sn=SNAPS[b._sid];return sn&&sn.booking_id?Object.values(B).find(x=>!x._hist&&x._bid===sn.booking_id)||null:null}
+function monPar(b){if(b.kind!=="visit"||!b._sid||typeof SNAPS==="undefined")return null;const sn=SNAPS[b._sid];if(!sn||sn.kind!=="monitor"||!sn.booking_id)return null;const x=Object.values(B).find(x=>!x._hist&&x._bid===sn.booking_id);return x&&(x.steps||{}).rcheck?x:null} /* 보정본 확인 방문: 확인 끝나면 원래 계약 상태(공방 등) */
 function retakeOf(bid){if(!bid)return null;if(!RTC||Date.now()-RTT>1500){RTC=new Map();RTT=Date.now();for(const x of Object.values(B)){if(!x._hist||!x._sid||(x.date||"")<TODAY||(x.steps||{}).canceled||(x.steps||{}).shot)continue; /* 재촬영 찍었으면 원래 계약으로 진행 */const sn=typeof SNAPS!=="undefined"&&SNAPS[x._sid];if(sn&&sn.booking_id&&sn.kind==="supplement")RTC.set(sn.booking_id,x)}}return RTC.get(bid)||null}
 function status(b){
   const s=b.steps||{},p=P(b);
@@ -827,7 +828,7 @@ function status(b){
   if(s.postponed)return{k:"연기",c:"c-warn"};
   if(isPast(b)){if(s.shot){const left=shipRows(b).filter(r=>!r.shipped);if(left.length)return{k:`${left[0].kind}${left.length>1?" 외":""} 출고 전`,c:"c-warn",past:1}}return{k:"완료",c:"c-ok",past:1}}
   if(b.kind==="consult"&&!s.shot)return consOpen(b)?{k:"상담",c:"c-con"}:{k:"상담 끝",c:"c-mute"};
-  if(b.kind==="visit"){const par=retakePar(b);if(par)return status(par); /* 재촬영 찍은 날은 원래 계약 상태(작업중 등) 그대로 */
+  if(b.kind==="visit"){const par=retakePar(b)||monPar(b);if(par)return status(par); /* 재촬영 찍은 날은 원래 계약 상태(작업중 등) 그대로 */
     return (b.date||"")<TODAY||s.shot?{k:"완료",c:"c-ok"}:{k:"방문 예정",c:"c-acc"}}
   if(!b.date&&!s.shot){if(s.delivered&&!(b.growth||pk(b)==="growth")){const left=shipRows(b).filter(r=>!r.shipped).map(r=>r.kind||"출고");return left.length?{k:`${left[0]}${left.length>1?" 외":""} 출고 전`,c:"c-warn",crit:"출고 남음",rest:1}:{k:"완료",c:"c-ok"}} /* 촬영 없이 맡긴 작업(장수·복원 등) 수령 끝 */ if(b.growth||pk(b)==="growth"){const g=gsBase(b);return g&&g<=addDays(TODAY,-365*3)?{k:"중단",c:"c-mute"}:{k:"미등록",c:"c-tbd"}}return{k:"날짜 미정",c:"c-tbd"}}
   if(!s.shot){
