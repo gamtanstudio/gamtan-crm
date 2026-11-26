@@ -1279,7 +1279,7 @@ function priceHTML(b){
     <div class="mc mr"><label>잔금</label><b class="tn ${tot&&bal>0?"due":bal<=0&&tot?"okt":""}">${money(Math.max(0,bal))}원</b></div>
   </div>${calcBar(b)}${b.booked_pkey&&k&&b.booked_pkey!==k?`<div class="incl" style="margin-top:6px">${esc((PRODUCTS[b.booked_pkey]||{}).name||"")} → ${esc(PRODUCTS[k].name)}</div>`:""}`;
 }
-function exLine(b){const rows=priceRows(b)||[];const ex=rows.filter(r=>/\d+개( \(50% 할인\))?$/.test(r.label||""));if(!ex.length)return"";const exs=ex.reduce((s,r)=>s+(+r.amt||0),0),base=totalOf(b)-exs;return `<div class="incl" style="margin-top:4px">${money(base)} + ${ex.map(r=>esc(String(r.label).replace(/ 1개$/,""))+" "+money(r.amt)).join(" + ")}</div>`}
+function exLine(b){const ex=[];PRICE_META.forEach(m=>{const q=(b.ex||{})[m.k]||0;if(!q||!m.p)return;let a=m.p*q;if(m.big)a=Math.round(a/2);ex.push([m.label+(q>1?" "+q+"개":""),a])});if(!ex.length)return"";const exs=ex.reduce((s,x)=>s+x[1],0),base=totalOf(b)-exs;return `<div class="incl" style="margin-top:4px">${money(base)} + ${ex.map(x=>esc(x[0])+" "+money(x[1])).join(" + ")}</div>`}
 function calcBar(b){
   const k=b.pkey?pk(b):b.pkey,p=PRODUCTS[k],id=esc(b.id);
   const num=(f,v,l)=>`<span class="stp">${l}<button class="sb" data-a="num" data-id="${id}" data-v="${f}" data-d="-1" aria-label="${l} 빼기">−</button><b class="tn">${v}</b><button class="sb" data-a="num" data-id="${id}" data-v="${f}" data-d="1" aria-label="${l} 더하기">+</button></span>`;
