@@ -1274,11 +1274,12 @@ function priceHTML(b){
   const cell=c=>{const p=c.i>=0?ps[c.i]:null,m=p?p.method:"",r=p?p.receipt:"",live=!!(p&&p.amount);return `<div class="mc"><label>${c.l}${c.extra?`<button class="pdel" data-a="pay-del" data-id="${id}" data-i="${c.i}" aria-label="${c.l} 지우기" title="지우기">×</button>`:""}</label><input class="inp num" inputmode="numeric" data-f="m-amt" data-id="${id}" data-i="${c.i}" data-kind="${c.kind}" value="${p&&p.amount?money(p.amount):""}" aria-label="${c.l}">${sel("pay-method",c.i,m,METHODS,"결제",c.kind,live)}${!m||needReceipt(m)?sel("pay-receipt",c.i,r,RECEIPTS,"영수증",c.kind,false):""}${c.split?`<button class="psplit" data-a="pay-add" data-id="${id}" data-v="잔금" data-amt="0">+ 나눠 결제</button>`:""}</div>`};
   return `<div class="mline">
     <div class="mc mp"><label>상품${(b.steps||{}).delivered||shipRows(b).length&&shipRows(b).every(r=>r.shipped)?` <span class="okt">모든상품 출고됨</span>`:""}</label><div class="mrow"><select class="inp" data-f="pkey" data-id="${id}" aria-label="상품">${opt}</select><button class="mini${DET.has(b.id)?" pri":""}" data-a="det" data-id="${id}">내역</button></div></div>
-    <div class="mc"><label>금액</label><input class="inp num" inputmode="numeric" data-f="m-total" data-id="${id}" value="${tot?money(tot):""}" aria-label="금액"></div>
+    <div class="mc"><label>금액</label><input class="inp num" inputmode="numeric" data-f="m-total" data-id="${id}" value="${tot?money(tot):""}" aria-label="금액">${exLine(b)}</div>
     ${cols.map(cell).join("")}
     <div class="mc mr"><label>잔금</label><b class="tn ${tot&&bal>0?"due":bal<=0&&tot?"okt":""}">${money(Math.max(0,bal))}원</b></div>
   </div>${calcBar(b)}${b.booked_pkey&&k&&b.booked_pkey!==k?`<div class="incl" style="margin-top:6px">${esc((PRODUCTS[b.booked_pkey]||{}).name||"")} → ${esc(PRODUCTS[k].name)}</div>`:""}`;
 }
+function exLine(b){const rows=priceRows(b)||[];const ex=rows.filter(r=>/\d+개( \(50% 할인\))?$/.test(r.label||""));if(!ex.length)return"";const exs=ex.reduce((s,r)=>s+(+r.amt||0),0),base=totalOf(b)-exs;return `<div class="incl" style="margin-top:4px">${money(base)} + ${ex.map(r=>esc(String(r.label).replace(/ 1개$/,""))+" "+money(r.amt)).join(" + ")}</div>`}
 function calcBar(b){
   const k=b.pkey?pk(b):b.pkey,p=PRODUCTS[k],id=esc(b.id);
   const num=(f,v,l)=>`<span class="stp">${l}<button class="sb" data-a="num" data-id="${id}" data-v="${f}" data-d="-1" aria-label="${l} 빼기">−</button><b class="tn">${v}</b><button class="sb" data-a="num" data-id="${id}" data-v="${f}" data-d="1" aria-label="${l} 더하기">+</button></span>`;
