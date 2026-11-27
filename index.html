@@ -736,8 +736,7 @@ const PRODUCTS={
 };
 const ID_TYPES=[{k:"passport",label:"여권",p:30000},{k:"jumin",label:"주민증",p:30000},{k:"half",label:"반명함",p:30000},{k:"visa",label:"비자",p:35000},{k:"job",label:"취업·프로필",p:50000},{k:"addPass",label:"여권 추가",p:10000,add:1},{k:"addJumin",label:"주민증 추가",p:10000,add:1},{k:"web",label:"웹파일",p:5000,add:1}];
 const idqSum=b=>ID_TYPES.filter(t=>!t.add&&(b.idq||{})[t.k]).map(t=>t.label+(+b.idq[t.k]>1?b.idq[t.k]:"")).join(", ");
-const PRICE_META=[{k:"f5x7",label:"5×7 액자",p:30000},{k:"f8x10",label:"8×10 액자",p:50000},{k:"f11al",label:"11알 액자",p:500000,big:1},{k:"f16al",label:"16알 액자",p:700000,big:1},
-  {k:"f20al",label:"20알 액자",p:800000,big:1},{k:"f20slim",label:"20알 슬림",p:800000,big:1},{k:"canvas",label:"100×70 캔버스",p:1200000,big:1},{k:"album",label:"8×11 앨범",p:3000000},{k:"origadd",label:"원본 추가",p:0},{k:"dol",label:"백일·돌 촬영",p:100000,noship:1,growthOnly:1},{k:"idadd",label:"증명 추가",p:30000}];
+const PRICE_META=[{k:"f4x6",label:"4x6",p:0,frame:1},{k:"f5x7",label:"5x7",p:30000,frame:1},{k:"f8x10",label:"8x10",p:50000,frame:1},{k:"f11al",label:"11x14",p:500000,big:1,frame:1},{k:"f16al",label:"12x16",p:700000,big:1,frame:1},{k:"f20al",label:"16x20",p:800000,big:1,frame:1},{k:"f2024",label:"20x24",p:0,frame:1},{k:"f2030",label:"20x30",p:0,frame:1},{k:"fslim3",label:"슬림3구",p:0,frame:1},{k:"f20slim",label:"16x20 슬림(20R)",p:800000,big:1,frame:1},{k:"f2024s",label:"20x24 슬림",p:0,frame:1},{k:"f2030s",label:"20x30 슬림",p:0,frame:1},{k:"feco11",label:"11x14 에코",p:0,frame:1},{k:"feco2030",label:"20x30 에코",p:0,frame:1},{k:"fjang",label:"11x14 고급장수",p:0,frame:1},{k:"canvas",label:"캔버스",p:1200000,big:1,frame:1},{k:"album",label:"8×11 앨범",p:3000000},{k:"origadd",label:"원본 추가",p:0},{k:"dol",label:"백일·돌 촬영",p:100000,noship:1,growthOnly:1},{k:"idadd",label:"증명 추가",p:30000}];
 const exAmt=(b,m,q)=>{const o=(b.ex||{})["$"+m.k];if(o!=null&&o!=="")return +o||0;let a=m.p*q;if(m.big)a=Math.round(a/2);return a};const exCu=(b,m)=>{const o=(b.ex||{})["$"+m.k];return o!=null&&o!==""};const exList=b=>Array.isArray((b.ex||{})._list)?b.ex._list:[];
 function guessKey(b){const t=[b.product,b.cal].join(" ");
   if(b.growth||/가성|가족성장/.test(t))return"growth";if(/원본형/.test(t))return"bigfam_orig";if(/대가족/.test(t))return"bigfam";
@@ -800,7 +799,7 @@ function shipRows(b){
   }
   if((hasOrig(b)||b.rn)&&!has("원본"))v.push({id:"v-orig",kind:"원본",size:"",virtual:1});
   if(b.review&&!has("리뷰포켓"))v.push({id:"v-pocket",kind:"리뷰포켓",size:"",virtual:1});
-  PRICE_META.forEach(m=>{if(m.noship)return;const q=(b.ex||{})[m.k]||0;const kind=m.k==="origadd"?"원본 추가":m.label;if(q&&!items.some(i=>i.exk===m.k||i.kind===kind))v.push({id:"v-ex-"+m.k,kind,size:q>1?`×${q}`:"",exk:m.k,virtual:1})});exList(b).forEach(x=>{if(!x.size)return;const ek="L"+x.id;if(!items.some(i=>i.exk===ek))v.push({id:"v-ex-"+ek,kind:"액자",size:x.size,exk:ek,virtual:1})});
+  PRICE_META.forEach(m=>{if(m.noship)return;const q=(b.ex||{})[m.k]||0;const kind=m.frame?"액자":m.k==="origadd"?"원본 추가":m.label;if(q&&!items.some(i=>i.exk===m.k||(!m.frame&&i.kind===kind)))v.push({id:"v-ex-"+m.k,kind,size:m.frame?m.label+(q>1?` ×${q}`:""):(q>1?`×${q}`:""),exk:m.k,virtual:1})});exList(b).forEach(x=>{if(!x.size)return;const ek="L"+x.id;if(!items.some(i=>i.exk===ek))v.push({id:"v-ex-"+ek,kind:"액자",size:x.size,exk:ek,virtual:1})});
   return [...items,...v];
 }
 function hasOrig(b){if(b.noOrig&&!(b.items||[]).some(i=>i.kind==="원본"))return false;if(b.needOrig||(b.items||[]).some(i=>i.kind==="원본"))return true;const p=P(b);return !!(p&&p.orig)}
@@ -1275,12 +1274,14 @@ function priceHTML(b){
   const cell=c=>{const p=c.i>=0?ps[c.i]:null,m=p?p.method:"",r=p?p.receipt:"",live=!!(p&&p.amount);return `<div class="mc"><label>${c.l}${c.extra?`<button class="pdel" data-a="pay-del" data-id="${id}" data-i="${c.i}" aria-label="${c.l} 지우기" title="지우기">×</button>`:""}</label><input class="inp num" inputmode="numeric" data-f="m-amt" data-id="${id}" data-i="${c.i}" data-kind="${c.kind}" value="${p&&p.amount?money(p.amount):""}" aria-label="${c.l}">${sel("pay-method",c.i,m,METHODS,"결제",c.kind,live)}${!m||needReceipt(m)?sel("pay-receipt",c.i,r,RECEIPTS,"영수증",c.kind,false):""}${c.split?`<button class="psplit" data-a="pay-add" data-id="${id}" data-v="잔금" data-amt="0">+ 나눠 결제</button>`:""}</div>`};
   return `<div class="mline">
     <div class="mc mp"><label>상품${(b.steps||{}).delivered||shipRows(b).length&&shipRows(b).every(r=>r.shipped)?` <span class="okt">모든상품 출고됨</span>`:""}</label><div class="mrow"><select class="inp" data-f="pkey" data-id="${id}" aria-label="상품">${opt}</select><button class="mini${DET.has(b.id)?" pri":""}" data-a="det" data-id="${id}">내역</button></div></div>
-    <div class="mc"><label>금액</label><input class="inp num" inputmode="numeric" data-f="m-total" data-id="${id}" value="${tot?money(tot):""}" aria-label="금액">${exLine(b)}</div>
+    <div class="mc"><label>금액</label><input class="inp num" inputmode="numeric" data-f="m-total" data-id="${id}" value="${tot?money(tot):""}" aria-label="금액"></div>
     ${cols.map(cell).join("")}
     <div class="mc mr"><label>잔금</label><b class="tn ${tot&&bal>0?"due":bal<=0&&tot?"okt":""}">${money(Math.max(0,bal))}원</b></div>
-  </div>${calcBar(b)}${b.booked_pkey&&k&&b.booked_pkey!==k?`<div class="incl" style="margin-top:6px">${esc((PRODUCTS[b.booked_pkey]||{}).name||"")} → ${esc(PRODUCTS[k].name)}</div>`:""}`;
+  </div>${plHTML(b)}${calcBar(b)}${b.booked_pkey&&k&&b.booked_pkey!==k?`<div class="incl" style="margin-top:6px">${esc((PRODUCTS[b.booked_pkey]||{}).name||"")} → ${esc(PRODUCTS[k].name)}</div>`:""}`;
 }
 function exLine(b){const ex=[];PRICE_META.forEach(m=>{const q=(b.ex||{})[m.k]||0;if(!q)return;const a=exAmt(b,m,q);if(!a&&!m.p)return;ex.push([m.label+(q>1?" "+q+"개":""),a])});exList(b).forEach(x=>ex.push([x.label,+x.amt||0]));if(!ex.length)return"";const exs=ex.reduce((s,x)=>s+x[1],0),base=totalOf(b)-exs;return `<div class="incl" style="margin-top:4px">${money(base)} + ${ex.map(x=>esc(x[0])+" "+money(x[1])).join(" + ")}</div>`}
+function plRows(b){return Array.isArray(b.priceItems)?b.priceItems:priceRows(b)}
+function plHTML(b){const p=P(b);if(p&&p.idlike)return"";const id=esc(b.id),L=plRows(b);return `<div class="pl" style="margin-top:8px">${L.map((r,i)=>`<div style="display:grid;grid-template-columns:48px minmax(0,1fr) 110px 30px;gap:6px;align-items:center;padding:3px 0;border-bottom:1px solid rgba(0,0,0,.06)"><span style="color:var(--muted);font-size:12px">${r.d?md(r.d):""}</span><span>${esc(r.label||"")}</span><input class="inp num" inputmode="numeric" data-f="pl-amt" data-id="${id}" data-i="${i}" value="${money(+r.amt||0)}" aria-label="금액"><button class="xb" data-a="pl-del" data-id="${id}" data-i="${i}" aria-label="항목 지우기">×</button></div>`).join("")}<div style="display:grid;grid-template-columns:48px minmax(0,1fr) 110px auto;gap:6px;align-items:center;padding:6px 0 0"><span style="color:var(--muted);font-size:12px">${md(TODAY)}</span><input class="inp" id="pln-${id}" aria-label="내역 메모"><input class="inp num" inputmode="numeric" id="pla-${id}" aria-label="금액"><button class="mini pri" data-a="pl-add" data-id="${id}">+ 추가</button></div></div>`}
 function calcBar(b){
   const k=b.pkey?pk(b):b.pkey,p=PRODUCTS[k],id=esc(b.id);
   const num=(f,v,l)=>`<span class="stp">${l}<button class="sb" data-a="num" data-id="${id}" data-v="${f}" data-d="-1" aria-label="${l} 빼기">−</button><b class="tn">${v}</b><button class="sb" data-a="num" data-id="${id}" data-v="${f}" data-d="1" aria-label="${l} 더하기">+</button></span>`;
@@ -1307,7 +1308,7 @@ function payHTML(b){
     <button class="addrow" data-a="pi-add" data-id="${id}">+ 항목</button>
   </div>`;
 }
-const SIZES=["4x6","5x7","8x10","11x14","16x20","20x24","20x30","슬림3구","16x20 슬림(20R)","20x24 슬림","20x30 슬림","11x14 에코","20x30 에코","11x14 고급장수","캔버스"];
+const SIZES=["4x6","5x7","8x10","11x14","12x16","16x20","20x24","20x30","슬림3구","16x20 슬림(20R)","20x24 슬림","20x30 슬림","11x14 에코","20x30 에코","11x14 고급장수","캔버스"];
 const SHIPOPEN=new Set();
 function shipHTML(b){
   const p=P(b);if(p&&p.idlike)return"";
@@ -1332,12 +1333,9 @@ function shipHTML(b){
       ${b.ship==="택배"?`<input class="inp trk" data-f="track" data-id="${esc(b.id)}" value="${esc(b.track||"")}" placeholder="송장번호" inputmode="numeric" aria-label="송장번호">`:""}</div>`;
 }
 function extraHTML(b){
-  const p=P(b);if(p&&p.idlike)return"";const id=esc(b.id),L=exList(b);
-  const n=PRICE_META.reduce((a,m)=>a+((b.ex||{})[m.k]||0),0)+L.length;
-  const rowsM=PRICE_META.filter(m=>!m.growthOnly||(P(b)||{}).growth).map(m=>{const q=(b.ex||{})[m.k]||0;return `<div class="exr${q?" on":""}"><span>${m.label}</span><span class="stp"><button class="sb" data-a="ex" data-id="${id}" data-v="${m.k}" data-d="-1" aria-label="${m.label} 빼기">−</button><b class="tn">${q}</b><button class="sb" data-a="ex" data-id="${id}" data-v="${m.k}" data-d="1" aria-label="${m.label} 더하기">+</button></span>${q?`<input class="inp num" style="width:90px;margin-left:6px" inputmode="numeric" data-f="ex-amt" data-id="${id}" data-v="${m.k}" value="${money(exAmt(b,m,q))}" aria-label="${m.label} 금액">`:""}</div>`}).join("");
-  const rowsL=L.map(x=>`<div class="exr on"><span>${esc(x.label)}</span><input class="inp num" style="width:90px;margin-left:auto" inputmode="numeric" data-f="exl-amt" data-id="${id}" data-v="${esc(x.id)}" value="${money(+x.amt||0)}" aria-label="${esc(x.label)} 금액"><button class="xb" data-a="exl-del" data-id="${id}" data-v="${esc(x.id)}" aria-label="${esc(x.label)} 빼기">×</button></div>`).join("");
-  const add=`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px"><select class="inp" id="exs-${id}" style="width:auto" aria-label="추가 액자 크기">${[...SIZES,"기타"].map(z=>`<option>${z}</option>`).join("")}</select><input class="inp" id="exn-${id}" style="width:110px" aria-label="기타 이름"><input class="inp num" id="exa-${id}" style="width:100px" inputmode="numeric" aria-label="금액"><button class="mini pri" data-a="exl-add" data-id="${id}">추가</button></div>`;
-  return `<details class="exbox"${n?" open":""}><summary class="bx-h" style="cursor:pointer;margin:0">추가 주문${n?` <b class="tn" style="color:var(--acc-fg)">${n}</b>`:""}</summary><div class="exg">${rowsM}${rowsL}</div>${add}</details>`;
+  const p=P(b);if(p&&p.idlike)return"";const id=esc(b.id);
+  const n=PRICE_META.reduce((a,m)=>a+((b.ex||{})[m.k]||0),0);
+  return `<details class="exbox"${n?" open":""}><summary class="bx-h" style="cursor:pointer;margin:0">추가 주문${n?` <b class="tn" style="color:var(--acc-fg)">${n}</b>`:""}</summary><div class="exg">${PRICE_META.filter(m=>!m.growthOnly||(P(b)||{}).growth).map(m=>{const q=(b.ex||{})[m.k]||0;return `<div class="exr${q?" on":""}"><span>${m.label}</span><span class="stp"><button class="sb" data-a="ex" data-id="${id}" data-v="${m.k}" data-d="-1" aria-label="${m.label} 빼기">−</button><b class="tn">${q}</b><button class="sb" data-a="ex" data-id="${id}" data-v="${m.k}" data-d="1" aria-label="${m.label} 더하기">+</button></span></div>`}).join("")}</div></details>`;
 }
 const EDOPEN=new Set();
 document.addEventListener("toggle",e=>{const d=e.target;if(d.dataset&&d.dataset.ed){d.open?EDOPEN.add(d.dataset.ed):EDOPEN.delete(d.dataset.ed)}},true);
@@ -1859,7 +1857,9 @@ document.addEventListener("click",e=>{
     if(!items.some(i=>i.kind==="보정본"))items.push({id:uid("i"),kind:"보정본",size:"",photo,ready:null,shipped:null});
     FORM=null;save(id,{items,steps:{picked:(b.steps||{}).picked||TODAY}},`사진 선택: ${photo} ${size}`);return}
   if(a==="idq"){const q={...(b.idq||{})};q[v]=Math.max(0,(+q[v]||0)+(+t.dataset.d));const n=ID_TYPES.filter(x=>!x.add).reduce((s2,x)=>s2+(+q[x.k]||0),0);save(id,{idq:q,adults:n||b.adults||1,kids:0,priceItems:null});return}
-  if(a==="ex"){const m=PRICE_META.find(x=>x.k===v)||{};const ex={...(b.ex||{})};const old=+ex[v]||0;const oa=old?exAmt(b,m,old):0;ex[v]=Math.max(0,old+(+t.dataset.d));delete ex["$"+v];const na=ex[v]?exAmt({ex},m,ex[v]):0;const patch={ex,priceItems:null};if(na!==oa&&+b.priceOverride)patch.priceOverride=+b.priceOverride+na-oa;save(id,patch);return}
+  if(a==="ex"){const m=PRICE_META.find(x=>x.k===v)||{};const ex={...(b.ex||{})};const old=+ex[v]||0;const dd=+t.dataset.d;const nq=Math.max(0,old+dd);if(nq===old)return;ex[v]=nq;delete ex["$"+v];const L=plRows(b).map(x=>({...x}));if(dd>0){let a1=m.p||0;if(m.big)a1=Math.round(a1/2);L.push({label:m.frame?m.label+" 액자 추가":m.label,amt:a1,d:TODAY,exk:v})}else{let j=-1;for(let i=L.length-1;i>=0;i--){if(L[i].exk===v){j=i;break}}if(j<0)for(let i=L.length-1;i>=0;i--){if(String(L[i].label||"").startsWith(m.label)){j=i;break}}if(j>=0)L.splice(j,1)}save(id,{ex,priceItems:L,priceOverride:L.reduce((s,x)=>s+(+x.amt||0),0)},`추가 주문 ${m.label} ${dd>0?"+1":"-1"}`);return}
+  if(a==="pl-add"){const nm=String(($("pln-"+id)||{}).value||"").trim(),amt=+String(($("pla-"+id)||{}).value||"").replace(/[^\d-]/g,"")||0;if(!nm&&!amt){toast("메모나 금액을 넣어 주세요");return}const L=plRows(b).map(x=>({...x}));L.push({label:nm,amt,d:TODAY});save(id,{priceItems:L,priceOverride:L.reduce((s,x)=>s+(+x.amt||0),0)},`금액 추가 ${nm} ${money(amt)}`);return}
+  if(a==="pl-del"){const i=+t.dataset.i;const L=plRows(b).map(x=>({...x}));const x=L[i];if(!x)return;L.splice(i,1);const patch={priceItems:L,priceOverride:L.reduce((s,y)=>s+(+y.amt||0),0)};if(x.exk){const ex={...(b.ex||{})};ex[x.exk]=Math.max(0,(+ex[x.exk]||0)-1);patch.ex=ex}save(id,patch,`금액 줄 뺌 ${x.label||""} ${money(+x.amt||0)}`);return}
   if(a==="exl-add"){const sz=($("exs-"+id)||{}).value||"",amt=+String(($("exa-"+id)||{}).value||"").replace(/\D/g,"")||0,nm=String(($("exn-"+id)||{}).value||"").trim();if(!sz){toast("크기를 골라 주세요");return}const it=sz==="기타"?{id:uid("x"),label:nm||"기타",amt}:{id:uid("x"),label:sz+" 액자",size:sz,amt};const ex={...(b.ex||{}),_list:[...exList(b),it]};const patch={ex,priceItems:null};if(+b.priceOverride)patch.priceOverride=+b.priceOverride+amt;save(id,patch,`추가 주문 ${it.label} ${money(amt)}`);return}
   if(a==="exl-del"){const L=exList(b),x=L.find(y=>y.id===v);if(!x)return;const ex={...(b.ex||{}),_list:L.filter(y=>y.id!==v)};const patch={ex,priceItems:null};if(+b.priceOverride)patch.priceOverride=+b.priceOverride-(+x.amt||0);save(id,patch,`추가 주문 ${x.label} 뺌`);return}
 });
@@ -1891,6 +1891,7 @@ document.addEventListener("change",e=>{if(e.target.dataset&&e.target.dataset.f==
     setPayments(b,l,`${p.kind} ${money(p.amount)}원 · ${p.method||"결제 방법 미정"} · ${p.receipt||"영수증 미정"}`);return}
   if(f==="ex-amt"){const m=PRICE_META.find(x=>x.k===t.dataset.v)||{};const q=+(b.ex||{})[m.k]||0;if(!q)return;const oa=exAmt(b,m,q),na=+String(t.value).replace(/\D/g,"")||0;const ex={...(b.ex||{}),["$"+m.k]:na};const patch={ex,priceItems:null};if(+b.priceOverride)patch.priceOverride=+b.priceOverride+na-oa;save(id,patch,`${m.label} 금액 ${money(na)}`);return}
   if(f==="exl-amt"){const L=exList(b).map(x=>({...x}));const x=L.find(y=>y.id===t.dataset.v);if(!x)return;const oa=+x.amt||0,na=+String(t.value).replace(/\D/g,"")||0;x.amt=na;const ex={...(b.ex||{}),_list:L};const patch={ex,priceItems:null};if(+b.priceOverride)patch.priceOverride=+b.priceOverride+na-oa;save(id,patch,`${x.label} 금액 ${money(na)}`);return}
+  if(f==="pl-amt"){const i=+t.dataset.i;const L=plRows(b).map(x=>({...x}));if(!L[i])return;const na=+String(t.value).replace(/[^\d-]/g,"")||0;const oa=+L[i].amt||0;if(na===oa)return;L[i].amt=na;save(id,{priceItems:L,priceOverride:L.reduce((s,x)=>s+(+x.amt||0),0)},`${L[i].label||"금액"} ${money(oa)} → ${money(na)}`);return}
   if(f==="ship-size"){const [items,it]=materialize(b,t.dataset.r);if(!it)return;it.size=t.value;save(id,{items},`액자 ${t.value}`);return}
   if(f==="ship-photo"){const [items,it]=materialize(b,t.dataset.r);if(!it)return;it.photo=t.value.trim();save(id,{items});return}
   if(f==="gs-c"||f==="gs-y"){const m=/^(\d+)-(\d+)$/.exec(b.gs||"")||[null,"",""];const c=f==="gs-c"?digits(t.value):m[1],y=f==="gs-y"?digits(t.value):m[2];save(id,{gs:c&&y?`${c}-${y}`:""},`가성 회차 ${c}-${y}`);return}
