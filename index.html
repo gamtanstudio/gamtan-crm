@@ -821,6 +821,7 @@ function rvisitOf(bid){if(!bid)return null;if(!RVC||Date.now()-RVT>1500){RVC=new
 function retakeKidOf(b){if(!b||b.kind==="visit")return null;return Object.values(B).filter(x=>x.kind==="visit"&&retakePar(x)===b).sort(byDate).pop()||null}
 function retakePar(b){if(b.kind!=="visit"||!(b.steps||{}).shot||!b._sid||typeof SNAPS==="undefined")return null;const sn=SNAPS[b._sid];return sn&&sn.booking_id?Object.values(B).find(x=>!x._hist&&x._bid===sn.booking_id)||null:null}
 function monPar(b){if(b.kind!=="visit"||!b._sid||typeof SNAPS==="undefined")return null;const sn=SNAPS[b._sid];if(!sn||sn.kind!=="monitor"||!sn.booking_id)return null;const x=Object.values(B).find(x=>!x._hist&&x._bid===sn.booking_id);return x&&(x.steps||{}).rcheck?x:null} /* 보정본 확인 방문: 확인 끝나면 원래 계약 상태(공방 등) */
+function monParAny(b){if(b.kind!=="visit"||!b._sid||typeof SNAPS==="undefined")return null;const sn=SNAPS[b._sid];if(!sn||sn.kind!=="monitor"||!sn.booking_id)return null;return Object.values(B).find(x=>!x._hist&&x._bid===sn.booking_id)||null}
 function retakeOf(bid){if(!bid)return null;if(!RTC||Date.now()-RTT>1500){RTC=new Map();RTT=Date.now();for(const x of Object.values(B)){if(!x._hist||!x._sid||(x.date||"")<TODAY||(x.steps||{}).canceled||(x.steps||{}).shot)continue; /* 재촬영 찍었으면 원래 계약으로 진행 */const sn=typeof SNAPS!=="undefined"&&SNAPS[x._sid];if(sn&&sn.booking_id&&sn.kind==="supplement")RTC.set(sn.booking_id,x)}}return RTC.get(bid)||null}
 function status(b){
   const s=b.steps||{},p=P(b);
@@ -1213,7 +1214,7 @@ function drawCust(){
     put("hrw-"+b.id,rowHTML2(b));drawCard(b)});
 }
 function drawCard(b){
-  const id=b.id,st=status(b),[pn,pc]=pinfo(b),s=b.steps||{},open=EXP.has(id),par=retakePar(b),kid=par?null:retakeKidOf(b),SB=par||b; /* 재촬영 찍었으면 재촬영 카드에서 진행, 원래 카드는 한 줄 */
+  const id=b.id,st=status(b),[pn,pc]=pinfo(b),s=b.steps||{},open=EXP.has(id),par=retakePar(b),kid=par?null:retakeKidOf(b),SB=par||b,mp=monParAny(b); /* 재촬영 찍었으면 재촬영 카드에서 진행, 원래 카드는 한 줄 */
   const el=$("hc-"+id);
   const cls="hc "+(s.canceled?"cancel":st.k==="완료"?"done":(!b.date?"tbd":"live"))+" sg-"+stg(b,st)+(open?"":" closed");
   if(el.className!==cls)el.className=cls;el.style.setProperty("--pc",pc);
@@ -1226,7 +1227,7 @@ function drawCard(b){
     <span class="hh-r tn">${tot?(bal>0?`잔금 <b>${money(bal)}</b>`:`${money(tot)} 완납`):""}${shipSummary(SB)}</span><span class="chev" aria-hidden="true">${open?"▴":"▾"}</span></div>`);
   setVal($("hm-"+id),b.memo||"");
   const L=stepsFor(SB),na=nextAction(SB);const first=L.findIndex(([k])=>!stepOn(SB,k)); /* 재촬영 카드는 원래 계약 단계를 그대로 */
-  put("hf-"+id,kid?"":(s.canceled||st.past?"":L.map(([k,l],i)=>{const on=stepOn(SB,k);return `<button class="st${on?" on":i===first?" now":""}" data-a="step" data-id="${esc(SB.id)}" data-v="${k}" title="${on?"눌러서 되돌리기":"눌러서 체크"}">${on?"✓ ":""}${l}<small>${esc(on?stepDate(SB,k):"")}</small></button>`}).join(""))
+  put("hf-"+id,mp?(s.canceled?"":stepOn(mp,"rcheck")?`<button class="st on" data-a="step" data-id="${esc(mp.id)}" data-v="rcheck" title="눌러서 되돌리기">✓ 확인 완료<small>${esc(stepDate(mp,"rcheck"))}</small></button>`:`<button class="nextbtn" data-a="step" data-id="${esc(mp.id)}" data-v="rcheck">확인 완료</button>`):kid?"":(s.canceled||st.past?"":L.map(([k,l],i)=>{const on=stepOn(SB,k);return `<button class="st${on?" on":i===first?" now":""}" data-a="step" data-id="${esc(SB.id)}" data-v="${k}" title="${on?"눌러서 되돌리기":"눌러서 체크"}">${on?"✓ ":""}${l}<small>${esc(on?stepDate(SB,k):"")}</small></button>`}).join(""))
     +(((SB.steps||{}).shot&&!stepOn(SB,"done")&&!L.some(x=>x[0]==="workshop")&&(SB.items||[]).some(i=>i.kind==="액자")&&!s.canceled&&!st.past)?`<button class="mini" data-a="step" data-id="${esc(SB.id)}" data-v="workshop">+ 공방</button>`:"")
     +((L.some(x=>x[0]==="rnotify")||((SB.steps||{}).shot&&(SB.items||[]).some(i=>i.kind==="액자"||i.kind==="보정본")))&&!(SB.steps||{}).rcheck&&!s.canceled&&!st.past?(RVF===id?`<span class="rvf"><input type="date" class="inp" id="rvd-${esc(id)}" value="${TODAY}" aria-label="보정본 확인 날짜"><input type="time" class="inp" id="rvt-${esc(id)}" step="600" aria-label="보정본 확인 시간"><button class="mini pri" data-a="rv-save" data-id="${esc(id)}">저장</button><button class="mini" data-a="rv-x" data-id="${esc(id)}">취소</button></span>`:`<button class="mini" data-a="rv-open" data-id="${esc(id)}">+ 보정본 일정</button>`):"")
     +(st.past?`<span class="sc c-mute">지난 기록</span>`:"")
@@ -1235,6 +1236,7 @@ function drawCard(b){
   put("hq-"+id,MSGON===id&&!wide()?msgHTML(b):"");
   const hd=$("hd-"+id);if(kid){hd.hidden=true;["hg","hp","hy","he","hs"].forEach(p=>put(p+"-"+id,""));return}if(hd.hidden===open)hd.hidden=!open;
   if(!open)return;
+  if(mp){["hg","hp","hy","hs"].forEach(p=>put(p+"-"+id,""));put("he-"+id,editHTML(b));return}
   put("hg-"+id,growthHTML(SB));put("hp-"+id,priceHTML(SB));put("hy-"+id,payHTML(SB));put("hs-"+id,shipHTML(SB));put("he-"+id,editHTML(b));
 }
 /* 히스토리 진행 색: 주황=우리 차례, 파랑=손님 기다림, 초록=아직 안 찍음, 끝난 건 흐리게 */
