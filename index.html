@@ -922,7 +922,7 @@ const clean=x=>String(x||"").replace(/#\d+/g,"").replace(/\s+/g," ").trim();
 function calText(b){if(b.cal)return clean(b.cal);const pr=clean(b.product);if(pr)return clean((b.people&&!/\d+인/.test(pr)?b.people+"인 ":"")+pr);
   const k=b.pkey,a=+b.adults||0,kd=+b.kids||0,n=a+kd,sh=SHORT[k]??((P(b)||{}).name||"");
   if(k==="id"){const q=idqSum(b);return q||((n>1?n+"인 ":"")+"증명")}
-  if(FAMK.includes(k)){const g=k==="growth"?"가성"+(b.gs||""):sh;return clean(`${n?n+"인가족 ":""}${kd?"아이"+kd+" ":""}${g}`)}
+  if(FAMK.includes(k)){const g=k==="growth"?"가성"+(b.gs||""):({simpfam:"심플패밀리",story:"감탄스토리",bigfam:"대가족 STORY",bigfam_old:"대가족 STORY"}[k]||sh);return clean(`${n?n+"인가족 ":""}${kd?"아이"+kd+" ":""}${b.pet?"반려견 ":""}${g}`)}
   return clean(`${n>1?n+"인 ":""}${sh}`)}
 function calVal(b,raw){const v=String(raw||"").replace(/\s+/g," ").trim();return v===calText({...b,cal:""})?"":v}
 const SHORT={story:"스토리",simpfam:"심플",bigfam:"대가족",bigfam_old:"대가족",bigfam_orig:"대가족 원본형",growth:"가성",kids:"키즈",profile:"프로필",perform:"연주",audition:"오디션",friend:"우정",jangsu:"장수",halfid:"반명함",id:"증명",etc:""};
@@ -2001,7 +2001,7 @@ function nPrice(){const k=$("n-pkey").value,p=PRODUCTS[k];$("n-up11w").hidden=!(
   const fam=!k||FAMK.includes(k)&&k!=="growth";$("n-cmp").hidden=!fam;
   if(fam)setHTML($("n-cmp"),CMPK.map(c=>{const r=calcRows(nBook(c))||[];const t=r.reduce((a,x)=>a+(+x.amt||0),0);return `<button type="button" data-a="ncmp" data-v="${c}" aria-pressed="${c===k}">${esc(SHORT[c])}<b class="tn">${money(t)}</b></button>`}).join(""))}
 function setHTML(el,h){if(el._h!==h){el.innerHTML=h;el._h=h}}
-const nAuto=()=>calText({pkey:$("n-pkey").value||null,adults:+$("n-adults").value||0,kids:+$("n-kids").value||0,product:"",cal:""})||"";
+const nAuto=()=>calText({pkey:$("n-pkey").value||null,adults:+$("n-adults").value||0,kids:+$("n-kids").value||0,pet:$("n-pet").checked,product:"",cal:""})||"";
 function calPreview(){const c=$("n-cal");if(c.dataset.dirty)return;c.value=nAuto();c.classList.add("auto")}
 $("n-cal").addEventListener("input",()=>{const c=$("n-cal");c.classList.remove("auto");c.dataset.dirty=c.value.trim()?"1":"";if(!c.dataset.dirty&&document.activeElement!==c)calPreview()});
 $("n-cal").addEventListener("blur",()=>{const c=$("n-cal");if(!c.value.trim()){c.dataset.dirty="";calPreview()}});
